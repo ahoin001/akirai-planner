@@ -58,7 +58,6 @@
     --disabled-color: 240 3% 54%; /* rgba(135,135,142,255) */
     --modal-color: 240 5% 11%; /* rgba(28,28,30,255) */
   }
-
   .dark {
     --background: 0 0% 3.9%;
     --foreground: 0 0% 98%;
@@ -143,6 +142,66 @@
 .animate-slide-in-right {
   animation: slideInRight 0.3s forwards;
 }
+
+/* globals.css */
+/* @keyframes slide-in-left {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes slide-in-right {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+/* Add these new keyframes */
+/* @keyframes slide-out-left {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+@keyframes slide-out-right {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(100%);
+  } */
+/* }  */
+
+/* .animate-slide-out-left {
+  animation: slide-out-left 0.3s ease-in-out forwards;
+  z-index: 10;
+}
+
+.animate-slide-out-right {
+  animation: slide-out-right 0.3s ease-in-out forwards;
+  z-index: 10;
+}
+
+.animate-slide-in-left {
+  animation: slide-in-left 0.3s ease-in-out forwards;
+  z-index: 20;
+  left: 100%;
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.3s ease-in-out forwards;
+  z-index: 20;
+  right: 100%;
+} */
 
 /* Calendar customizations */
 .calendar-month .rdp-months {
