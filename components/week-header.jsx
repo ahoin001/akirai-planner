@@ -10,7 +10,7 @@
  */
 import { format, isSameDay } from "date-fns";
 import { useState, useCallback, memo } from "react";
-import useCalendarStore from "@/app/stores/use-calendar-store";
+import useCalendarStore from "@/app/stores/useCalendarStore";
 
 import { Calendar } from "lucide-react";
 import DatePicker from "./date-picker";

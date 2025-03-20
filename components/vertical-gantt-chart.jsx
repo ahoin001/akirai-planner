@@ -11,7 +11,7 @@
 import useCalendarStore from "@/app/stores/useCalendarStore";
 import { useEffect, useRef, useState, useCallback, memo } from "react";
 import { format, isSameDay } from "date-fns";
-import { WeekHeader } from "@/components/week-header";
+import WeekHeader from "@/components/week-header";
 import WeekNavigation from "@/components/week-navigation";
 
 // Constants for timeline configuration
