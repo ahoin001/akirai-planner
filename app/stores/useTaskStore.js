@@ -4,15 +4,37 @@ import { toast } from "react-hot-toast";
 import { createClient as createSupabaseBrowserClient } from "@/utils/supabase/client";
 
 // Helpers
-const TIME_FORMAT = "HH:mm";
-const DATE_FORMAT = "YYYY-MM-DD";
-const MAX_OCCURRENCES = 25; // Safety cap
+// const TIME_FORMAT = "HH:mm";
+// const DATE_FORMAT = "YYYY-MM-DD";
+// const MAX_OCCURRENCES = 25; // Safety cap
+
+// TODO I NEED TO FIX TASK CREATE TO ONLY INSERT INSTANCE INTO REALTIME CHANGE
 
 export const useTaskStore = create((set, get) => ({
+  error: null,
+  isLoading: false,
+  selectedTask: null,
+  selectedTaskId: null,
   tasks: [],
   taskInstances: [],
-  isLoading: false,
-  error: null,
+
+  // **********************************************************
+  // SETTERS
+  // **********************************************************
+  setSelectedTask: (task) => set({ selectedTask: task }),
+
+  setSelectedTaskId: (id) => set({ selectedTaskId: id }),
+
+  // **********************************************************
+  // HELPERS
+  // **********************************************************
+  handleTaskSelect: (task) => {
+    const { setSelectedTask, setSelectedTaskId } = get(); // ✅ Get methods from store
+    console.log(task);
+    setSelectedTask(task);
+    setSelectedTaskId(task.id);
+    set({ activeModal: "taskMenu" }); // ✅ Directly use set() for updating activeModal
+  },
 
   // Call this function to hydrate and subscribe when app loads
   hydrateAndSubscribe: async (startDate) => {
@@ -32,20 +54,10 @@ export const useTaskStore = create((set, get) => ({
 
       const supabase = await createSupabaseBrowserClient();
 
-      // Fetch the user from supabase auth
       const { data: user, error: authError } = await supabase.auth.getUser();
       if (authError || !user) throw new Error("User not authenticated");
 
       console.log("User fetching:", user.user.id);
-
-      // Get the authenticated user
-      // const user = await ensureAuthenticated();
-
-      // const {
-      //   data: { user },
-      //   error: authError,
-      // } = await supabase.auth.getUser();
-      // if (authError || !user) throw new Error("Not authenticated");
 
       const { data, error } = await supabase
         .from("task_instances")
@@ -64,8 +76,8 @@ export const useTaskStore = create((set, get) => ({
           )
         `
         )
-        .gte("scheduled_date", startDate.format(DATE_FORMAT))
-        .lte("scheduled_date", endDate.format(DATE_FORMAT))
+        .gte("scheduled_date", startDate.toISOString())
+        .lte("scheduled_date", endDate.toISOString())
         // .eq("is_cancelled", false)
         .eq("user_id", user.user.id)
         .order("scheduled_date", { ascending: true })
@@ -74,11 +86,6 @@ export const useTaskStore = create((set, get) => ({
       if (error) throw error;
 
       set({ taskInstances: data, isLoading: false });
-
-      console.log("Task instances:", data);
-      console.log("Task set on instances:", get().taskInstances);
-
-      //   return data;
     } catch (error) {
       console.error("Error fetching tasks:", error);
       throw error;
@@ -121,93 +128,6 @@ export const useTaskStore = create((set, get) => ({
       console.error("Error fetching task instances:", error);
       set({ error: error.message, isLoading: false });
       toast.error("Failed to load task instances");
-    }
-  },
-
-  // Create a new task
-  v0createTask: async (taskData) => {
-    set({ isLoading: true, error: null });
-    try {
-      const { data, error } = await supabase
-        .from("tasks")
-        .insert(taskData)
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      // No need to manually update state as we'll get the update via realtime
-      set({ isLoading: false });
-      toast.success("Task created successfully");
-      return data;
-    } catch (error) {
-      console.error("Error creating task:", error);
-      set({ error: error.message, isLoading: false });
-      toast.error("Failed to create task");
-      return null;
-    }
-  },
-
-  /**
-   *
-   * @param {*} taskData
-   * @returns
-   */
-  createTask: async (taskData) => {
-    try {
-      const {
-        data: { user },
-        error: authError,
-      } = await supabase.auth.getUser();
-      if (authError || !user) throw new Error("Not authenticated");
-
-      // Create parent task
-      const { data: task, error: taskError } = await supabase
-        .from("tasks")
-        .insert([
-          {
-            user_id: user.id,
-            ...taskData,
-            is_recurring: taskData.recurrence !== null,
-            time_zone: "America/New_York", // TODO get timezone dynamically dayjs.tz.guess()
-          },
-        ])
-        .select("*")
-        .single();
-
-      if (taskError) throw taskError;
-
-      // TODO ADD TO ACTIONS TO AUTO MAKE INSTANCES
-      const { data: instance, error: instanceError } = await supabase
-        .from("task_instances")
-        .insert([
-          {
-            task_id: task.id,
-            user_id: user.id,
-            scheduled_date: task.start_date,
-            start_time: task.start_time,
-            duration_minutes: task.duration_minutes,
-            original_start_time: task.start_time,
-            original_duration: task.duration_minutes,
-          },
-        ])
-        .single();
-
-      if (instanceError) throw instanceError;
-
-      // Generate future instances if recurring
-      let futureInstances = [];
-      if (task.is_recurring) {
-        futureInstances = await generateTaskInstances(task);
-      }
-
-      return {
-        task,
-        instances: [instance, ...futureInstances],
-      };
-    } catch (error) {
-      console.error("Create task error:", error);
-      throw error;
     }
   },
 
@@ -344,6 +264,8 @@ export const useTaskStore = create((set, get) => ({
 
           switch (eventType) {
             case "INSERT":
+              console.log("new instance:", newRecord);
+              console.log("current instances:", get().taskInstances);
               set((state) => ({
                 taskInstances: [...state.taskInstances, newRecord],
               }));

@@ -4,9 +4,16 @@ import { encodedRedirect } from "@/utils/utils";
 import { createClient } from "@/utils/supabase/server";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import dayjs from "dayjs";
 
-export const createTaskAction = async (taskData) => {
-  console.log("sevrer task data: ", taskData);
+const MAX_OCCURRENCES = 25; // Safety cap
+
+/**
+ *
+ * @param {*} taskData
+ * @returns
+ */
+export async function createTaskAction(taskData) {
   try {
     const supabase = await createClient();
 
@@ -23,6 +30,7 @@ export const createTaskAction = async (taskData) => {
 
     console.log("sevrer user: ", user);
     console.log("sevrer task data: ", taskData);
+
     // Create parent task
     const { data: task, error: taskError } = await supabase
       .from("tasks")
@@ -31,39 +39,171 @@ export const createTaskAction = async (taskData) => {
           user_id: user.id,
           ...taskData,
           is_recurring: taskData.recurrence !== null,
-          // time_zone: "America/New_York", // TODO get timezone dynamically dayjs.tz.guess()
         },
       ])
       .select("*")
       .single();
-    console.log("sevrer task insert: ", task);
 
     if (taskError) throw taskError;
 
-    // const { data: task, error: taskError } = await supabase
-    //   .from("tasks")
-    //   .insert([
-    //     {
-    //       user_id: user.id,
-    //       ...taskData,
-    //       is_recurring: taskData.recurrence !== null,
-    //       time_zone: "America/New_York",
-    //     },
-    //   ])
-    //   .select()
-    //   .single();
+    // Create initial instance
+    const { data: instance, error: instanceError } = await supabase
+      .from("task_instances")
+      .insert([
+        {
+          task_id: task.id,
+          user_id: user.id,
+          scheduled_date: task.start_date,
+          start_time: task.start_time,
+          duration_minutes: task.duration_minutes,
+          original_start_time: task.start_time,
+          original_duration: task.duration_minutes,
+        },
+      ])
+      .single();
 
-    // if (taskError) throw taskError;
+    if (instanceError) throw instanceError;
 
-    // ✅ Revalidate cache so UI updates
-    // revalidatePath("/");
+    // Generate future instances if recurring
+    let futureInstances = [];
+    if (task.is_recurring) {
+      futureInstances = await generateTaskInstances(task);
+    }
 
-    return task;
+    return {
+      task,
+      instances: [instance, ...futureInstances],
+    };
   } catch (error) {
     console.error("Create task error:", error);
     throw error;
   }
-};
+}
+
+export async function generateTaskInstances(task) {
+  try {
+    // Validate required fields
+    if (!task?.start_date || !/^\d{4}-\d{2}-\d{2}$/.test(task.start_date)) {
+      throw new Error("Invalid start_date");
+    }
+
+    // Configure generation
+    const isRecurring = task.is_recurring && task.recurrence;
+    const occurrences = isRecurring
+      ? Math.min(task.recurrence.occurrences || 1, MAX_OCCURRENCES)
+      : 1;
+
+    // Timezone setup
+    const tz = task.time_zone || "UTC";
+    const timePart = task.start_time?.match(/^\d{2}:\d{2}$/)
+      ? task.start_time
+      : "00:00";
+
+    // Create initial date in the specified timezone
+    let currentDate = dayjs.tz(`${task.start_date}T${timePart}`, tz);
+
+    // Generate instances
+    const instances = [];
+    let interval = 1;
+
+    // TODO FIX RECURRENCE
+    if (isRecurring) {
+      if (
+        !["daily", "weekly", "monthly", "yearly"].includes(
+          task.recurrence.frequency
+        )
+      ) {
+        throw new Error("Invalid recurrence frequency");
+      }
+      interval = Math.min(task.recurrence.interval || 1, 365);
+    }
+
+    for (let i = 0; i < occurrences; i++) {
+      instances.push({
+        ...task,
+        start_date: currentDate.utc().format("YYYY-MM-DD"),
+        start_time: currentDate.utc().format("HH:mm"),
+        sequence_number: i + 1,
+        is_recurring: false, // All instances are single-occurrence
+      });
+
+      // Only calculate the next date for recurring tasks
+      // if (isRecurring && i < occurrences - 1) {
+      //   currentDate = {
+      //     daily: () => currentDate.add(interval, "day"),
+      //     weekly: () => currentDate.add(interval, "week"),
+      //     monthly: () => currentDate.add(interval, "month"),
+      //     yearly: () => currentDate.add(interval, "year"),
+      //   }[task.recurrence.frequency]();
+      // }
+    }
+
+    return instances;
+  } catch (error) {
+    console.error("Generation failed:", error.message);
+    return [];
+  }
+}
+
+// export const v1createTaskAction = async (taskData) => {
+//   console.log("sevrer task data: ", taskData);
+//   try {
+//     const supabase = await createClient();
+
+//     // Get authenticated user
+//     const {
+//       data: { user },
+//       error: authError,
+//     } = await supabase.auth.getUser();
+//     if (authError || !user) {
+//       throw new Error(
+//         "Not authenticated: " + (authError?.message || "No user found")
+//       );
+//     }
+
+//     console.log("sevrer user: ", user);
+//     console.log("sevrer task data: ", taskData);
+//     // Create parent task
+//     const { data: task, error: taskError } = await supabase
+//       .from("tasks")
+//       .insert([
+//         {
+//           user_id: user.id,
+//           ...taskData,
+//           is_recurring: taskData.recurrence !== null,
+//           // time_zone: "America/New_York", // TODO get timezone dynamically dayjs.tz.guess()
+//         },
+//       ])
+//       .select("*")
+//       .single();
+//     console.log("sevrer task insert: ", task);
+
+//     if (taskError) throw taskError;
+
+//     // const { data: task, error: taskError } = await supabase
+//     //   .from("tasks")
+//     //   .insert([
+//     //     {
+//     //       user_id: user.id,
+//     //       ...taskData,
+//     //       is_recurring: taskData.recurrence !== null,
+//     //       time_zone: "America/New_York",
+//     //     },
+//     //   ])
+//     //   .select()
+//     //   .single();
+
+//     // if (taskError) throw taskError;
+
+//     // ✅ Revalidate cache so UI updates
+//     // revalidatePath("/");
+
+//     return task;
+//   } catch (error) {
+//     console.error("Create task error:", error);
+//     throw error;
+//   }
+// };
 
 export const signUpAction = async (formData: FormData) => {
   const email = formData.get("email")?.toString();

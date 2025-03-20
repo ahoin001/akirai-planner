@@ -12,6 +12,7 @@ import { format, isSameDay } from "date-fns";
 import useCalendarStore from "@/app/stores/useCalendarStore";
 import { useEffect, useRef, useState, useCallback, memo, use } from "react";
 
+import TaskDrawer from "@/components/task-drawer";
 import TaskForm from "@/components/task-form";
 import WeekHeader from "@/components/week-header";
 import WeekNavigation from "@/components/week-navigation";
@@ -44,6 +45,7 @@ const VerticalGanttChart = () => {
   } = useCalendarStore();
 
   const { tasks, taskInstances } = useTaskStore();
+  console.log("gantt taskInstances", taskInstances);
 
   // Refs for DOM elements
   const timelineRef = useRef(null);
@@ -128,10 +130,13 @@ const VerticalGanttChart = () => {
           </div>
         </div>
       </div>
+
       {/* Task Drawer */}
-      {/* <TaskDrawer drawerRef={drawerRef} /> */}
+      <TaskDrawer drawerRef={drawerRef} />
+
       {/* Task Action Menu */}
       {/* <TaskActionMenu /> */}
+
       {/* {isModalActive("taskMenu") && selectedTask && (
         <TaskMenu
           task={selectedTask}
@@ -139,13 +144,10 @@ const VerticalGanttChart = () => {
           onEdit={handleEditTask}
         />
       )} */}
+
       {/* Bottom Navigation */}
       {/* <BottomNavigation /> */}
-      {taskInstances.map((task) => (
-        <div key={task.id} className="absolute bg-pink-500 rounded-lg">
-          {task.title}
-        </div>
-      ))}
+
       {/* Task Form */}
       <TaskForm
         isOpen={isTaskFormOpen}
@@ -153,6 +155,7 @@ const VerticalGanttChart = () => {
         initialValues={taskFormValues}
         isEditing={isEditingTask}
       />
+
       {/* Floating Action Button */}
       <FloatingActionButton onClick={handleOpenTaskForm} />
     </div>
