@@ -1,7 +1,8 @@
 "use client";
 import { format, endOfWeek } from "date-fns";
+import useCalendarStore from "@/app/stores/useCalendarStore";
+
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import useCalendarStore from "@/stores/useCalendarStore";
 
 /**
  * WeekNavigation component

@@ -8,9 +8,10 @@
  */
 "use client";
 
-import useCalendarStore from "@/stores/useCalendarStore";
+import useCalendarStore from "@/app/stores/useCalendarStore";
 import { useEffect, useRef, useState, useCallback, memo } from "react";
 import { format, isSameDay } from "date-fns";
+import { WeekHeader } from "@/components/week-header";
 import WeekNavigation from "@/components/week-navigation";
 
 // Constants for timeline configuration
@@ -57,7 +58,7 @@ const VerticalGanttChart = ({ tasks }) => {
 
         {/* Days of week - Current Week */}
         <div className="relative overflow-hidden">
-          {/* <WeekHeader weekDays={weekDays} /> */}
+          <WeekHeader weekDays={weekDays} />
 
           {/* Next Week Header (only during transition) */}
           {/* {isTransitioning && nextWeekStart && (
