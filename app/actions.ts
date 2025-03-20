@@ -5,6 +5,66 @@ import { createClient } from "@/utils/supabase/server";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+export const createTaskAction = async (taskData) => {
+  console.log("sevrer task data: ", taskData);
+  try {
+    const supabase = await createClient();
+
+    // Get authenticated user
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+    if (authError || !user) {
+      throw new Error(
+        "Not authenticated: " + (authError?.message || "No user found")
+      );
+    }
+
+    console.log("sevrer user: ", user);
+    console.log("sevrer task data: ", taskData);
+    // Create parent task
+    const { data: task, error: taskError } = await supabase
+      .from("tasks")
+      .insert([
+        {
+          user_id: user.id,
+          ...taskData,
+          is_recurring: taskData.recurrence !== null,
+          // time_zone: "America/New_York", // TODO get timezone dynamically dayjs.tz.guess()
+        },
+      ])
+      .select("*")
+      .single();
+    console.log("sevrer task insert: ", task);
+
+    if (taskError) throw taskError;
+
+    // const { data: task, error: taskError } = await supabase
+    //   .from("tasks")
+    //   .insert([
+    //     {
+    //       user_id: user.id,
+    //       ...taskData,
+    //       is_recurring: taskData.recurrence !== null,
+    //       time_zone: "America/New_York",
+    //     },
+    //   ])
+    //   .select()
+    //   .single();
+
+    // if (taskError) throw taskError;
+
+    // ✅ Revalidate cache so UI updates
+    // revalidatePath("/");
+
+    return task;
+  } catch (error) {
+    console.error("Create task error:", error);
+    throw error;
+  }
+};
+
 export const signUpAction = async (formData: FormData) => {
   const email = formData.get("email")?.toString();
   const password = formData.get("password")?.toString();

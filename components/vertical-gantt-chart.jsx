@@ -8,9 +8,11 @@
  */
 "use client";
 
-import useCalendarStore from "@/app/stores/useCalendarStore";
-import { useEffect, useRef, useState, useCallback, memo } from "react";
 import { format, isSameDay } from "date-fns";
+import useCalendarStore from "@/app/stores/useCalendarStore";
+import { useEffect, useRef, useState, useCallback, memo, use } from "react";
+
+import TaskForm from "@/components/task-form";
 import WeekHeader from "@/components/week-header";
 import WeekNavigation from "@/components/week-navigation";
 
@@ -28,9 +30,20 @@ const drawerMinHeight = 200; // Minimum height of the drawer when collapsed
  *
  * @returns {JSX.Element} Rendered component
  */
-const VerticalGanttChart = ({ tasks }) => {
-  const { currentWeekStart, nextWeekStart, getWeekDays, getNextWeekDays } =
-    useCalendarStore();
+const VerticalGanttChart = () => {
+  const {
+    currentWeekStart,
+    handleOpenTaskForm,
+    handleCloseTaskForm,
+    nextWeekStart,
+    getWeekDays,
+    getNextWeekDays,
+    isEditingTask,
+    isTaskFormOpen,
+    taskFormValues,
+  } = useCalendarStore();
+
+  const { tasks, taskInstances } = useTaskStore();
 
   // Refs for DOM elements
   const timelineRef = useRef(null);
@@ -60,6 +73,7 @@ const VerticalGanttChart = ({ tasks }) => {
         <div className="relative overflow-hidden">
           <WeekHeader weekDays={weekDays} />
 
+          {/* TODO May not need? */}
           {/* Next Week Header (only during transition) */}
           {/* {isTransitioning && nextWeekStart && (
             <div className="absolute top-0 left-0 right-0">
@@ -68,7 +82,6 @@ const VerticalGanttChart = ({ tasks }) => {
           )} */}
         </div>
       </div>
-
       {/* Scrollable timeline container */}
       <div ref={containerRef} className="flex-grow overflow-hidden">
         <div
@@ -115,13 +128,10 @@ const VerticalGanttChart = ({ tasks }) => {
           </div>
         </div>
       </div>
-
       {/* Task Drawer */}
       {/* <TaskDrawer drawerRef={drawerRef} /> */}
-
       {/* Task Action Menu */}
       {/* <TaskActionMenu /> */}
-
       {/* {isModalActive("taskMenu") && selectedTask && (
         <TaskMenu
           task={selectedTask}
@@ -129,22 +139,43 @@ const VerticalGanttChart = ({ tasks }) => {
           onEdit={handleEditTask}
         />
       )} */}
-
       {/* Bottom Navigation */}
       {/* <BottomNavigation /> */}
-
+      {taskInstances.map((task) => (
+        <div key={task.id} className="absolute bg-pink-500 rounded-lg">
+          {task.title}
+        </div>
+      ))}
       {/* Task Form */}
-      {/* <TaskForm
+      <TaskForm
         isOpen={isTaskFormOpen}
         onClose={handleCloseTaskForm}
         initialValues={taskFormValues}
         isEditing={isEditingTask}
-      /> */}
-
+      />
       {/* Floating Action Button */}
-      {/* <FloatingActionButton onClick={handleOpenTaskForm} /> */}
+      <FloatingActionButton onClick={handleOpenTaskForm} />
     </div>
   );
 };
 
 export default memo(VerticalGanttChart);
+
+/**
+ * Floating action button component
+ * Memoized to prevent unnecessary rerenders
+ */
+import { Plus } from "lucide-react";
+import { useTaskStore } from "@/app/stores/useTaskStore";
+
+const FloatingActionButton = memo(({ onClick }) => (
+  <button
+    className="fixed right-6 bottom-20 z-50 w-14 h-14 bg-pink-500 rounded-full flex items-center justify-center shadow-lg hover:bg-pink-600 transition-colors"
+    onClick={onClick}
+    aria-label="Create new task"
+  >
+    <Plus className="w-8 h-8 text-white" />
+  </button>
+));
+
+FloatingActionButton.displayName = "FloatingActionButton";

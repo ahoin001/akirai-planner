@@ -410,7 +410,7 @@ const useCalendarStore = create((set, get) => ({
   /**
    * Closes the task form
    */
-  closeTaskForm: () =>
+  handleCloseTaskForm: () =>
     set({
       isTaskFormOpen: false,
     }),
@@ -447,6 +447,16 @@ const useCalendarStore = create((set, get) => ({
     );
 
     set({ currentTasks: updatedTasks });
+  },
+
+  /***********
+   *
+   * UI HANDLERS
+   *
+   ************/
+  handleOpenTaskForm: () => {
+    const { openTaskForm } = get();
+    openTaskForm();
   },
 }));
 
