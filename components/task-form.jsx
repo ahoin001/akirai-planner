@@ -12,7 +12,7 @@ import useCalendarStore from "@/app/stores/useCalendarStore";
 
 import DatePicker from "@/components/date-picker";
 
-import { createTaskAction } from "@/app/actions";
+import { createTaskAction, updateTask } from "@/app/actions";
 
 import { useTaskStore } from "@/app/stores/useTaskStore";
 
@@ -36,7 +36,7 @@ export default function TaskForm({
 }) {
   const { selectedDay } = useCalendarStore();
 
-  //   const { createTask } = useTaskStore();
+  console.log("initialValues", initialValues);
 
   // Form state
   const [title, setTitle] = useState(initialValues?.title || "");
@@ -62,6 +62,8 @@ export default function TaskForm({
   // Reset form when opened
   useEffect(() => {
     if (isOpen) {
+      console.log("initialValues", initialValues);
+      console.log("iseditng", isEditing);
       // Use optional chaining to safely access properties of initialValues
       setTitle(initialValues?.title || "");
       setStartDate(
@@ -159,10 +161,10 @@ export default function TaskForm({
     };
 
     if (isEditing && initialValues.id) {
-      //   updateTask(initialValues.id, taskData);
+      console.log("updating task", initialValues.id, taskData);
+      updateTask(initialValues.id, taskData);
     } else {
       createTaskAction(taskData);
-      //   createTask(taskData);
     }
 
     onClose();

@@ -17,14 +17,19 @@ import { deleteTaskAction } from "@/app/actions";
  * @returns {JSX.Element} Rendered component
  */
 export default function TaskActionMenu() {
-  const { isTaskMenuOpen, selectedTask, closeTaskMenu } = useTaskStore();
+  const {
+    closeTaskMenu,
+    openTaskFormInEditMode,
+    isTaskMenuOpen,
+    selectedTask,
+  } = useTaskStore();
   const {
     selectedTaskId,
     // isTaskMenuOpen,
     // closeTaskMenu,
     completeTask,
     // deleteTask,
-    editTask,
+    // editTask,
   } = useCalendarStore();
 
   const [isMounted, setIsMounted] = useState(false);
@@ -77,8 +82,8 @@ export default function TaskActionMenu() {
 
   // Handle edit action
   const handleEdit = () => {
-    if (selectedTaskId) {
-      editTask(selectedTaskId);
+    if (selectedTask) {
+      openTaskFormInEditMode(selectedTask.id);
     }
   };
 

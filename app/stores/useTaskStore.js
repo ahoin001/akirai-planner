@@ -3,6 +3,7 @@ import { toast } from "react-hot-toast";
 
 import { createClient as createSupabaseBrowserClient } from "@/utils/supabase/client";
 import dayjs from "dayjs";
+import { title } from "process";
 
 // Helpers
 // const TIME_FORMAT = "HH:mm";
@@ -19,22 +20,77 @@ export const useTaskStore = create((set, get) => ({
   activeModal: null,
   currentWeekStart: dayjs().startOf("week"),
   error: null,
+  isEditingTask: false,
   isLoading: false,
+  isTaskFormOpen: false,
   isTaskMenuOpen: false,
   //   subscription: null,
 
   // task state
   selectedTask: null,
-  //   selectedTaskId: null, may not need
+  taskFormValues: {},
   tasks: [],
   taskInstances: [],
 
   // **********************************************************
   // SETTERS
   // **********************************************************
-  setActiveModal: (modal) => set({ activeModal: modal }),
+
+  closeTaskForm: () => set({ isTaskFormOpen: false }),
 
   closeTaskMenu: () => set({ isTaskMenuOpen: false }),
+
+  setActiveModal: (modal) => set({ activeModal: modal }),
+
+  setTaskForm: (isOpen) => set({ isTaskFormOpen: isOpen }),
+
+  // **********************************************************
+  // UI
+  // **********************************************************
+
+  /**
+   * Opens the task form for editing an existing task
+   * @param {number} taskId - The ID of the task to edit
+   */
+  openTaskFormInEditMode: (taskId) => {
+    console.log("task id for form", taskId);
+
+    const { closeTaskMenu, taskInstances } = get();
+    const taskInstance = taskInstances.find((task) => task.id === taskId);
+
+    if (taskInstance) {
+      closeTaskMenu();
+      console.log("task for form", taskInstance);
+      set({
+        isTaskFormOpen: true,
+        isEditingTask: true,
+        taskFormValues: {
+          id: taskInstance.id,
+          title: taskInstance.tasks.title,
+          start_date: taskInstance.scheduled_date,
+          start_time: taskInstance.start_time,
+          //   ...taskInstance,
+        },
+      });
+    } else {
+      // If task not found, still open the form but with empty values
+      set({
+        isTaskFormOpen: true,
+        isEditingTask: false,
+        taskFormValues: {},
+      });
+    }
+  },
+
+  /**
+   * Opens the task form for creating a new task
+   */
+  openTaskForm: () =>
+    set({
+      isTaskFormOpen: true,
+      isEditingTask: false,
+      taskFormValues: {},
+    }),
 
   openTaskMenu: () => set({ isTaskMenuOpen: true }),
 
@@ -48,11 +104,8 @@ export const useTaskStore = create((set, get) => ({
   closeModal: () => set({ activeModal: null }),
 
   handleTaskSelect: (task) => {
-    const { setSelectedTask, setSelectedTaskId } = get(); // ✅ Get methods from store
-    // console.log(task);
-    get().setSelectedTask(task);
-    // setSelectedTaskId(task.id);
-    // set({ activeModal: "taskMenu" }); // ✅ Directly use set() for updating activeModal
+    const { setSelectedTask } = get();
+    setSelectedTask(task);
     set({ isTaskMenuOpen: true });
   },
 
@@ -88,7 +141,7 @@ export const useTaskStore = create((set, get) => ({
         .select(
           `
           *,
-          tasks!task_instances_task_id_fkey (
+          tasks!task_instances_task_id_fkey ( 
             id,
             title,
             start_date,
@@ -108,6 +161,7 @@ export const useTaskStore = create((set, get) => ({
         .order("start_time", { ascending: true });
 
       if (error) throw error;
+      console.log("Before set from fetching:", data);
 
       set({ taskInstances: data, isLoading: false });
     } catch (error) {
@@ -152,49 +206,6 @@ export const useTaskStore = create((set, get) => ({
       console.error("Error fetching task instances:", error);
       set({ error: error.message, isLoading: false });
       toast.error("Failed to load task instances");
-    }
-  },
-
-  // Update an existing task
-  updateTask: async (id, taskData) => {
-    set({ isLoading: true, error: null });
-    try {
-      const { data, error } = await supabase
-        .from("tasks")
-        .update(taskData)
-        .eq("id", id)
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      // No need to manually update state as we'll get the update via realtime
-      set({ isLoading: false });
-      toast.success("Task updated successfully");
-      return data;
-    } catch (error) {
-      console.error("Error updating task:", error);
-      set({ error: error.message, isLoading: false });
-      toast.error("Failed to update task");
-      return null;
-    }
-  },
-
-  // Delete a task
-  deleteTask: async (id) => {
-    set({ isLoading: true, error: null });
-    try {
-      const { error } = await supabase.from("tasks").delete().eq("id", id);
-
-      if (error) throw error;
-
-      // No need to manually update state as we'll get the update via realtime
-      set({ isLoading: false });
-      toast.success("Task deleted successfully");
-    } catch (error) {
-      console.error("Error deleting task:", error);
-      set({ error: error.message, isLoading: false });
-      toast.error("Failed to delete task");
     }
   },
 

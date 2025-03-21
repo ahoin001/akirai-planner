@@ -16,6 +16,7 @@ import { useEffect, useRef, useState, useCallback, memo, use } from "react";
 import TaskActionMenu from "@/components/task-action-menu";
 import TaskDrawer from "@/components/task-drawer";
 import TaskForm from "@/components/task-form";
+// import { TaskForm } from "@/components/s-task-form";
 import WeekHeader from "@/components/week-header";
 import WeekNavigation from "@/components/week-navigation";
 
@@ -34,18 +35,26 @@ const drawerMinHeight = 200; // Minimum height of the drawer when collapsed
  * @returns {JSX.Element} Rendered component
  */
 const VerticalGanttChart = () => {
-  const { isModalActive, closeModal } = useTaskStore();
+  const {
+    closeTaskForm,
+    isEditingTask,
+    isTaskFormOpen,
+    setTaskForm,
+    openTaskForm,
+    taskFormValues,
+  } = useTaskStore();
 
   const {
     currentWeekStart,
-    handleOpenTaskForm,
+    // handleOpenTaskForm,
     handleCloseTaskForm,
     nextWeekStart,
     getWeekDays,
     getNextWeekDays,
-    isEditingTask,
-    isTaskFormOpen,
-    taskFormValues,
+    selectedDay,
+    // isEditingTask,
+    // isTaskFormOpen,
+    // taskFormValues,
   } = useCalendarStore();
 
   const { selectedTask, taskInstances } = useTaskStore();
@@ -140,27 +149,29 @@ const VerticalGanttChart = () => {
       {/* Task Action Menu */}
       <TaskActionMenu />
 
-      {/* {isModalActive("taskMenu") && selectedTask && (
-        <TaskMenu
-          task={selectedTask}
-          onClose={closeModal}
-          onEdit={handleEditTask}
-        />
-      )} */}
-
       {/* Bottom Navigation */}
       {/* <BottomNavigation /> */}
 
       {/* Task Form */}
       <TaskForm
         isOpen={isTaskFormOpen}
-        onClose={handleCloseTaskForm}
+        onClose={closeTaskForm}
         initialValues={taskFormValues}
         isEditing={isEditingTask}
       />
 
+      {/* For sform */}
+      {/* <TaskForm
+        isOpen={isTaskFormOpen}
+        onClose={closeTaskForm}
+        onOpenChange={setTaskForm}
+        initialValues={taskFormValues}
+        isEditing={isEditingTask}
+        selectedDate={selectedDay}
+      /> */}
+
       {/* Floating Action Button */}
-      <FloatingActionButton onClick={handleOpenTaskForm} />
+      <FloatingActionButton onClick={openTaskForm} />
     </div>
   );
 };
