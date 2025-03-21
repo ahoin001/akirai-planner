@@ -46,7 +46,7 @@ const TaskItem = memo(
       const startTime = dayjs(`2000-01-01T${task.start_time}`);
       const endTime = startTime.add(task.duration_minutes, "minute");
 
-      return `${startTime.format("h:mm")} – ${endTime.format("h:mm A")}`;
+      return `${startTime.format("h:mm A")} – ${endTime.format("h:mm A")}`;
     };
 
     return (
@@ -232,12 +232,10 @@ const TaskDrawer = ({ drawerRef }) => {
               </div>
             ) : (
               tasksForSelectedDay.map((task) => {
-                const startTime = parseISO(
+                const startTime = dayjs(
                   `${task.start_date}T${task.start_time}`
                 );
-                const endTime = new Date(
-                  startTime.getTime() + task.duration_minutes * 60 * 1000
-                );
+                const endTime = startTime.add(task.duration_minutes, "minute");
                 const isInFuture = isAfter(startTime, currentTime);
                 const isSelected = task.id === selectedTaskId;
 

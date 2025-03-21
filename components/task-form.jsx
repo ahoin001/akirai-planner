@@ -11,10 +11,12 @@ import {
 import useCalendarStore from "@/app/stores/useCalendarStore";
 
 import DatePicker from "@/components/date-picker";
+import { WheelPicker } from "@/components/wheel-picker";
 
 import { createTaskAction, updateTask } from "@/app/actions";
 
 import { useTaskStore } from "@/app/stores/useTaskStore";
+import dayjs from "dayjs";
 
 /**
  * TaskForm component
@@ -35,8 +37,6 @@ export default function TaskForm({
   isEditing = false,
 }) {
   const { selectedDay } = useCalendarStore();
-
-  console.log("initialValues", initialValues);
 
   // Form state
   const [title, setTitle] = useState(initialValues?.title || "");
@@ -62,8 +62,6 @@ export default function TaskForm({
   // Reset form when opened
   useEffect(() => {
     if (isOpen) {
-      console.log("initialValues", initialValues);
-      console.log("iseditng", isEditing);
       // Use optional chaining to safely access properties of initialValues
       setTitle(initialValues?.title || "");
       setStartDate(
@@ -120,6 +118,19 @@ export default function TaskForm({
       });
     }
   }
+
+  // Time slots for wheelpicker
+  const timeSlots = Array.from({ length: (23 - 9) * 4 + 1 }, (_, i) => {
+    const hour = 9 + Math.floor(i / 4);
+    const minute = (i % 4) * 15;
+
+    return dayjs()
+      .hour(hour)
+      .minute(minute)
+      .second(0)
+      .millisecond(0)
+      .format("h:mm A");
+  });
 
   // Validate form
   const validateForm = () => {
@@ -233,7 +244,6 @@ export default function TaskForm({
                 <p className="text-red-500 text-sm">{errors.title}</p>
               )}
             </div>
-
             {/* Task type */}
             <div className="space-y-2">
               <label className="block text-lg text-gray-400">Task Type</label>
@@ -254,11 +264,9 @@ export default function TaskForm({
                 ))}
               </div>
             </div>
-
             {/* Date and time */}
             <div className="space-y-2">
               <label className="block text-lg text-gray-400">When</label>
-
               {/* Date picker button */}
               <button
                 type="button"
@@ -271,7 +279,6 @@ export default function TaskForm({
                 </div>
                 {isCalendarOpen ? <ChevronUp /> : <ChevronDown />}
               </button>
-
               {/* Calendar */}
               {isCalendarOpen && (
                 <div className="mt-2 bg-zinc-800 rounded-lg p-4">
@@ -283,33 +290,34 @@ export default function TaskForm({
                   />
                 </div>
               )}
-
               {/* Time picker */}
               <div className="mt-4">
                 <label
                   htmlFor="startTime"
-                  className="block text-sm text-gray-400 mb-1"
+                  className="block text-lg text-gray-400 mt-4 mb-1"
                 >
                   Start Time
                 </label>
-                <select
-                  id="startTime"
-                  value={startTime}
-                  onChange={(e) => setStartTime(e.target.value)}
-                  className="w-full bg-zinc-800 border-none rounded-lg p-3 focus:ring-1 focus:ring-pink-500"
-                >
-                  {timeOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
+
+                <WheelPicker
+                  options={timeSlots}
+                  onChange={(value) => setStartTime(value)}
+                  itemHeight={50}
+                  duration={durationMinutes}
+                  defaultValue={
+                    initialValues?.start_time
+                      ? dayjs("1/1/1 " + initialValues.start_time).format(
+                          "hh:mm A"
+                        )
+                      : "11:00 AM"
+                  }
+                />
+
                 {errors.startTime && (
                   <p className="text-red-500 text-sm">{errors.startTime}</p>
                 )}
               </div>
             </div>
-
             {/* Duration */}
             <div className="space-y-2">
               <label className="block text-lg text-gray-400">Duration</label>
@@ -333,7 +341,6 @@ export default function TaskForm({
                 <p className="text-red-500 text-sm">{errors.durationMinutes}</p>
               )}
             </div>
-
             {/* Frequency */}
             <div className="space-y-2">
               <label className="block text-lg text-gray-400">How often?</label>

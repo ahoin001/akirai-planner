@@ -60,7 +60,7 @@ export const useTaskStore = create((set, get) => ({
 
     if (taskInstance) {
       closeTaskMenu();
-      console.log("task for form", taskInstance);
+
       set({
         isTaskFormOpen: true,
         isEditingTask: true,
@@ -134,8 +134,6 @@ export const useTaskStore = create((set, get) => ({
       const { data: user, error: authError } = await supabase.auth.getUser();
       if (authError || !user) throw new Error("User not authenticated");
 
-      console.log("User fetching:", user.user.id);
-
       const { data, error } = await supabase
         .from("task_instances")
         .select(
@@ -161,7 +159,6 @@ export const useTaskStore = create((set, get) => ({
         .order("start_time", { ascending: true });
 
       if (error) throw error;
-      console.log("Before set from fetching:", data);
 
       set({ taskInstances: data, isLoading: false });
     } catch (error) {
