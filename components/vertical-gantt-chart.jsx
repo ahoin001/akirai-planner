@@ -66,7 +66,7 @@ const VerticalGanttChart = () => {
   const nextWeekDays = useCallback(getNextWeekDays, [nextWeekStart])();
 
   return (
-    <div className="w-full flex flex-col h-screen bg-black text-white p-4">
+    <div className="w-full flex flex-col h-screen bg-background text-white p-4">
       {/* Header section */}
       <div className="flex-none">
         {/* Month and year heading */}

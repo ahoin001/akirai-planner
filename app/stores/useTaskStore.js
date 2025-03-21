@@ -126,8 +126,9 @@ export const useTaskStore = create((set, get) => ({
   closeModal: () => set({ activeModal: null }),
 
   handleTaskSelect: (task) => {
-    const { setSelectedTask } = get();
+    const { setSelectedTask, setSelectedTaskId } = get();
     setSelectedTask(task);
+    setSelectedTaskId(task.id);
     set({ isTaskMenuOpen: true });
   },
 

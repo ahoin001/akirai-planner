@@ -11,6 +11,7 @@
 import { isAfter } from "date-fns";
 import { AlarmClock, Moon, Dumbbell } from "lucide-react";
 import useCalendarStore from "@/app/stores/useCalendarStore";
+import { useTaskStore } from "@/app/stores/useTaskStore";
 
 /**
  * Gets the appropriate icon for a task type
@@ -42,8 +43,9 @@ const getTaskIcon = (type) => {
  * @returns {JSX.Element} Rendered component
  */
 export default function TaskItem({ task, date, top, height, isNext = false }) {
-  const { currentTime, getTaskProgress, selectDay, setSelectedTaskId } =
-    useCalendarStore();
+  const { currentTime, getTaskProgress, selectDay } = useCalendarStore();
+
+  const { setSelectedTaskId } = useTaskStore();
 
   // Calculate task progress and determine visual states
   const progress = getTaskProgress(task);
