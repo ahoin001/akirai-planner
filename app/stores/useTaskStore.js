@@ -36,6 +36,28 @@ export const useTaskStore = create((set, get) => ({
   // SETTERS
   // **********************************************************
 
+  /**
+   * Compares dates in MM-DD-YYYY format to return tasks for the specific day
+   * @param {Date | string} date - The date to compare against
+   * @returns {Array} Filtered tasks for the given day
+   */
+  getTasksForFormattedDay: (date) => {
+    const { taskInstances } = get();
+
+    // Format the passed-in date to MM-DD-YYYY
+    const formattedDate = dayjs(date).format("MM-DD-YYYY");
+
+    // Filter tasks based on scheduled_date, comparing formatted dates
+    return taskInstances.filter((task) => {
+      const formattedTaskDate = dayjs(task.scheduled_date).format("MM-DD-YYYY");
+      return formattedTaskDate === formattedDate;
+    });
+  },
+
+  // **********************************************************
+  // SETTERS
+  // **********************************************************
+
   closeTaskForm: () => set({ isTaskFormOpen: false }),
 
   closeTaskMenu: () => set({ isTaskMenuOpen: false }),

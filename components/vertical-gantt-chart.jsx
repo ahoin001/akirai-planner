@@ -8,17 +8,19 @@
  */
 "use client";
 
-import { format, isSameDay } from "date-fns";
-import { useTaskStore } from "@/app/stores/useTaskStore";
+import { format } from "date-fns";
 import useCalendarStore from "@/app/stores/useCalendarStore";
+import { useTaskStore } from "@/app/stores/useTaskStore";
 import { useEffect, useRef, useState, useCallback, memo, use } from "react";
 
+import { BottomNavigation } from "@/components/bottom-navigation";
 import TaskActionMenu from "@/components/task-action-menu";
 import TaskDrawer from "@/components/task-drawer";
 import TaskForm from "@/components/task-form";
 // import { TaskForm } from "@/components/s-task-form";
 import WeekHeader from "@/components/week-header";
 import WeekNavigation from "@/components/week-navigation";
+import WeekTimeline from "@/components/week-timeline";
 
 // Constants for timeline configuration
 const dayStart = 8; // 8 AM
@@ -39,22 +41,17 @@ const VerticalGanttChart = () => {
     closeTaskForm,
     isEditingTask,
     isTaskFormOpen,
-    setTaskForm,
     openTaskForm,
     taskFormValues,
   } = useTaskStore();
 
   const {
     currentWeekStart,
-    // handleOpenTaskForm,
-    // handleCloseTaskForm,
     nextWeekStart,
     getWeekDays,
     getNextWeekDays,
     selectedDay,
-    // isEditingTask,
-    // isTaskFormOpen,
-    // taskFormValues,
+    slideDirection,
   } = useCalendarStore();
 
   const { selectedTask, taskInstances } = useTaskStore();
@@ -104,7 +101,7 @@ const VerticalGanttChart = () => {
         >
           <div className="relative">
             {/* Current week timeline */}
-            {/* <div
+            <div
               className={`transition-transform duration-300 ease-in-out transform ${
                 slideDirection === "left"
                   ? "-translate-x-full"
@@ -118,7 +115,7 @@ const VerticalGanttChart = () => {
                 tasks={taskInstances}
                 days={weekDays}
               />
-            </div> */}
+            </div>
 
             {/* Next week timeline */}
             {/* {isTransitioning && nextWeekStart && (
@@ -150,7 +147,7 @@ const VerticalGanttChart = () => {
       <TaskActionMenu />
 
       {/* Bottom Navigation */}
-      {/* <BottomNavigation /> */}
+      <BottomNavigation />
 
       {/* Task Form */}
       <TaskForm

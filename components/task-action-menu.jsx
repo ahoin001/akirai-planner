@@ -1,13 +1,16 @@
 "use client";
+
 import { useEffect, useState } from "react";
-import { format, parseISO } from "date-fns";
-import { X, Trash2, CheckCircle, Edit } from "lucide-react";
-import useCalendarStore from "@/app/stores/useCalendarStore";
 import { useTaskStore } from "@/app/stores/useTaskStore";
 
-import ConfirmationModal from "./confirmation-modal";
 import dayjs from "dayjs";
-import { deleteTaskAction } from "@/app/actions";
+import {
+  deleteTaskAction,
+  toggleTaskInstanceCompletionAction,
+} from "@/app/actions";
+
+import ConfirmationModal from "./confirmation-modal";
+import { CheckCircle, Circle, Edit, Trash2, X } from "lucide-react";
 
 /**
  * TaskActionMenu component
@@ -23,14 +26,6 @@ export default function TaskActionMenu() {
     isTaskMenuOpen,
     selectedTask,
   } = useTaskStore();
-  const {
-    selectedTaskId,
-    // isTaskMenuOpen,
-    // closeTaskMenu,
-    completeTask,
-    // deleteTask,
-    // editTask,
-  } = useCalendarStore();
 
   const [isMounted, setIsMounted] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -53,17 +48,6 @@ export default function TaskActionMenu() {
     }
   }, [isTaskMenuOpen]);
 
-  // Close the menu when clicking the backdrop
-  const handleBackdropClick = () => {
-    closeTaskMenu();
-  };
-
-  // Handle delete action
-  const handleDelete = () => {
-    setIsDeleteModalOpen(true);
-  };
-
-  // Handle actual deletion
   const confirmDelete = () => {
     if (selectedTask) {
       deleteTaskAction(selectedTask.id);
@@ -72,15 +56,21 @@ export default function TaskActionMenu() {
     }
   };
 
-  // Handle complete action
+  const handleBackdropClick = () => {
+    closeTaskMenu();
+  };
+
   const handleComplete = () => {
-    if (selectedTaskId) {
-      completeTask(selectedTaskId);
+    if (selectedTask) {
+      toggleTaskInstanceCompletionAction(selectedTask.id);
       closeTaskMenu();
     }
   };
 
-  // Handle edit action
+  const handleDelete = () => {
+    setIsDeleteModalOpen(true);
+  };
+
   const handleEdit = () => {
     if (selectedTask) {
       openTaskFormInEditMode(selectedTask.id);
@@ -180,10 +170,16 @@ export default function TaskActionMenu() {
                 onClick={handleComplete}
                 className="flex flex-col items-center justify-center bg-zinc-800 p-4 rounded-xl"
               >
-                <div className="text-green-500 mb-2">
-                  <CheckCircle size={28} />
+                <div className="mb-2">
+                  {selectedTask.is_complete ? (
+                    <Circle size={28} className="text-gray-400" />
+                  ) : (
+                    <CheckCircle size={28} className="text-green-500" />
+                  )}
                 </div>
-                <span className="text-xl">Complete</span>
+                <span className="text-xl">
+                  {selectedTask.is_complete ? "Uncheck" : "Complete"}
+                </span>
               </button>
 
               {/* Edit button */}

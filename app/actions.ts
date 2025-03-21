@@ -131,6 +131,40 @@ export const deleteTaskAction = async (taskInstanceId) => {
   }
 };
 
+/**
+ * Toggles completion status for an instance
+ * @param {string} instanceId - Instance ID
+ * @returns {Promise<TaskInstance>}
+ */
+export const toggleTaskInstanceCompletionAction = async (instanceId) => {
+  try {
+    console.log("instanceId: ", instanceId);
+    const supabase = await createClient();
+
+    const { data: current, error: fetchError } = await supabase
+      .from("task_instances")
+      .select("is_complete")
+      .eq("id", instanceId)
+      .single();
+
+    if (fetchError) throw fetchError;
+
+    // Toggle value
+    const { data, error } = await supabase
+      .from("task_instances")
+      .update({ is_complete: !current.is_complete })
+      .eq("id", instanceId)
+      .select("*")
+      .single();
+
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error("Toggle completion error:", error);
+    throw error;
+  }
+};
+
 export const updateTask = async (
   taskInstanceId,
   updates,

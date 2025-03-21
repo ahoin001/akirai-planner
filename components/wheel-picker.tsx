@@ -381,14 +381,14 @@ export function WheelPicker({
   };
 
   return (
-    <div className="px-48">
+    <div className="px-20 lg:px-48">
       <div
         className="relative w-full"
         style={{ height: `${itemHeight * visibleItems}px` }}
       >
         {/* Selection indicator */}
         <div
-          className="absolute w-1/2 bg-rose-400 rounded-lg pointer-events-none z-0 opacity-80"
+          className="absolute w-full bg-rose-400 rounded-lg pointer-events-none z-0 opacity-80"
           style={{
             top: "50%",
             left: "50%",

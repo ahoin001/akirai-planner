@@ -145,7 +145,7 @@ const TaskDrawer = ({ drawerRef }) => {
   }, [selectedDay, taskInstances]);
 
   // Calculate minimum drawer height to show at least one task
-  const minDrawerHeight = tasksForSelectedDay.length > 0 ? 200 : 160; // Higher if we have tasks
+  const minDrawerHeight = tasksForSelectedDay.length > 0 ? 220 : 200; // Higher if we have tasks
 
   // Scroll to selected task when it changes
   useEffect(() => {
@@ -228,7 +228,7 @@ const TaskDrawer = ({ drawerRef }) => {
           >
             {tasksForSelectedDay.length === 0 ? (
               <div className="text-gray-400 text-center py-4">
-                No tasks for this day
+                No tasks scheduled for this day.
               </div>
             ) : (
               tasksForSelectedDay.map((task) => {
