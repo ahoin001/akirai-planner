@@ -1,6 +1,5 @@
 "use client";
 
-import dayjs from "dayjs";
 import { useEffect, useState } from "react";
 import { useTaskStore } from "@/app/stores/useTaskStore";
 
@@ -11,10 +10,8 @@ export default function AppLayout({ children }) {
   );
 
   useEffect(() => {
-    const startDate = dayjs().startOf("week");
-
     const loadData = async () => {
-      await hydrateAndSubscribe(startDate);
+      await hydrateAndSubscribe();
       setIsLoading(false);
     };
 

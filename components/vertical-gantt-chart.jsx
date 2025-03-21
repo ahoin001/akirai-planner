@@ -9,9 +9,11 @@
 "use client";
 
 import { format, isSameDay } from "date-fns";
+import { useTaskStore } from "@/app/stores/useTaskStore";
 import useCalendarStore from "@/app/stores/useCalendarStore";
 import { useEffect, useRef, useState, useCallback, memo, use } from "react";
 
+import TaskActionMenu from "@/components/task-action-menu";
 import TaskDrawer from "@/components/task-drawer";
 import TaskForm from "@/components/task-form";
 import WeekHeader from "@/components/week-header";
@@ -32,6 +34,8 @@ const drawerMinHeight = 200; // Minimum height of the drawer when collapsed
  * @returns {JSX.Element} Rendered component
  */
 const VerticalGanttChart = () => {
+  const { isModalActive, closeModal } = useTaskStore();
+
   const {
     currentWeekStart,
     handleOpenTaskForm,
@@ -44,8 +48,7 @@ const VerticalGanttChart = () => {
     taskFormValues,
   } = useCalendarStore();
 
-  const { tasks, taskInstances } = useTaskStore();
-  console.log("gantt taskInstances", taskInstances);
+  const { selectedTask, taskInstances } = useTaskStore();
 
   // Refs for DOM elements
   const timelineRef = useRef(null);
@@ -135,7 +138,7 @@ const VerticalGanttChart = () => {
       <TaskDrawer drawerRef={drawerRef} />
 
       {/* Task Action Menu */}
-      {/* <TaskActionMenu /> */}
+      <TaskActionMenu />
 
       {/* {isModalActive("taskMenu") && selectedTask && (
         <TaskMenu
@@ -169,7 +172,6 @@ export default memo(VerticalGanttChart);
  * Memoized to prevent unnecessary rerenders
  */
 import { Plus } from "lucide-react";
-import { useTaskStore } from "@/app/stores/useTaskStore";
 
 const FloatingActionButton = memo(({ onClick }) => (
   <button

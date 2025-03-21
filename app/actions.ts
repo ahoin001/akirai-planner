@@ -145,65 +145,55 @@ export async function generateTaskInstances(task) {
   }
 }
 
-// export const v1createTaskAction = async (taskData) => {
-//   console.log("sevrer task data: ", taskData);
-//   try {
-//     const supabase = await createClient();
+export const deleteTaskAction = async (taskInstanceId) => {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
-//     // Get authenticated user
-//     const {
-//       data: { user },
-//       error: authError,
-//     } = await supabase.auth.getUser();
-//     if (authError || !user) {
-//       throw new Error(
-//         "Not authenticated: " + (authError?.message || "No user found")
-//       );
-//     }
+    if (authError || !user) {
+      throw new Error(
+        "Not authenticated: " +
+          (authError?.message || "No user found to delete task")
+      );
+    }
 
-//     console.log("sevrer user: ", user);
-//     console.log("sevrer task data: ", taskData);
-//     // Create parent task
-//     const { data: task, error: taskError } = await supabase
-//       .from("tasks")
-//       .insert([
-//         {
-//           user_id: user.id,
-//           ...taskData,
-//           is_recurring: taskData.recurrence !== null,
-//           // time_zone: "America/New_York", // TODO get timezone dynamically dayjs.tz.guess()
-//         },
-//       ])
-//       .select("*")
-//       .single();
-//     console.log("sevrer task insert: ", task);
+    // 1. Fetch the task instance to get the associated task_id
+    const { data: taskInstance, error: fetchInstanceError } = await supabase
+      .from("task_instances")
+      .select("task_id")
+      .eq("id", taskInstanceId)
+      .single();
 
-//     if (taskError) throw taskError;
+    if (fetchInstanceError) throw fetchInstanceError;
 
-//     // const { data: task, error: taskError } = await supabase
-//     //   .from("tasks")
-//     //   .insert([
-//     //     {
-//     //       user_id: user.id,
-//     //       ...taskData,
-//     //       is_recurring: taskData.recurrence !== null,
-//     //       time_zone: "America/New_York",
-//     //     },
-//     //   ])
-//     //   .select()
-//     //   .single();
+    const taskId = taskInstance.task_id;
+    if (!taskId) throw new Error("Parent task ID not found in task instance");
 
-//     // if (taskError) throw taskError;
+    // 2. Delete all task instances associated with the task
+    const { count: deletedInstancesCount, error: deleteInstancesError } =
+      await supabase.from("task_instances").delete().eq("task_id", taskId);
 
-//     // ✅ Revalidate cache so UI updates
-//     // revalidatePath("/");
+    if (deleteInstancesError) throw deleteInstancesError;
 
-//     return task;
-//   } catch (error) {
-//     console.error("Create task error:", error);
-//     throw error;
-//   }
-// };
+    // 3. Delete the parent task
+    const { data: deletedTask, error: deleteTaskError } = await supabase
+      .from("tasks")
+      .delete()
+      .eq("id", taskId)
+      .select("*")
+      .single();
+
+    if (deleteTaskError) throw deleteTaskError;
+
+    return { deletedTask, deletedInstancesCount: deletedInstancesCount || 0 };
+  } catch (error) {
+    console.error("Delete task error:", error);
+    throw error;
+  }
+};
 
 export const signUpAction = async (formData: FormData) => {
   const email = formData.get("email")?.toString();

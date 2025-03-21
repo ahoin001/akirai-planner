@@ -106,10 +106,6 @@ const TaskDrawer = ({ drawerRef }) => {
 
   const [taskInstances, setTaskInstances] = useState(taskInstancesFromStore);
 
-  useEffect(() => {
-    setTaskInstances(taskInstancesFromStore);
-  }, [taskInstancesFromStore]);
-
   const {
     currentTime,
     selectedDay,
@@ -118,6 +114,11 @@ const TaskDrawer = ({ drawerRef }) => {
     currentTasks,
     selectedTaskId,
   } = useCalendarStore();
+
+  useEffect(() => {
+    console.log("taskInstancesFromStore", taskInstancesFromStore);
+    setTaskInstances(taskInstancesFromStore);
+  }, [taskInstancesFromStore]);
 
   // Refs for task elements and task list
   const taskRefs = useRef({});
@@ -141,7 +142,7 @@ const TaskDrawer = ({ drawerRef }) => {
     //   const taskDate = parseISO(`${task.start_date}T${task.start_time}`);
     //   return isSameDay(taskDate, selectedDay);
     // });
-  }, [selectedDay, currentTasks]);
+  }, [selectedDay, taskInstances]);
 
   // Calculate minimum drawer height to show at least one task
   const minDrawerHeight = tasksForSelectedDay.length > 0 ? 200 : 160; // Higher if we have tasks

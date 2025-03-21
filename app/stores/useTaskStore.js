@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { toast } from "react-hot-toast";
 
 import { createClient as createSupabaseBrowserClient } from "@/utils/supabase/client";
+import dayjs from "dayjs";
 
 // Helpers
 // const TIME_FORMAT = "HH:mm";
@@ -11,16 +12,32 @@ import { createClient as createSupabaseBrowserClient } from "@/utils/supabase/cl
 // TODO I NEED TO FIX TASK CREATE TO ONLY INSERT INSTANCE INTO REALTIME CHANGE
 
 export const useTaskStore = create((set, get) => ({
+  // **********************************************************
+  // STATE
+  // **********************************************************
+  // UI state
+  activeModal: null,
+  currentWeekStart: dayjs().startOf("week"),
   error: null,
   isLoading: false,
+  isTaskMenuOpen: false,
+  //   subscription: null,
+
+  // task state
   selectedTask: null,
-  selectedTaskId: null,
+  //   selectedTaskId: null, may not need
   tasks: [],
   taskInstances: [],
 
   // **********************************************************
   // SETTERS
   // **********************************************************
+  setActiveModal: (modal) => set({ activeModal: modal }),
+
+  closeTaskMenu: () => set({ isTaskMenuOpen: false }),
+
+  openTaskMenu: () => set({ isTaskMenuOpen: true }),
+
   setSelectedTask: (task) => set({ selectedTask: task }),
 
   setSelectedTaskId: (id) => set({ selectedTaskId: id }),
@@ -28,16 +45,23 @@ export const useTaskStore = create((set, get) => ({
   // **********************************************************
   // HELPERS
   // **********************************************************
+  closeModal: () => set({ activeModal: null }),
+
   handleTaskSelect: (task) => {
     const { setSelectedTask, setSelectedTaskId } = get(); // ✅ Get methods from store
-    console.log(task);
-    setSelectedTask(task);
-    setSelectedTaskId(task.id);
-    set({ activeModal: "taskMenu" }); // ✅ Directly use set() for updating activeModal
+    // console.log(task);
+    get().setSelectedTask(task);
+    // setSelectedTaskId(task.id);
+    // set({ activeModal: "taskMenu" }); // ✅ Directly use set() for updating activeModal
+    set({ isTaskMenuOpen: true });
   },
 
+  isModalActive: (modalName) => get().activeModal === modalName,
+
   // Call this function to hydrate and subscribe when app loads
-  hydrateAndSubscribe: async (startDate) => {
+  hydrateAndSubscribe: async () => {
+    const { currentWeekStart: startDate } = get();
+
     // Fetch initial tasks and task instances
     await get().getTasksFromWeekWithInstances(startDate);
 
@@ -259,34 +283,43 @@ export const useTaskStore = create((set, get) => ({
           schema: "public",
           table: "task_instances",
         },
-        (payload) => {
-          const { eventType, new: newRecord, old: oldRecord } = payload;
+        async (payload) => {
+          // Handle DELETE immediately
+          if (payload.eventType === "DELETE") {
+            get().handleInstanceChange(payload);
+            return;
+          }
 
-          switch (eventType) {
-            case "INSERT":
-              console.log("new instance:", newRecord);
-              console.log("current instances:", get().taskInstances);
-              set((state) => ({
-                taskInstances: [...state.taskInstances, newRecord],
-              }));
+          // For INSERT/UPDATE, fetch full data with task relationship first
+          try {
+            const { data, error } = await supabase
+              .from("task_instances")
+              .select(
+                `
+                *,
+                tasks!task_instances_task_id_fkey (
+                  id,
+                  title,
+                  start_date,
+                  start_time,
+                  duration_minutes,
+                  recurrence,
+                  is_recurring,
+                  created_at
+                )
+              `
+              )
+              .eq("id", payload.new.id)
+              .single();
 
-              break;
-            case "UPDATE":
-              set((state) => ({
-                taskInstances: state.taskInstances.map((instance) =>
-                  instance.id === newRecord.id ? newRecord : instance
-                ),
-              }));
-              break;
-            case "DELETE":
-              set((state) => ({
-                taskInstances: state.taskInstances.filter(
-                  (instance) => instance.id !== oldRecord.id
-                ),
-              }));
-              break;
-            default:
-              break;
+            if (!error) {
+              get().handleInstanceChange({
+                ...payload,
+                new: data, // Replace with enriched data
+              });
+            }
+          } catch (error) {
+            console.error("Error fetching instance details:", error);
           }
         }
       )
@@ -297,5 +330,34 @@ export const useTaskStore = create((set, get) => ({
       supabase.removeChannel(tasksChannel);
       supabase.removeChannel(taskInstancesChannel);
     };
+  },
+
+  handleInstanceChange: (payload) => {
+    set((state) => {
+      switch (payload.eventType) {
+        case "INSERT":
+          console.log("Inserting new task instance:", payload.new);
+          return { taskInstances: [...state.taskInstances, payload.new] };
+
+        case "UPDATE": {
+          const updatedInstances = state.taskInstances.map((instance) =>
+            instance.id === payload.new.id ? payload.new : instance
+          );
+          return { taskInstances: updatedInstances };
+        }
+
+        case "DELETE": {
+          console.log("Deleting  task instance:", payload.new);
+
+          const filteredInstances = state.taskInstances.filter(
+            (instance) => instance.id !== payload.old.id
+          );
+          return { taskInstances: filteredInstances };
+        }
+
+        default:
+          return state;
+      }
+    });
   },
 }));
