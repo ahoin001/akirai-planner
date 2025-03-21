@@ -47,7 +47,7 @@ const VerticalGanttChart = () => {
   const {
     currentWeekStart,
     // handleOpenTaskForm,
-    handleCloseTaskForm,
+    // handleCloseTaskForm,
     nextWeekStart,
     getWeekDays,
     getNextWeekDays,
@@ -160,7 +160,7 @@ const VerticalGanttChart = () => {
         isEditing={isEditingTask}
       />
 
-      {/* For sform */}
+      {/* TODO For sform, copy its recurring option select and its animation behavior,  */}
       {/* <TaskForm
         isOpen={isTaskFormOpen}
         onClose={closeTaskForm}

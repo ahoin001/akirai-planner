@@ -201,7 +201,7 @@ export default function TaskForm({
         }`}
         onClick={(e) => e.stopPropagation()}
       >
-        <form onSubmit={handleSubmit} className="h-[90vh]">
+        <form onSubmit={handleSubmit} className="h-[90vh] pb-48 overflow-auto">
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-zinc-800">
             <h2 className="text-2xl font-bold">

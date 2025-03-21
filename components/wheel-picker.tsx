@@ -16,7 +16,7 @@ export function WheelPicker({
   options,
   onChange,
   isMobile = false,
-  itemHeight = 50,
+  itemHeight = 20,
   duration = 30, // Default to 30 minutes
   defaultValue,
 }: WheelPickerProps) {
@@ -381,44 +381,46 @@ export function WheelPicker({
   };
 
   return (
-    <div
-      className="relative w-full"
-      style={{ height: `${itemHeight * visibleItems}px` }}
-    >
-      {/* Selection indicator */}
+    <div className="px-48">
       <div
-        className="absolute w-1/2 bg-rose-400 rounded-lg pointer-events-none z-0 opacity-80"
-        style={{
-          top: "50%",
-          left: "50%",
-          height: `${itemHeight}px`,
-          transform: "translate(-50%, -50%)",
-        }}
-      />
-
-      {/* Main scrollable container */}
-      <div
-        ref={containerRef}
-        className="absolute inset-0 overflow-y-auto snap-y snap-mandatory"
-        style={{
-          scrollSnapType: "y mandatory",
-          WebkitOverflowScrolling: "touch",
-          scrollBehavior: isActuallyMobile ? "auto" : "smooth",
-          maskImage:
-            "linear-gradient(to bottom, transparent, black 30%, black 70%, transparent)",
-          WebkitMaskImage:
-            "linear-gradient(to bottom, transparent, black 30%, black 70%, transparent)",
-          msOverflowStyle: "none",
-          scrollbarWidth: "none",
-        }}
-        onWheel={isActuallyMobile ? handleWheel : undefined}
+        className="relative w-full"
+        style={{ height: `${itemHeight * visibleItems}px` }}
       >
-        <style jsx>{`
-          div::-webkit-scrollbar {
-            display: none;
-          }
-        `}</style>
-        <ul className="flex flex-col items-center">{renderOptions()}</ul>
+        {/* Selection indicator */}
+        <div
+          className="absolute w-1/2 bg-rose-400 rounded-lg pointer-events-none z-0 opacity-80"
+          style={{
+            top: "50%",
+            left: "50%",
+            height: `${itemHeight}px`,
+            transform: "translate(-50%, -50%)",
+          }}
+        />
+
+        {/* Main scrollable container */}
+        <div
+          ref={containerRef}
+          className="absolute inset-0 overflow-y-auto snap-y snap-mandatory "
+          style={{
+            scrollSnapType: "y mandatory",
+            WebkitOverflowScrolling: "touch",
+            scrollBehavior: isActuallyMobile ? "auto" : "smooth",
+            maskImage:
+              "linear-gradient(to bottom, transparent, black 30%, black 70%, transparent)",
+            WebkitMaskImage:
+              "linear-gradient(to bottom, transparent, black 30%, black 70%, transparent)",
+            msOverflowStyle: "none",
+            scrollbarWidth: "none",
+          }}
+          onWheel={isActuallyMobile ? handleWheel : undefined}
+        >
+          <style jsx>{`
+            div::-webkit-scrollbar {
+              display: none;
+            }
+          `}</style>
+          <ul className="flex flex-col items-center">{renderOptions()}</ul>
+        </div>
       </div>
     </div>
   );
