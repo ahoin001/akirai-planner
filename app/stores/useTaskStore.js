@@ -75,8 +75,6 @@ export const useTaskStore = create((set, get) => ({
    * @param {number} taskId - The ID of the task to edit
    */
   openTaskFormInEditMode: (taskId) => {
-    console.log("task id for form", taskId);
-
     const { closeTaskMenu, taskInstances } = get();
     const taskInstance = taskInstances.find((task) => task.id === taskId);
     console.log("tasks start date", taskInstance.scheduled_date);
@@ -281,8 +279,6 @@ export const useTaskStore = create((set, get) => ({
 
           switch (eventType) {
             case "INSERT":
-              console.log("new:", newRecord);
-              console.log("current:", get().taskInstances);
               set((state) => ({
                 tasks: [newRecord, ...state.tasks],
               }));
@@ -372,7 +368,6 @@ export const useTaskStore = create((set, get) => ({
     set((state) => {
       switch (payload.eventType) {
         case "INSERT":
-          console.log("Inserting new task instance:", payload.new);
           return { taskInstances: [...state.taskInstances, payload.new] };
 
         case "UPDATE": {
@@ -383,8 +378,6 @@ export const useTaskStore = create((set, get) => ({
         }
 
         case "DELETE": {
-          console.log("Deleting  task instance:", payload.new);
-
           const filteredInstances = state.taskInstances.filter(
             (instance) => instance.id !== payload.old.id
           );
