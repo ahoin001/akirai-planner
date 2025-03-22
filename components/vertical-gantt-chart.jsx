@@ -16,8 +16,8 @@ import { useEffect, useRef, useState, useCallback, memo, use } from "react";
 import { BottomNavigation } from "@/components/bottom-navigation";
 import TaskActionMenu from "@/components/task-action-menu";
 import TaskDrawer from "@/components/task-drawer";
-import TaskForm from "@/components/task-form";
-// import { TaskForm } from "@/components/s-task-form";
+// import TaskForm from "@/components/task-form";
+import { TaskForm } from "@/components/s-task-form";
 import WeekHeader from "@/components/week-header";
 import WeekNavigation from "@/components/week-navigation";
 import WeekTimeline from "@/components/week-timeline";
@@ -47,14 +47,14 @@ const VerticalGanttChart = () => {
 
   const {
     currentWeekStart,
-    nextWeekStart,
+    // nextWeekStart,
     getWeekDays,
-    getNextWeekDays,
+    // getNextWeekDays,
     selectedDay,
     slideDirection,
   } = useCalendarStore();
 
-  const { selectedTask, taskInstances } = useTaskStore();
+  const { selectedTask, taskInstances, setTaskForm } = useTaskStore();
 
   // Refs for DOM elements
   const timelineRef = useRef(null);
@@ -63,7 +63,7 @@ const VerticalGanttChart = () => {
 
   // Memoize the week days to prevent unnecessary recalculations , move to util functions
   const weekDays = useCallback(getWeekDays, [currentWeekStart])();
-  const nextWeekDays = useCallback(getNextWeekDays, [nextWeekStart])();
+  // const nextWeekDays = useCallback(getNextWeekDays, [nextWeekStart])();
 
   return (
     <div className="w-full flex flex-col h-screen bg-background text-white p-4">
@@ -150,22 +150,22 @@ const VerticalGanttChart = () => {
       <BottomNavigation />
 
       {/* Task Form */}
-      <TaskForm
+      {/* <TaskForm
         isOpen={isTaskFormOpen}
         onClose={closeTaskForm}
         initialValues={taskFormValues}
         isEditing={isEditingTask}
-      />
+      /> */}
 
       {/* TODO For sform, copy its recurring option select and its animation behavior,  */}
-      {/* <TaskForm
+      <TaskForm
         isOpen={isTaskFormOpen}
         onClose={closeTaskForm}
         onOpenChange={setTaskForm}
         initialValues={taskFormValues}
         isEditing={isEditingTask}
         selectedDate={selectedDay}
-      /> */}
+      />
 
       {/* Floating Action Button */}
       <FloatingActionButton onClick={openTaskForm} />

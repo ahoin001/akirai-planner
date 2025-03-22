@@ -19,7 +19,8 @@
 @layer base {
   :root {
     --background: 240, 3.5%, 11.4%;
-    --drawer: 240, 2%, 16%;
+    /* --drawer: 240, 2%, 16%; */
+    --drawer: 0 0% 10%;
     --foreground: 0 0% 3.9%;
     --card: 0 0% 100%;
     --card-foreground: 0 0% 3.9%;

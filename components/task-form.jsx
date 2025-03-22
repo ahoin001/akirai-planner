@@ -119,6 +119,8 @@ export default function TaskForm({
     }
   }
 
+  // TODO ADD RECCURRENCE OPTIONS TO
+
   // Time slots for wheelpicker
   const timeSlots = Array.from({ length: (23 - 9) * 4 + 1 }, (_, i) => {
     const hour = 9 + Math.floor(i / 4);

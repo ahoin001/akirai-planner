@@ -79,6 +79,7 @@ export const useTaskStore = create((set, get) => ({
 
     const { closeTaskMenu, taskInstances } = get();
     const taskInstance = taskInstances.find((task) => task.id === taskId);
+    console.log("tasks start date", taskInstance.scheduled_date);
 
     if (taskInstance) {
       closeTaskMenu();
@@ -91,6 +92,7 @@ export const useTaskStore = create((set, get) => ({
           title: taskInstance.tasks.title,
           start_date: taskInstance.scheduled_date,
           start_time: taskInstance.start_time,
+          duration_minutes: taskInstance.duration_minutes,
           //   ...taskInstance,
         },
       });
@@ -274,7 +276,7 @@ export const useTaskStore = create((set, get) => ({
           schema: "public",
           table: "tasks",
         },
-        (payload) => {
+        async (payload) => {
           const { eventType, new: newRecord, old: oldRecord } = payload;
 
           switch (eventType) {
@@ -300,6 +302,9 @@ export const useTaskStore = create((set, get) => ({
             default:
               break;
           }
+
+          const { currentWeekStart: startDate } = get();
+          await get().getTasksFromWeekWithInstances(startDate);
         }
       )
       .subscribe();
