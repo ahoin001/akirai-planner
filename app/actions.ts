@@ -5,6 +5,12 @@ import { createClient } from "@/utils/supabase/server";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+import timezone from "dayjs/plugin/timezone";
+
+// Extend Day.js with required plugins
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 const DATE_FORMAT = "YYYY-MM-DD";
 const MAX_OCCURRENCES = 25; // Safety cap
@@ -17,71 +23,234 @@ const MAX_OCCURRENCES = 25; // Safety cap
 export const createTaskAction = async (taskData) => {
   try {
     const supabase = await createClient();
-
-    // Get authenticated user
     const {
       data: { user },
-      error: authError,
     } = await supabase.auth.getUser();
-    if (authError || !user) {
-      throw new Error(
-        "Not authenticated: " + (authError?.message || "No user found")
-      );
+
+    if (!user) throw new Error("User not authenticated");
+
+    // Validate required fields
+    const requiredFields = {
+      title: "Task title is required",
+      start_date: "Start date is required",
+      start_time: "Start time is required",
+    };
+
+    Object.entries(requiredFields).forEach(([field, message]) => {
+      if (!taskData[field]) throw new Error(message);
+    });
+
+    // Validate duration
+    const {
+      data: { value: limits },
+    } = await supabase
+      .from("system_settings")
+      .select("value")
+      .eq("key", "task_limits")
+      .single();
+
+    const maxDuration = limits?.max_duration_minutes || 1440;
+    if (
+      taskData.duration_minutes < 1 ||
+      taskData.duration_minutes > maxDuration
+    ) {
+      throw new Error(`Duration must be between 1 and ${maxDuration} minutes`);
     }
 
-    console.log("sevrer user: ", user);
-    console.log("sevrer task data: ", taskData);
+    // Process timezone-aware dates
+    const timeZone = taskData.timezone || "UTC";
+    const localDateTime = dayjs.tz(
+      `${taskData.start_date}T${taskData.start_time}`,
+      timeZone
+    );
 
-    // Create parent task
+    if (!localDateTime.isValid()) {
+      throw new Error("Invalid date/time combination");
+    }
+
+    // Convert to UTC
+    const utcDateTime = localDateTime.utc();
+    const utcDate = utcDateTime.format("YYYY-MM-DD");
+    const utcTime = utcDateTime.format("HH:mm");
+
+    // Handle recurrence configuration
+    let isRecurring = false;
+    let recurrence = null;
+
+    if (taskData.recurrence?.frequency) {
+      const validFrequencies = ["daily", "weekly", "monthly", "yearly"];
+
+      if (taskData.recurrence.frequency === "once") {
+        // Explicitly handle single occurrence
+        isRecurring = false;
+        recurrence = null;
+      } else if (validFrequencies.includes(taskData.recurrence.frequency)) {
+        // Handle valid recurring task
+        isRecurring = true;
+        recurrence = {
+          frequency: taskData.recurrence.frequency,
+          interval: Math.max(1, parseInt(taskData.recurrence.interval) || 1),
+          occurrences: Math.max(
+            1,
+            parseInt(taskData.recurrence.occurrences) || 1
+          ),
+        };
+      } else {
+        throw new Error(
+          `Invalid recurrence frequency: ${taskData.recurrence.frequency}`
+        );
+      }
+    }
+
+    // Database insert
+    const { data, error } = await supabase
+      .from("tasks")
+      .insert({
+        user_id: user.id,
+        title: taskData.title,
+        start_date: utcDate,
+        start_time: utcTime,
+        duration_minutes: taskData.duration_minutes,
+        is_recurring: isRecurring,
+        recurrence: recurrence,
+        timezone: timeZone,
+        status: "active",
+      })
+      .select()
+      .single();
+
+    if (error) throw new Error(`Database error: ${error.message}`);
+
+    return data;
+  } catch (error) {
+    console.error("Task creation failed:", error);
+    throw new Error(error.message || "Failed to create task");
+  }
+};
+
+/**
+ * Deletes the future instances of a recurring task (keeps past instances)
+ * @param {string} taskId - ID of the recurring task
+ * @param {string} cutoffDate - Delete instances from this date forward (YYYY-MM-DD)
+ */
+export const deleteFutureRecurringInstances = async (
+  taskId: string,
+  cutoffDate: string = dayjs().format(DATE_FORMAT)
+) => {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) throw new Error("User not authenticated");
+
+    // 1. Verify task ownership and recurrence
     const { data: task, error: taskError } = await supabase
       .from("tasks")
-      .insert([
-        {
-          user_id: user.id,
-          ...taskData,
-          is_recurring: taskData.recurrence !== null,
-        },
-      ])
-      .select("*")
+      .select("user_id, is_recurring")
+      .eq("id", taskId)
       .single();
 
     if (taskError) throw taskError;
+    if (task.user_id !== user.id) throw new Error("Unauthorized");
+    if (!task.is_recurring) throw new Error("Task is not recurring");
 
-    // Create initial instance
-    const { data: instance, error: instanceError } = await supabase
+    // 2. Delete future instances
+    const { error: deleteError } = await supabase
       .from("task_instances")
-      .insert([
-        {
-          task_id: task.id,
-          user_id: user.id,
-          scheduled_date: task.start_date,
-          start_time: task.start_time,
-          duration_minutes: task.duration_minutes,
-          original_start_time: task.start_time,
-          original_duration: task.duration_minutes,
-        },
-      ])
-      .single();
+      .delete()
+      .gte("scheduled_date", cutoffDate)
+      .eq("task_id", taskId);
 
-    if (instanceError) throw instanceError;
+    if (deleteError) throw deleteError;
 
-    // Generate future instances if recurring
-    let futureInstances = [];
-    if (task.is_recurring) {
-      futureInstances = await generateTaskInstances(task);
-    }
-
-    return {
-      task,
-      instances: [instance, ...futureInstances],
-    };
+    return { success: true, deletedFrom: cutoffDate };
   } catch (error) {
-    console.error("Create task error:", error);
+    console.error("Future instances deletion failed:", error);
     throw error;
   }
 };
 
-export const deleteTaskAction = async (taskInstanceId) => {
+/**
+ * Deletes a PARENT task and ALL its instances (for recurring tasks)
+ * @param {string} taskId - ID of the parent task to delete
+ */
+export const deleteTaskAndAllInstances = async (taskId: string) => {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) throw new Error("User not authenticated");
+
+    // 1. Verify task ownership
+    const { data: task, error: taskError } = await supabase
+      .from("tasks")
+      .select("user_id")
+      .eq("id", taskId)
+      .single();
+
+    if (taskError) throw taskError;
+    if (task.user_id !== user.id)
+      throw new Error("Unauthorized, task belongs to different user");
+
+    // 2. Delete all instances first
+    const { error: instancesError } = await supabase
+      .from("task_instances")
+      .delete()
+      .eq("task_id", taskId);
+
+    if (instancesError) throw instancesError;
+
+    // 3. Delete parent task
+    const { error: taskDeleteError } = await supabase
+      .from("tasks")
+      .delete()
+      .eq("id", taskId);
+
+    if (taskDeleteError) throw taskDeleteError;
+
+    return { success: true, deletedTaskId: taskId };
+  } catch (error) {
+    console.error("Full task deletion failed:", error);
+    throw error;
+  }
+};
+
+/**
+ * Deletes a parent task AND ALL instances by providing any INSTANCE ID from the series
+ * @param {string} instanceId - ID of any instance in the series
+ */
+export const deleteTaskSeriesByInstanceId = async (instanceId: string) => {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) throw new Error("User not authenticated");
+
+    // 1. Get parent task ID from instance
+    const { data: instance, error: instanceError } = await supabase
+      .from("task_instances")
+      .select("task_id, tasks!inner(user_id)")
+      .eq("id", instanceId)
+      .single();
+
+    if (instanceError) throw instanceError;
+    if (instance.tasks.user_id !== user.id) throw new Error("Unauthorized");
+
+    // 2. Use existing bulk delete function
+    return await deleteTaskAndAllInstances(instance.task_id);
+  } catch (error) {
+    console.error("Series deletion by instance failed:", error);
+    throw error;
+  }
+};
+
+export const deleteSingleTaskInstance = async (taskInstanceId) => {
   try {
     const supabase = await createClient();
     const {
@@ -96,35 +265,12 @@ export const deleteTaskAction = async (taskInstanceId) => {
       );
     }
 
-    // 1. Fetch the task instance to get the associated task_id
-    const { data: taskInstance, error: fetchInstanceError } = await supabase
-      .from("task_instances")
-      .select("task_id")
-      .eq("id", taskInstanceId)
-      .single();
+    const { data: taskInstance, error: deleteTaskInstanceError } =
+      await supabase.from("task_instances").delete().eq("id", taskInstanceId);
 
-    if (fetchInstanceError) throw fetchInstanceError;
+    if (deleteTaskInstanceError) throw deleteTaskInstanceError;
 
-    const taskId = taskInstance.task_id;
-    if (!taskId) throw new Error("Parent task ID not found in task instance");
-
-    // 2. Delete all task instances associated with the task
-    const { count: deletedInstancesCount, error: deleteInstancesError } =
-      await supabase.from("task_instances").delete().eq("task_id", taskId);
-
-    if (deleteInstancesError) throw deleteInstancesError;
-
-    // 3. Delete the parent task
-    const { data: deletedTask, error: deleteTaskError } = await supabase
-      .from("tasks")
-      .delete()
-      .eq("id", taskId)
-      .select("*")
-      .single();
-
-    if (deleteTaskError) throw deleteTaskError;
-
-    return { deletedTask, deletedInstancesCount: deletedInstancesCount || 0 };
+    return { success: true, deletedTaskId: taskInstanceId };
   } catch (error) {
     console.error("Delete task error:", error);
     throw error;

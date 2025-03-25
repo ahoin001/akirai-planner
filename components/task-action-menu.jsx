@@ -5,12 +5,16 @@ import { useTaskStore } from "@/app/stores/useTaskStore";
 
 import dayjs from "dayjs";
 import {
-  deleteTaskAction,
+  deleteTaskAndAllInstances,
+  deleteFutureRecurringInstances,
+  deleteTaskSeriesByInstanceId,
   toggleTaskInstanceCompletionAction,
+  deleteSingleTaskInstance,
 } from "@/app/actions";
 
-import ConfirmationModal from "./confirmation-modal";
 import { CheckCircle, Circle, Edit, Trash2, X } from "lucide-react";
+import ConfirmationModal from "./modals/confirmation-modal";
+import { RecurrenceActionModal } from "@/components/modals/recurrence-action-modal";
 
 /**
  * TaskActionMenu component
@@ -31,6 +35,16 @@ export default function TaskActionMenu() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
 
+  const [actionType, setActionType] = useState("delete");
+  const [isRecurring, setIsRecurring] = useState(null);
+  const [selectedAction, setSelectedAction] = useState(null);
+
+  useEffect(() => {
+    if (selectedTask) {
+      setIsRecurring(selectedTask.tasks?.is_recurring);
+    }
+  }, [selectedTask]);
+
   // Handle mounting animation and visibility
   useEffect(() => {
     if (isTaskMenuOpen) {
@@ -48,11 +62,48 @@ export default function TaskActionMenu() {
     }
   }, [isTaskMenuOpen]);
 
-  const confirmDelete = () => {
-    if (selectedTask) {
-      deleteTaskAction(selectedTask.id);
+  // Update confirmation handler
+  const confirmAction = async () => {
+    if (!selectedTask) return;
+
+    try {
+      if (actionType === "delete") {
+        switch (selectedAction) {
+          case "single":
+            await deleteSingleTaskInstance(selectedTask.id);
+            break;
+          case "all":
+            await deleteTaskSeriesByInstanceId(selectedTask.id);
+            break;
+          case "future":
+            await deleteFutureRecurringInstances(
+              selectedTask.tasks.id,
+              selectedTask.scheduled_date
+            );
+            break;
+          default:
+            break;
+        }
+
+        // closeTaskMenu();
+        console.log("would handle delete");
+        console.log(selectedAction);
+      } else {
+        // Handle modify with action parameter
+        console.log("Would handle update");
+        // await updateTask(
+        //   selectedTask.id,
+        //   formUpdates,
+        //   action === "future" || action === "all"
+        // );
+      }
 
       closeTaskMenu();
+    } catch (error) {
+      console.error("Action failed:", error);
+    } finally {
+      setSelectedAction(null);
+      setIsDeleteModalOpen(false);
     }
   };
 
@@ -68,6 +119,8 @@ export default function TaskActionMenu() {
   };
 
   const handleDelete = () => {
+    setActionType("delete");
+    setSelectedAction(null);
     setIsDeleteModalOpen(true);
   };
 
@@ -75,6 +128,12 @@ export default function TaskActionMenu() {
     if (selectedTask) {
       openTaskFormInEditMode(selectedTask.id);
     }
+  };
+
+  const handleModify = () => {
+    setActionType("modify");
+    setSelectedAction(null);
+    setIsDeleteModalOpen(true);
   };
 
   // Don't render anything if no task is selected or the menu should not be visible
@@ -198,7 +257,7 @@ export default function TaskActionMenu() {
       </div>
 
       {/* Confirmation Modal for Delete */}
-      <ConfirmationModal
+      {/* <ConfirmationModal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={confirmDelete}
@@ -207,6 +266,15 @@ export default function TaskActionMenu() {
         confirmText="Delete"
         cancelText="Cancel"
         destructive={true}
+      /> */}
+
+      <RecurrenceActionModal
+        actionType={actionType}
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={confirmAction}
+        selectedOption={selectedAction}
+        setSelectedOption={setSelectedAction}
       />
     </>
   );
