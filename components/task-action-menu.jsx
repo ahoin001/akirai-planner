@@ -10,10 +10,11 @@ import {
   deleteTaskSeriesByInstanceId,
   toggleTaskInstanceCompletionAction,
   deleteSingleTaskInstance,
+  updateTask,
 } from "@/app/actions";
 
 import { CheckCircle, Circle, Edit, Trash2, X } from "lucide-react";
-import ConfirmationModal from "./modals/confirmation-modal";
+import { ConfirmationModal } from "@/components/modals/confirmation-modal";
 import { RecurrenceActionModal } from "@/components/modals/recurrence-action-modal";
 
 /**
@@ -31,13 +32,11 @@ export default function TaskActionMenu() {
     selectedTask,
   } = useTaskStore();
 
-  const [isMounted, setIsMounted] = useState(false);
+  const [deleteScope, setDeleteScope] = useState(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [isVisible, setIsVisible] = useState(false);
-
-  const [actionType, setActionType] = useState("delete");
+  const [isMounted, setIsMounted] = useState(false);
   const [isRecurring, setIsRecurring] = useState(null);
-  const [selectedAction, setSelectedAction] = useState(null);
+  const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
     if (selectedTask) {
@@ -62,51 +61,6 @@ export default function TaskActionMenu() {
     }
   }, [isTaskMenuOpen]);
 
-  // Update confirmation handler
-  const confirmAction = async () => {
-    if (!selectedTask) return;
-
-    try {
-      if (actionType === "delete") {
-        switch (selectedAction) {
-          case "single":
-            await deleteSingleTaskInstance(selectedTask.id);
-            break;
-          case "all":
-            await deleteTaskSeriesByInstanceId(selectedTask.id);
-            break;
-          case "future":
-            await deleteFutureRecurringInstances(
-              selectedTask.tasks.id,
-              selectedTask.scheduled_date
-            );
-            break;
-          default:
-            break;
-        }
-
-        // closeTaskMenu();
-        console.log("would handle delete");
-        console.log(selectedAction);
-      } else {
-        // Handle modify with action parameter
-        console.log("Would handle update");
-        // await updateTask(
-        //   selectedTask.id,
-        //   formUpdates,
-        //   action === "future" || action === "all"
-        // );
-      }
-
-      closeTaskMenu();
-    } catch (error) {
-      console.error("Action failed:", error);
-    } finally {
-      setSelectedAction(null);
-      setIsDeleteModalOpen(false);
-    }
-  };
-
   const handleBackdropClick = () => {
     closeTaskMenu();
   };
@@ -118,25 +72,48 @@ export default function TaskActionMenu() {
     }
   };
 
-  const handleDelete = () => {
-    setActionType("delete");
-    setSelectedAction(null);
-    setIsDeleteModalOpen(true);
-  };
+  const handleDeleteConfirmation = async () => {
+    if (!selectedTask) return;
 
-  const handleEdit = () => {
-    if (selectedTask) {
-      openTaskFormInEditMode(selectedTask.id);
+    try {
+      if (isRecurring) {
+        switch (deleteScope) {
+          case "single":
+            await deleteSingleTaskInstance(selectedTask.id);
+            break;
+          case "future":
+            await deleteFutureRecurringInstances(
+              selectedTask.tasks.id,
+              selectedTask.scheduled_date
+            );
+            break;
+          case "all":
+            await deleteTaskSeriesByInstanceId(selectedTask.id);
+            break;
+        }
+      } else {
+        await deleteSingleTaskInstance(selectedTask.id);
+      }
+      closeTaskMenu();
+    } catch (error) {
+      console.error("Delete failed:", error);
+    } finally {
+      setIsDeleteModalOpen(false);
+      setDeleteScope(null);
     }
   };
 
-  const handleModify = () => {
-    setActionType("modify");
-    setSelectedAction(null);
+  const onDelete = () => {
     setIsDeleteModalOpen(true);
   };
 
-  // Don't render anything if no task is selected or the menu should not be visible
+  const onEdit = () => {
+    if (selectedTask) {
+      openTaskFormInEditMode(selectedTask.id);
+      closeTaskMenu();
+    }
+  };
+
   if (!selectedTask || !isVisible) return null;
 
   const startTime = dayjs(`2000-01-01 ${selectedTask.start_time}`);
@@ -152,7 +129,6 @@ export default function TaskActionMenu() {
         onClick={handleBackdropClick}
       />
 
-      {/* Task Menu */}
       <div
         className={`fixed bottom-0 left-1/2 transform -translate-x-1/2 z-50 transition-all duration-500 ease-in-out ${
           isMounted ? "transform -translate-y-10" : "transform translate-y-full"
@@ -203,7 +179,7 @@ export default function TaskActionMenu() {
                     - {endTime}
                   </p>
                   <h2 className="text-2xl font-bold">
-                    {selectedTask.tasks.title}
+                    {selectedTask.override_title ?? selectedTask.tasks.title}
                   </h2>
                 </div>
               </div>
@@ -211,11 +187,9 @@ export default function TaskActionMenu() {
 
             <div className="w-full mt-3 mb-6 border-t border-gray-700" />
 
-            {/* Action buttons */}
             <div className="grid grid-cols-3 gap-4 mb-6">
-              {/* Delete button */}
               <button
-                onClick={handleDelete}
+                onClick={onDelete}
                 className="flex flex-col items-center justify-center bg-zinc-800 p-4 rounded-xl"
               >
                 <div className="text-pink-500 mb-2">
@@ -224,7 +198,6 @@ export default function TaskActionMenu() {
                 <span className="text-xl">Delete</span>
               </button>
 
-              {/* Complete button */}
               <button
                 onClick={handleComplete}
                 className="flex flex-col items-center justify-center bg-zinc-800 p-4 rounded-xl"
@@ -241,10 +214,9 @@ export default function TaskActionMenu() {
                 </span>
               </button>
 
-              {/* Edit button */}
               <button
                 className="flex flex-col items-center justify-center bg-zinc-800 p-4 rounded-xl"
-                onClick={handleEdit}
+                onClick={onEdit}
               >
                 <div className="text-blue-500 mb-2">
                   <Edit size={28} />
@@ -256,25 +228,24 @@ export default function TaskActionMenu() {
         </div>
       </div>
 
-      {/* Confirmation Modal for Delete */}
-      {/* <ConfirmationModal
+      <ConfirmationModal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
-        onConfirm={confirmDelete}
+        onConfirm={handleDeleteConfirmation}
         title="Delete Task"
         message="Are you sure you want to delete this task? This action cannot be undone."
         confirmText="Delete"
         cancelText="Cancel"
         destructive={true}
-      /> */}
+      />
 
       <RecurrenceActionModal
-        actionType={actionType}
-        isOpen={isDeleteModalOpen}
+        actionType="delete"
+        isOpen={isDeleteModalOpen && isRecurring}
         onClose={() => setIsDeleteModalOpen(false)}
-        onConfirm={confirmAction}
-        selectedOption={selectedAction}
-        setSelectedOption={setSelectedAction}
+        onConfirm={handleDeleteConfirmation}
+        selectedOption={deleteScope}
+        setSelectedOption={setDeleteScope}
       />
     </>
   );

@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
+import { SupabaseClient } from "@supabase/supabase-js";
 
 // Extend Day.js with required plugins
 dayjs.extend(utc);
@@ -128,6 +129,9 @@ export const createTaskAction = async (taskData) => {
   }
 };
 
+// **********************************************************
+// DELETES
+// **********************************************************
 /**
  * Deletes the future instances of a recurring task (keeps past instances)
  * @param {string} taskId - ID of the recurring task
@@ -277,6 +281,204 @@ export const deleteSingleTaskInstance = async (taskInstanceId) => {
   }
 };
 
+// **********************************************************
+// UPDATES
+// **********************************************************
+
+export const updateTask = async (
+  taskInstanceId: string,
+  updates: object,
+  scope: "single" | "future" | "all" = "single"
+) => {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) throw new Error("User not authenticated");
+
+    // 1. Fetch task instance with parent task relationship
+    const { data: taskInstance, error: fetchError } = await supabase
+      .from("task_instances")
+      .select("*, tasks!task_instances_task_id_fkey(*)")
+      .eq("id", taskInstanceId)
+      .single();
+
+    if (fetchError) throw fetchError;
+
+    const parentTask = taskInstance.tasks;
+    if (!parentTask) throw new Error("Parent task not found");
+
+    console.log("Before scope check: ", scope);
+
+    // 2. Validate recurrence for non-single scopes
+    if (scope !== "single" && !parentTask.is_recurring) {
+      throw new Error(
+        "Cannot update future/all instances of non-recurring task"
+      );
+    }
+
+    // 3. Perform scope-specific updates
+    switch (scope) {
+      case "single":
+        return await updateSingleInstance(
+          supabase,
+          taskInstanceId,
+          updates,
+          parentTask,
+          user.id
+        );
+
+      case "future":
+        return await updateFutureInstances(
+          supabase,
+          taskInstanceId,
+          updates,
+          parentTask,
+          user.id,
+          taskInstance.scheduled_date
+        );
+
+      case "all":
+        return await updateAllInstances(
+          supabase,
+          taskInstanceId,
+          updates,
+          parentTask,
+          user.id
+        );
+
+      default:
+        throw new Error("Invalid update scope");
+    }
+  } catch (error) {
+    console.error("Update task error:", error);
+    throw error;
+  }
+};
+
+// Helper functions
+async function updateSingleInstance(
+  supabase: SupabaseClient,
+  taskInstanceId: string,
+  updates: any,
+  parentTask: any,
+  userId: string
+) {
+  console.log("tI ID: ", taskInstanceId);
+  console.log("Updates: ", updates);
+
+  const supabaseInit = await createClient();
+  // Verify ownership
+  if (parentTask.user_id !== userId) throw new Error("Unauthorized");
+
+  // Update instance
+  const { data: updatedInstance, error: instanceError } = await supabaseInit
+    .from("task_instances")
+    .update({
+      duration_minutes: updates.duration_minutes,
+      override_title: updates.title,
+      scheduled_date: updates.start_date,
+      start_time: updates.start_time,
+    })
+    .eq("id", taskInstanceId)
+    .select("*")
+    .single();
+
+  console.log("updated instance");
+
+  if (instanceError) throw instanceError;
+
+  return { instance: updatedInstance };
+}
+
+async function updateFutureInstances(
+  supabase: SupabaseClient,
+  taskInstanceId: string,
+  updates: any,
+  parentTask: any,
+  userId: string,
+  cutoffDate: string
+) {
+  if (parentTask.user_id !== userId) throw new Error("Unauthorized");
+
+  // 1. Update the edited instance
+  const { data: updatedInstance, error: instanceError } = await supabase
+    .from("task_instances")
+    .update({
+      duration_minutes: updates.duration_minutes,
+      override_title: updates.title,
+      scheduled_date: updates.start_date,
+      start_time: updates.start_time,
+    })
+    .eq("id", taskInstanceId)
+    .single();
+
+  if (instanceError) throw instanceError;
+
+  // 2. Update future instances (excluding edited one) without changing dates
+  const { data: updatedInstances, error: instancesError } = await supabase
+    .from("task_instances")
+    .update({
+      override_title: updates.title,
+      duration_minutes: updates.duration_minutes,
+      start_time: updates.start_time,
+    })
+    .gte("scheduled_date", cutoffDate)
+    .eq("task_id", parentTask.id)
+    .neq("id", taskInstanceId)
+    .select("*");
+
+  if (instancesError) throw instancesError;
+
+  return {
+    task: parentTask, // Parent task remains unchanged
+    instances: [updatedInstance, ...updatedInstances],
+  };
+}
+
+async function updateAllInstances(
+  supabase: SupabaseClient,
+  taskInstanceId: string,
+  updates: any,
+  parentTask: any,
+  userId: string
+) {
+  if (parentTask.user_id !== userId) throw new Error("Unauthorized");
+
+  const { data: updatedInstance, error: instanceError } = await supabase
+    .from("task_instances")
+    .update({
+      duration_minutes: updates.duration_minutes,
+      override_title: updates.title,
+      scheduled_date: updates.start_date,
+      start_time: updates.start_time,
+    })
+    .eq("id", taskInstanceId)
+    .single();
+
+  if (instanceError) throw instanceError;
+
+  const { data: updatedInstances, error: instancesError } = await supabase
+    .from("task_instances")
+    .update({
+      override_title: updates.title,
+      duration_minutes: updates.duration_minutes,
+      start_time: updates.start_time,
+    })
+    .eq("task_id", parentTask.id)
+    .neq("id", taskInstanceId)
+    .select("*");
+
+  if (instancesError) throw instancesError;
+
+  return { task: updatedInstance, instances: updatedInstances };
+}
+// **********************************************************
+// HELPERS
+// **********************************************************
+
 /**
  * Toggles completion status for an instance
  * @param {string} instanceId - Instance ID
@@ -311,102 +513,51 @@ export const toggleTaskInstanceCompletionAction = async (instanceId) => {
   }
 };
 
-export const updateTask = async (
-  taskInstanceId,
-  updates,
-  updateFuture = false
-) => {
-  console.log("Task Instance ID: ", taskInstanceId);
-  try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
+// export const updateTask = async (
+//   taskInstanceId: string,
+//   updates: object,
+//   scope: "single" | "future" | "all" = "single"
+// ) => {
+//   try {
+//     console.log("In updates: ", updates);
+//     const supabase = await createClient();
+//     const {
+//       data: { user },
+//     } = await supabase.auth.getUser();
 
-    if (authError || !user) {
-      throw new Error(
-        "Not authenticated: " +
-          (authError?.message || "No user found to delete task")
-      );
-    }
+//     if (!user) throw new Error("Not authenticated");
 
-    // 1. Fetch the task instance and its associated tasks
-    const { data: taskInstance, error: fetchInstanceError } = await supabase
-      .from("task_instances")
-      .select("*, tasks!fk_task_instances_tasks(*)") // Explicitly specify the relationship
-      .eq("id", taskInstanceId)
-      .single();
+//     // Get parent task details
+//     const { data: instance, error: fetchError } = await supabase
+//       .from("task_instances")
+//       .select("task_id, tasks!inner(*), scheduled_date")
+//       .eq("id", taskInstanceId)
+//       .single();
 
-    console.log("BIG UPDATE: ", updates);
+//     if (fetchError) throw fetchError;
+//     if (instance.tasks.user_id !== user.id) throw new Error("Unauthorized");
 
-    if (fetchInstanceError) throw fetchInstanceError;
+//     const parentTask = instance.tasks;
 
-    // Extract the parent task (first item in the tasks array)
-    const parentTask = taskInstance.tasks;
-    if (!parentTask) throw new Error("Parent task not found in task instance");
-
-    // 2. Update the task instance
-    console.log("before update of instance: ");
-    const { data: updatedInstance, error: instanceError } = await supabase
-      .from("task_instances")
-      .update({
-        scheduled_date: updates.start_date || taskInstance.scheduled_date,
-        start_time: updates.start_time || taskInstance.start_time,
-        duration_minutes:
-          updates.duration_minutes || taskInstance.duration_minutes,
-        is_completed: updates.is_completed ?? taskInstance.is_completed,
-      })
-      .eq("id", taskInstanceId)
-      .select("*")
-      .single();
-    console.log("after update of instance: ");
-
-    if (instanceError) throw instanceError;
-
-    // 3. Update the parent task if needed
-    const { data: updatedTask, error: taskError } = await supabase
-      .from("tasks")
-      .update({
-        start_date: updates.start_date,
-        title: updates.title,
-      })
-      .eq("id", parentTask.id)
-      .select("*")
-      .single();
-
-    if (taskError) throw taskError;
-
-    // 4. Update future instances if the task is recurring and updateFuture is true
-    let updatedInstances = [];
-
-    if (parentTask.is_recurring && updateFuture) {
-      const { data, error } = await supabase
-        .from("task_instances")
-        .update({
-          start_time: updates.start_time,
-          duration_minutes: updates.duration_minutes,
-          is_completed: updates.is_completed,
-        })
-        .gte("scheduled_date", dayjs().format(DATE_FORMAT))
-        .eq("task_id", parentTask.id)
-        .eq("is_rescheduled", false)
-        .select("*");
-
-      if (error) throw error;
-      updatedInstances = data;
-    }
-
-    return {
-      task: updatedTask,
-      instance: updatedInstance,
-      instances: updatedInstances,
-    };
-  } catch (error) {
-    console.error("Update task error:", error);
-    throw error;
-  }
-};
+//     switch (scope) {
+//       case "single":
+//         return await updateSingleTaskInstance(taskInstanceId, updates);
+//       case "future":
+//         return await updateFutureRecurringInstances(
+//           parentTask.id,
+//           updates,
+//           instance.scheduled_date
+//         );
+//       case "all":
+//         return await updateTaskAndAllInstances(parentTask.id, updates);
+//       default:
+//         throw new Error("Invalid update scope");
+//     }
+//   } catch (error) {
+//     console.error("Task update failed:", error);
+//     throw error;
+//   }
+// };
 
 export const generateTaskInstances = async (task) => {
   try {
@@ -473,9 +624,9 @@ export const generateTaskInstances = async (task) => {
   }
 };
 
-// ***********
-// Auth Actions
-// ***********
+// **********************************************************
+// AUTH ACTIONS
+// **********************************************************
 
 export const signUpAction = async (formData: FormData) => {
   const email = formData.get("email")?.toString();

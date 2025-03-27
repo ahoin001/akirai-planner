@@ -37,54 +37,57 @@ const getTaskIcon = (type) => {
  * Individual task item in the drawer
  * Memoized to prevent unnecessary rerenders
  */
-const DrawerTaskItem = memo(({ task, isSelected, isInFuture, onClick }) => {
-  const isCompleted = task.is_complete;
+const DrawerTaskItem = memo(
+  ({ taskInstance, isSelected, isInFuture, onClick }) => {
+    const isCompleted = taskInstance.is_complete;
 
-  // Format time range
-  const formatTimeRange = (task) => {
-    const startTime = dayjs(`2000-01-01T${task.start_time}`);
-    const endTime = startTime.add(task.duration_minutes, "minute");
+    const formatTimeRange = (taskInstance) => {
+      const startTime = dayjs(`2000-01-01T${taskInstance.start_time}`);
+      const endTime = startTime.add(taskInstance.duration_minutes, "minute");
 
-    return `${startTime.format("h:mm A")} – ${endTime.format("h:mm A")}`;
-  };
+      return `${startTime.format("h:mm A")} – ${endTime.format("h:mm A")}`;
+    };
 
-  return (
-    <div
-      className={`flex items-center space-x-4 cursor-pointer hover:bg-zinc-800 p-2 rounded-lg transition-colors
-      ${isSelected ? "bg-gray-700" : ""}`}
-      onClick={onClick}
-      id={`task-${task.id}`} // Add id for easier reference
-    >
-      {/* Task icon */}
+    return (
       <div
-        className={`w-10 h-10 rounded-full ${
-          isCompleted
-            ? "bg-green-500"
-            : isInFuture
-              ? "bg-gray-700"
-              : task.color === "pink"
-                ? "bg-pink-500"
-                : "bg-blue-500"
-        } flex items-center justify-center`}
+        className={`flex items-center space-x-4 cursor-pointer hover:bg-zinc-800 p-2 rounded-lg transition-colors
+      ${isSelected ? "bg-gray-700" : ""}`}
+        onClick={onClick}
+        id={`taskInstance-${taskInstance.id}`} // Add id for easier reference
       >
-        {getTaskIcon(task.type)}
-      </div>
-
-      {/* Task details */}
-      <div className={isCompleted ? "opacity-60" : ""}>
-        <div className="font-medium flex items-center">
-          {task.tasks.title}
-          {isCompleted && (
-            <span className="ml-2 text-xs bg-green-500 text-white px-2 py-0.5 rounded-full">
-              Completed
-            </span>
-          )}
+        {/* Task icon */}
+        <div
+          className={`w-10 h-10 rounded-full ${
+            isCompleted
+              ? "bg-green-500"
+              : isInFuture
+                ? "bg-gray-700"
+                : taskInstance.color === "pink"
+                  ? "bg-pink-500"
+                  : "bg-blue-500"
+          } flex items-center justify-center`}
+        >
+          {getTaskIcon(taskInstance.type)}
         </div>
-        <div className="text-sm text-gray-400">{formatTimeRange(task)}</div>
+
+        {/* Task details */}
+        <div className={isCompleted ? "opacity-60" : ""}>
+          <div className="font-medium flex items-center">
+            {taskInstance.override_title ?? taskInstance.tasks.title}
+            {isCompleted && (
+              <span className="ml-2 text-xs bg-green-500 text-white px-2 py-0.5 rounded-full">
+                Completed
+              </span>
+            )}
+          </div>
+          <div className="text-sm text-gray-400">
+            {formatTimeRange(taskInstance)}
+          </div>
+        </div>
       </div>
-    </div>
-  );
-});
+    );
+  }
+);
 
 DrawerTaskItem.displayName = "DrawerTaskItem";
 
@@ -226,7 +229,7 @@ const TaskDrawer = ({ drawerRef }) => {
                 return (
                   <DrawerTaskItem
                     key={task.id}
-                    task={task}
+                    taskInstance={task}
                     isSelected={isSelected}
                     isInFuture={isInFuture}
                     onClick={() => handleTaskSelect(task)}

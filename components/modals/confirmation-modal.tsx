@@ -25,7 +25,7 @@ export const ConfirmationModal = ({
 }) => {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md bg-zinc-900 border-zinc-800">
+      <DialogContent className="sm:max-w-md bg-zinc-900 border-zinc-800 z-[900]">
         <div className="absolute right-4 top-4">
           <Button
             variant="ghost"
@@ -51,18 +51,18 @@ export const ConfirmationModal = ({
         {showControls && (
           <DialogFooter className="sm:justify-start gap-3">
             <Button
+              onClick={onClose}
+              variant="outline"
+              className="w-full text-zinc-100 border-zinc-700 hover:bg-zinc-800 hover:text-white"
+            >
+              {cancelText}
+            </Button>
+            <Button
               onClick={onConfirm}
               variant={destructive ? "destructive" : "default"}
               className="w-full"
             >
               {confirmText}
-            </Button>
-            <Button
-              onClick={onClose}
-              variant="outline"
-              className="w-full text-zinc-100 border-zinc-700 hover:bg-zinc-800"
-            >
-              {cancelText}
             </Button>
           </DialogFooter>
         )}
