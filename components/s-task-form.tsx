@@ -305,13 +305,14 @@ export function TaskForm({
                     </button>
 
                     {isCalendarOpen && (
-                      <div className="mt-4 bg-zinc-800 rounded-lg p-4 w-full">
-                        <DatePicker
-                          selectedDate={formDate}
-                          onSelect={handleDateSelect}
-                          onClose={() => setIsCalendarOpen(false)}
-                        />
-                      </div>
+                      // <div className="mt-4 bg-zinc-800 rounded-lg p-4 w-full z-[9000]">
+                      <DatePicker
+                        isOpen={isCalendarOpen}
+                        selectedDate={formDate}
+                        onSelect={handleDateSelect}
+                        onClose={() => setIsCalendarOpen(false)}
+                      />
+                      // </div>
                     )}
                   </div>
                 </div>
