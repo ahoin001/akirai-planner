@@ -23,17 +23,24 @@ export const useTaskStore = create((set, get) => ({
   isEditingTask: false,
   isLoading: false,
   isTaskFormOpen: false,
+  isTaskFormOpen: false,
   isTaskMenuOpen: false,
-  //   subscription: null,
 
   // task state
+  pendingUpdates: null,
   selectedTask: null,
-  taskFormValues: {},
   tasks: [],
+  taskFormValues: {},
   taskInstances: [],
+  updateScope: null, // For if form should update instance all or future occurrences
+
+  // Implemeting the tasks store from calendar store
+  // selectedDay: new Date(),
+  selectedDay: dayjs().day(),
+  isTransitioning: false,
 
   // **********************************************************
-  // SETTERS
+  // GETTERS
   // **********************************************************
 
   /**
@@ -57,6 +64,7 @@ export const useTaskStore = create((set, get) => ({
   // **********************************************************
   // SETTERS
   // **********************************************************
+  clearPendingUpdates: () => set({ pendingUpdates: null, updateScope: null }),
 
   closeTaskForm: () => set({ isTaskFormOpen: false }),
 
@@ -64,11 +72,64 @@ export const useTaskStore = create((set, get) => ({
 
   setActiveModal: (modal) => set({ activeModal: modal }),
 
+  setPendingUpdates: (updates) => set({ pendingUpdates: updates }),
+
   setTaskForm: (isOpen) => set({ isTaskFormOpen: isOpen }),
+
+  setUpdateScope: (value) => set({ updateScope: value }),
 
   // **********************************************************
   // UI
   // **********************************************************
+
+  // TODO Refine this as needed for efficient task fetching when changing weeks
+  /**
+   * Changes the current week
+   * @param {string} direction - Direction to change ('prev' or 'next')
+   */
+  changeWeek: (direction) => {
+    const { currentWeekStart, isTransitioning, selectedDay } = get();
+
+    if (isTransitioning) return;
+
+    // Get the day of week of the currently selected day (0 = Sunday, 6 = Saturday)
+    const selectedDayOfWeek = get().selectedDay;
+    console.log("selectedDay: ", selectedDay);
+
+    // Calculate the new week start
+    const newWeekStart = addWeeks(
+      currentWeekStart,
+      direction === "prev" ? -1 : 1
+    );
+
+    // Calculate the same day of week in the new week
+    const newSelectedDay = dayjs(newWeekStart).add(selectedDayOfWeek, "day");
+
+    // const newTasks = generateTasks(newWeekStart);
+
+    console.log("newWeekStart", newWeekStart);
+    console.log("newTasks", newTasks);
+
+    set({
+      nextWeekStart: newWeekStart,
+      // nextTasks: newTasks,
+      slideDirection: direction === "prev" ? "right" : "left",
+      isTransitioning: true,
+    });
+
+    // Complete the transition after animation
+    setTimeout(() => {
+      set({
+        currentWeekStart: newWeekStart,
+        currentTasks: newTasks,
+        nextWeekStart: null,
+        // nextTasks: [],
+        slideDirection: null,
+        isTransitioning: false,
+        selectedDay: newSelectedDay, // Set the same day of week in the new week
+      });
+    }, 300);
+  },
 
   /**
    * Opens the task form for editing an existing task
@@ -77,7 +138,7 @@ export const useTaskStore = create((set, get) => ({
   openTaskFormInEditMode: (taskId) => {
     const { closeTaskMenu, taskInstances } = get();
     const taskInstance = taskInstances.find((task) => task.id === taskId);
-    console.log("tasks start date", taskInstance.scheduled_date);
+    console.log("task being edited", taskInstance);
 
     if (taskInstance) {
       closeTaskMenu();
@@ -87,7 +148,7 @@ export const useTaskStore = create((set, get) => ({
         isEditingTask: true,
         taskFormValues: {
           id: taskInstance.id,
-          title: taskInstance.tasks.title,
+          title: taskInstance.override_title ?? taskInstance.tasks.title,
           start_date: taskInstance.scheduled_date,
           start_time: taskInstance.start_time,
           duration_minutes: taskInstance.duration_minutes,
@@ -116,6 +177,8 @@ export const useTaskStore = create((set, get) => ({
 
   openTaskMenu: () => set({ isTaskMenuOpen: true }),
 
+  setTaskFormValues: (taskData) => set({ taskFormValues: taskData }),
+
   setSelectedTask: (task) => set({ selectedTask: task }),
 
   setSelectedTaskId: (id) => set({ selectedTaskId: id }),
@@ -134,6 +197,16 @@ export const useTaskStore = create((set, get) => ({
 
   isModalActive: (modalName) => get().activeModal === modalName,
 
+  // Check if a task is part of a recurring series
+  isPartOfSeries: (taskInstance) => {
+    if (!taskInstance.tasks?.is_recurring) return false;
+
+    const taskId = task.tasks.id;
+    return (
+      recurringTasksMap.has(taskId) && recurringTasksMap.get(taskId).length > 1
+    );
+  },
+
   // Call this function to hydrate and subscribe when app loads
   hydrateAndSubscribe: async () => {
     const { currentWeekStart: startDate } = get();
@@ -147,7 +220,10 @@ export const useTaskStore = create((set, get) => ({
   },
 
   getTasksFromWeekWithInstances: async (startDate) => {
-    const endDate = startDate.add(6, "days"); // Add 6 days to the start date to get the week
+    // const endDate = startDate.add(6, "days"); // Add 6 days to the start date to get the week
+
+    const bufferStart = startDate.subtract(1, "week");
+    const bufferEnd = startDate.add(2, "weeks");
 
     try {
       set({ isLoading: true });
@@ -162,7 +238,7 @@ export const useTaskStore = create((set, get) => ({
         .select(
           `
           *,
-          tasks!task_instances_task_id_fkey ( 
+          tasks!task_instances_task_id_fkey (   
             id,
             title,
             start_date,
@@ -174,8 +250,9 @@ export const useTaskStore = create((set, get) => ({
           )
         `
         )
-        .gte("scheduled_date", startDate.toISOString())
-        .lte("scheduled_date", endDate.toISOString())
+        // TODO add back when we implement efficient fetching
+        // .gte("scheduled_date", bufferStart.toISOString())
+        // .lte("scheduled_date", bufferEnd.toISOString())
         // .eq("is_cancelled", false)
         .eq("user_id", user.user.id)
         .order("scheduled_date", { ascending: true })
@@ -368,7 +445,14 @@ export const useTaskStore = create((set, get) => ({
     set((state) => {
       switch (payload.eventType) {
         case "INSERT":
-          return { taskInstances: [...state.taskInstances, payload.new] };
+          // Check if the instance already exists
+          const exists = state.taskInstances.some(
+            (instance) => instance.id === payload.new.id
+          );
+          if (!exists) {
+            return { taskInstances: [...state.taskInstances, payload.new] };
+          }
+          return state;
 
         case "UPDATE": {
           const updatedInstances = state.taskInstances.map((instance) =>

@@ -19,16 +19,15 @@ import DatePicker from "./date-picker";
  * Individual day header component
  * Memoized to prevent unnecessary rerenders
  */
-const DayHeader = memo(
-  ({ date, isSelected, isToday, onSelect, onOpenDatePicker }) => {
-    return (
-      <div className="text-center relative group">
-        {/* Day of week label */}
-        <div className="text-gray-400 text-sm mb-2">{format(date, "EEE")}</div>
+const DayHeader = memo(({ date, isSelected, isToday, onSelect }) => {
+  return (
+    <div className="text-center relative group">
+      {/* Day of week label */}
+      <div className="text-gray-400 text-sm mb-2">{format(date, "EEE")}</div>
 
-        {/* Day number with selection indicator */}
-        <div
-          className={`text-xl font-medium w-10 h-10 rounded-full flex items-center justify-center mx-auto cursor-pointer
+      {/* Day number with selection indicator */}
+      <div
+        className={`text-xl font-medium w-10 h-10 rounded-full flex items-center justify-center mx-auto cursor-pointer
           ${
             isSelected
               ? "bg-pink-500 text-white"
@@ -36,23 +35,13 @@ const DayHeader = memo(
                 ? "ring-2 ring-pink-500 text-white"
                 : "text-white"
           }`}
-          onClick={() => onSelect(date)}
-        >
-          {format(date, "d")}
-        </div>
-
-        {/* Calendar icon for date picker */}
-        <button
-          className="absolute -right-1 -top-1 w-5 h-5 bg-zinc-800 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-          onClick={() => onOpenDatePicker(date)}
-          aria-label="Open date picker"
-        >
-          <Calendar className="w-3 h-3 text-white" />
-        </button>
+        onClick={() => onSelect(date)}
+      >
+        {format(date, "d")}
       </div>
-    );
-  }
-);
+    </div>
+  );
+});
 
 DayHeader.displayName = "DayHeader";
 
@@ -72,6 +61,7 @@ const WeekHeader = ({ weekDays, isNext = false }) => {
     navigateToDate,
     slideDirection,
   } = useCalendarStore();
+
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [datePickerFor, setDatePickerFor] = useState(null);
 
@@ -135,7 +125,6 @@ const WeekHeader = ({ weekDays, isNext = false }) => {
             isSelected={isSameDay(date, selectedDay)}
             isToday={isSameDay(date, currentTime)}
             onSelect={selectDay}
-            onOpenDatePicker={handleDayClick}
           />
         ))}
       </div>

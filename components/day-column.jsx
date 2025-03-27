@@ -139,16 +139,18 @@ export default function DayColumn({ date, tasks, isNext = false }) {
       </div>
 
       {/* Tasks */}
-      {tasks.map((task) => (
-        <TaskItem
-          key={task.id}
-          task={task}
-          date={date}
-          top={calculateTaskPosition(task)}
-          height={calculateTaskHeight(task)}
-          isNext={isNext}
-        />
-      ))}
+      {tasks.map((task) => {
+        return (
+          <TaskItem
+            key={task.id}
+            task={task}
+            date={date}
+            top={calculateTaskPosition(task)}
+            height={calculateTaskHeight(task)}
+            isNext={isNext}
+          />
+        );
+      })}
     </div>
   );
 }

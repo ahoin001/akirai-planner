@@ -11,7 +11,7 @@
 import { format } from "date-fns";
 import useCalendarStore from "@/app/stores/useCalendarStore";
 import { useTaskStore } from "@/app/stores/useTaskStore";
-import { useEffect, useRef, useState, useCallback, memo, use } from "react";
+import { useEffect, useRef, useState, useCallback, memo } from "react";
 
 import { BottomNavigation } from "@/components/bottom-navigation";
 import TaskActionMenu from "@/components/task-action-menu";
@@ -47,14 +47,21 @@ const VerticalGanttChart = () => {
 
   const {
     currentWeekStart,
-    // nextWeekStart,
     getWeekDays,
-    // getNextWeekDays,
     selectedDay,
     slideDirection,
+    navigateToDate,
+    isTransitioning,
+    nextTasks,
+    nextWeekDays,
+    nextWeekStart,
+    // getNextWeekDays,
   } = useCalendarStore();
 
   const { selectedTask, taskInstances, setTaskForm } = useTaskStore();
+
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const [datePickerFor, setDatePickerFor] = useState(null);
 
   // Refs for DOM elements
   const timelineRef = useRef(null);
@@ -65,12 +72,33 @@ const VerticalGanttChart = () => {
   const weekDays = useCallback(getWeekDays, [currentWeekStart])();
   // const nextWeekDays = useCallback(getNextWeekDays, [nextWeekStart])();
 
+  const handleHeaderClick = useCallback((date) => {
+    setDatePickerFor(date);
+    setDatePickerOpen(true);
+  }, []);
+
+  const handleCloseDatePicker = useCallback(() => {
+    setDatePickerOpen(false);
+  }, []);
+
+  const handleDateSelect = useCallback(
+    (date) => {
+      // Navigate to the week containing the selected date
+      navigateToDate(date);
+      setDatePickerOpen(false);
+    },
+    [navigateToDate]
+  );
+
   return (
     <div className="w-full flex flex-col h-screen bg-background text-white p-4">
       {/* Header section */}
       <div className="flex-none">
         {/* Month and year heading */}
-        <h1 className="text-4xl font-bold mb-6">
+        <h1
+          className="text-4xl font-bold mb-6 hover:cursor-pointer"
+          onClick={handleHeaderClick}
+        >
           {format(currentWeekStart, "MMMM")}{" "}
           <span className="text-pink-500">
             {format(currentWeekStart, "yyyy")}
@@ -159,16 +187,24 @@ const VerticalGanttChart = () => {
 
       {/* TODO For sform, copy its recurring option select and its animation behavior,  */}
       <TaskForm
+        isEditing={isEditingTask}
+        initialValues={taskFormValues}
         isOpen={isTaskFormOpen}
         onClose={closeTaskForm}
         onOpenChange={setTaskForm}
-        initialValues={taskFormValues}
-        isEditing={isEditingTask}
         selectedDate={selectedDay}
       />
 
       {/* Floating Action Button */}
       <FloatingActionButton onClick={openTaskForm} />
+
+      {/* Date Picker */}
+      <DatePicker
+        isOpen={datePickerOpen}
+        onClose={handleCloseDatePicker}
+        onSelect={handleDateSelect}
+        selectedDate={datePickerFor}
+      />
     </div>
   );
 };
@@ -180,6 +216,7 @@ export default memo(VerticalGanttChart);
  * Memoized to prevent unnecessary rerenders
  */
 import { Plus } from "lucide-react";
+import DatePicker from "./date-picker";
 
 const FloatingActionButton = memo(({ onClick }) => (
   <button

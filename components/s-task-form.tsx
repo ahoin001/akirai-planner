@@ -23,7 +23,9 @@ import { SegmentedControl } from "@/components/segmented-control";
 import { WheelPicker } from "@/components/wheel-picker";
 import DatePicker from "@/components/date-picker";
 import { createTaskAction, updateTask } from "@/app/actions";
-import { useToast } from "@/hooks/use-toast";
+import { useTaskStore } from "@/app/stores/useTaskStore";
+import { RecurrenceActionModal } from "./modals/recurrence-action-modal";
+// import { useToast } from "@/hooks/use-toast";
 
 const formSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -76,11 +78,22 @@ export function TaskForm({
   isEditing = false,
   selectedDate,
 }: CreateTaskProps) {
-  const { toast } = useToast();
-  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-  const [showRecurrenceOptions, setShowRecurrenceOptions] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const {
+    clearPendingUpdates,
+    pendingUpdates,
+    setPendingUpdates,
+    selectedTask,
+    setUpdateScope,
+    updateScope,
+  } = useTaskStore();
+
+  // const { toast } = useToast();
   const [formError, setFormError] = useState<string | null>(null);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [isRecurrenceModalOpen, setIsRecurrenceModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isTaskInstanceRecurring, setIsTaskInstanceRecurring] = useState(false);
+  const [showRecurrenceOptions, setShowRecurrenceOptions] = useState(false);
 
   const {
     control,
@@ -108,8 +121,12 @@ export function TaskForm({
   const formDate = watch("start_date");
 
   useEffect(() => {
-    setShowRecurrenceOptions(frequency !== "once");
-  }, [frequency]);
+    if (selectedTask && isEditing) {
+      console.log("Selected task: ", selectedTask);
+      setIsTaskInstanceRecurring(selectedTask.tasks.is_recurring);
+    }
+    setShowRecurrenceOptions(frequency !== "once" && !isTaskInstanceRecurring);
+  }, [frequency, selectedTask]);
 
   useEffect(() => {
     if (isOpen) {
@@ -154,33 +171,31 @@ export function TaskForm({
         is_recurring: data.frequency !== "once",
       };
 
-      if (isEditing && initialValues?.id) {
-        await updateTask(initialValues.id, payload);
-        toast({
-          title: "Task Updated",
-          description: "Task updated successfully",
-          variant: "success",
-        });
+      if (isEditing) {
+        if (selectedTask?.tasks?.is_recurring) {
+          setPendingUpdates(payload);
+          setIsRecurrenceModalOpen(true);
+          setIsSubmitting(false);
+        } else {
+          await updateTask(selectedTask.id, payload);
+          onOpenChange(false);
+          setIsSubmitting(false);
+        }
       } else {
         await createTaskAction(payload);
-        toast({
-          title: "Task Created",
-          description: "New task created successfully",
-          variant: "success",
-        });
+        onOpenChange(false);
+        setIsSubmitting(false);
       }
 
-      onOpenChange(false);
+      // toast.success(`Task ${isEditing ? 'updated' : 'created'} successfully`);
     } catch (error: any) {
       console.error("Submission error:", error);
       setFormError(error.message || "Failed to save task");
-      toast({
-        title: "Error",
-        description: error.message || "Failed to save task",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
+      // toast({
+      //   title: "Error",
+      //   description: error.message || "Failed to save task",
+      //   variant: "destructive",
+      // });
     }
   };
 
@@ -189,11 +204,23 @@ export function TaskForm({
     setIsCalendarOpen(false);
   };
 
+  const handleRecurrenceConfirm = async (scope) => {
+    try {
+      await updateTask(initialValues.id, pendingUpdates, scope);
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Update failed:", error);
+    } finally {
+      clearPendingUpdates();
+      setIsRecurrenceModalOpen(false);
+    }
+  };
+
   return (
     <Sheet open={isOpen} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
-        className="h-[90vh] rounded-t-3xl bg-drawer border-gray-800 z-[9000]"
+        className="h-[90vh] rounded-t-3xl bg-drawer border-gray-800 z-[90]"
       >
         <form onSubmit={handleSubmit(onSubmit)}>
           <div className="flex items-center justify-between mb-8">
@@ -336,6 +363,29 @@ export function TaskForm({
                 </div>
               )}
             />
+            {/* {showRecurrenceOptions && (
+              <Controller
+                name="frequency"
+                control={control}
+                render={({ field }) => (
+                  <div>
+                    <h3 className="text-xl text-gray-400 mb-4">How often?</h3>
+                    <SegmentedControl
+                      data={frequencyOptions}
+                      value={field.value}
+                      onChange={field.onChange}
+                      fullWidth
+                      fillSelected
+                    />
+                    {errors.frequency && (
+                      <span className="text-accent">
+                        {errors.frequency.message}
+                      </span>
+                    )}
+                  </div>
+                )}
+              />
+            )} */}
 
             {/* Recurrence Options */}
             {showRecurrenceOptions && (
@@ -458,7 +508,7 @@ export function TaskForm({
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="w-full h-14 text-lg text-white font-semibold rounded-2xl bg-rose-400 hover:bg-accent/90 transition-colors"
+              className="w-full h-14 text-lg rounded-2xl "
             >
               {isSubmitting ? (
                 <>
@@ -473,6 +523,18 @@ export function TaskForm({
             </Button>
           </div>
         </form>
+
+        <RecurrenceActionModal
+          actionType="modify"
+          isOpen={isRecurrenceModalOpen}
+          onClose={() => {
+            setIsRecurrenceModalOpen(false);
+            clearPendingUpdates();
+          }}
+          onConfirm={handleRecurrenceConfirm}
+          selectedOption={updateScope}
+          setSelectedOption={setUpdateScope}
+        />
       </SheetContent>
     </Sheet>
   );
