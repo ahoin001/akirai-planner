@@ -13,7 +13,7 @@ export default function WeekNavigation() {
   const { currentWeekStart, isTransitioning, changeWeek } = useCalendarStore();
 
   return (
-    <div className="flex justify-between items-center mb-4">
+    <div className="flex justify-between items-center my-4 md:py-4">
       {/* Previous week button */}
       <button
         onClick={() => changeWeek("prev")}
