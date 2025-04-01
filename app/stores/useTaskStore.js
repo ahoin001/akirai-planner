@@ -23,7 +23,6 @@ export const useTaskStore = create((set, get) => ({
   isEditingTask: false,
   isLoading: false,
   isTaskFormOpen: false,
-  isTaskFormOpen: false,
   isTaskMenuOpen: false,
 
   // task state
@@ -139,6 +138,10 @@ export const useTaskStore = create((set, get) => ({
     const { closeTaskMenu, taskInstances } = get();
     const taskInstance = taskInstances.find((task) => task.id === taskId);
     console.log("task being edited", taskInstance);
+    console.log(
+      "the formatted start time",
+      dayjs(`2000-01-01 ${taskInstance.start_time}`).format("H:mm A")
+    );
 
     if (taskInstance) {
       closeTaskMenu();
@@ -150,7 +153,9 @@ export const useTaskStore = create((set, get) => ({
           id: taskInstance.id,
           title: taskInstance.override_title ?? taskInstance.tasks.title,
           start_date: taskInstance.scheduled_date,
-          start_time: taskInstance.start_time,
+          start_time: dayjs(`2000-01-01 ${taskInstance.start_time}`).format(
+            "h:mm A"
+          ),
           duration_minutes: taskInstance.duration_minutes,
           //   ...taskInstance,
         },

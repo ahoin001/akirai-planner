@@ -513,52 +513,6 @@ export const toggleTaskInstanceCompletionAction = async (instanceId) => {
   }
 };
 
-// export const updateTask = async (
-//   taskInstanceId: string,
-//   updates: object,
-//   scope: "single" | "future" | "all" = "single"
-// ) => {
-//   try {
-//     console.log("In updates: ", updates);
-//     const supabase = await createClient();
-//     const {
-//       data: { user },
-//     } = await supabase.auth.getUser();
-
-//     if (!user) throw new Error("Not authenticated");
-
-//     // Get parent task details
-//     const { data: instance, error: fetchError } = await supabase
-//       .from("task_instances")
-//       .select("task_id, tasks!inner(*), scheduled_date")
-//       .eq("id", taskInstanceId)
-//       .single();
-
-//     if (fetchError) throw fetchError;
-//     if (instance.tasks.user_id !== user.id) throw new Error("Unauthorized");
-
-//     const parentTask = instance.tasks;
-
-//     switch (scope) {
-//       case "single":
-//         return await updateSingleTaskInstance(taskInstanceId, updates);
-//       case "future":
-//         return await updateFutureRecurringInstances(
-//           parentTask.id,
-//           updates,
-//           instance.scheduled_date
-//         );
-//       case "all":
-//         return await updateTaskAndAllInstances(parentTask.id, updates);
-//       default:
-//         throw new Error("Invalid update scope");
-//     }
-//   } catch (error) {
-//     console.error("Task update failed:", error);
-//     throw error;
-//   }
-// };
-
 export const generateTaskInstances = async (task) => {
   try {
     // Validate required fields

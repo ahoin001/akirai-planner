@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import dayjs from "dayjs";
 
 interface WheelPickerProps {
@@ -12,6 +12,12 @@ interface WheelPickerProps {
   defaultValue?: string; // NEW: Default selected value
 }
 
+// Helper type for clarity
+type TimeoutId = ReturnType<typeof setTimeout> | null;
+
+const VISIBLE_ITEMS = 7; // Number of items visible (should be odd)
+const SCROLL_END_DEBOUNCE_MS = 150; // Debounce time for scroll end detection
+
 export function WheelPicker({
   options,
   onChange,
@@ -20,407 +26,319 @@ export function WheelPicker({
   duration = 30, // Default to 30 minutes
   defaultValue,
 }: WheelPickerProps) {
-  const defaultIndex = defaultValue ? options.indexOf(defaultValue) : 0;
-  const [selectedIndex, setSelectedIndex] = useState(
-    defaultIndex >= 0 ? defaultIndex : 0
-  );
+  // --- State ---
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [isActuallyMobile, setIsActuallyMobile] = useState(isMobile); // State for detected mobile status
 
+  // --- Refs ---
   const containerRef = useRef<HTMLDivElement>(null);
-  const scrollingRef = useRef(false);
-  const animationFrameRef = useRef<number | null>(null);
-  const lastScrollTopRef = useRef(0);
-  const velocityRef = useRef(0);
-  const lastTimeRef = useRef(0);
-  const targetScrollTopRef = useRef<number | null>(null);
-  const isProgrammaticScrollRef = useRef(false);
-  const visibleItems = 7; // Number of items visible in the picker (should be odd)
+  const scrollTimeoutRef = useRef<TimeoutId>(null); // For debouncing scroll end
+  const isProgrammaticScrollRef = useRef(false); // To ignore scroll events during programmatic scroll
+  const latestOnChangeRef = useRef(onChange); // Keep track of the latest onChange without causing effect re-runs
+  const latestOptionsRef = useRef(options); // Keep track of latest options
 
-  // Detect if it's a mobile device
-  const [isActuallyMobile, setIsActuallyMobile] = useState(isMobile || false);
+  // --- Memoized Initial Index ---
+  // Calculate initial index only when defaultValue or options change
+  const initialIndex = useMemo(() => {
+    if (!defaultValue || !options || options.length === 0) return 0;
+    const formattedDefaultValue = dayjs(
+      `2000-01-01 ${defaultValue}`,
+      "YYYY-MM-DD HH:mm"
+    ).format("h:mm A");
+    const index = options.indexOf(formattedDefaultValue);
+    return index >= 0 ? index : 0;
+  }, [defaultValue, options]);
 
-  //Day.js was defaulting to the current day and resetting the time incorrectly, this was fix
-  const getTimeRange = (index: number) => {
-    if (!options[index]) return "Invalid time"; // Handle missing or undefined values
+  // --- Effects ---
 
-    const timeParts = options[index].split(":");
-    if (timeParts.length !== 2) return "Invalid time"; // Ensure format is correct
-
-    const startHour = parseInt(timeParts[0], 10);
-    const startMinute = parseInt(timeParts[1], 10);
-
-    // Ensure the time is set correctly without defaulting to AM
-    let startTime = dayjs()
-      .set("hour", startHour)
-      .set("minute", startMinute)
-      .set("second", 0);
-
-    // Ensure the correct PM time is applied (if applicable)
-    if (startHour < 12 && options[index].includes("PM")) {
-      startTime = startTime.add(12, "hour"); // Convert 1PM-11PM correctly
-    }
-
-    const endTime = startTime.add(duration, "minute");
-
-    return `${startTime.format("h:mm A")} - ${endTime.format("h:mm A")}`;
-  };
-
-  // Create a passive touch detection on component mount
+  // Update latest refs
   useEffect(() => {
+    latestOnChangeRef.current = onChange;
+    latestOptionsRef.current = options;
+  }, [onChange, options]);
+
+  // Initialize selectedIndex based on initialIndex prop
+  // This runs once or when initialIndex calculation changes
+  useEffect(() => {
+    setSelectedIndex(initialIndex);
+  }, [initialIndex]);
+
+  // Detect touch device on mount if not explicitly mobile
+  useEffect(() => {
+    let detected = false;
     const detectTouch = () => {
-      setIsActuallyMobile(true);
-      window.removeEventListener("touchstart", detectTouch);
+      if (!detected) {
+        detected = true;
+        setIsActuallyMobile(true);
+        window.removeEventListener("touchstart", detectTouch);
+      }
     };
-
-    if (!isMobile) {
+    if (!isMobile && typeof window !== "undefined") {
       window.addEventListener("touchstart", detectTouch, { passive: true });
+      return () => window.removeEventListener("touchstart", detectTouch);
+    } else if (isMobile) {
+      setIsActuallyMobile(true); // Respect prop if true
     }
+  }, [isMobile]); // Only depends on the initial prop value
 
+  // Effect to call onChange when selectedIndex changes
+  useEffect(() => {
+    const currentOptions = latestOptionsRef.current;
+    if (currentOptions && currentOptions[selectedIndex]) {
+      const selectedTimeOption = currentOptions[selectedIndex];
+      const formatToParse = "h:mm A"; // The format of strings in the options array
+      const formatToSend = "HH:mm"; // The format required by the parent component
+
+      // Parse the option string and format it correctly
+      const parsedTime = dayjs(
+        `2000-01-01 ${selectedTimeOption}`,
+        `YYYY-MM-DD ${formatToParse}`
+      );
+
+      if (parsedTime.isValid()) {
+        const formattedTimeForParent = parsedTime.format(formatToSend);
+        // Use the ref to call the latest onChange without adding it as a dependency
+        latestOnChangeRef.current(formattedTimeForParent);
+      } else {
+        console.warn(
+          `WheelPicker: Could not parse option "${selectedTimeOption}" at index ${selectedIndex}`
+        );
+      }
+    }
+  }, [selectedIndex]); // Only trigger when selectedIndex changes
+
+  // Effect to scroll to the selected index when it changes programmatically
+  // or when the initialIndex causes the first valid state update
+  useEffect(() => {
+    // Scroll instantly on initial load based on derived initialIndex
+    // Subsequent changes might be animated if triggered by user interaction (handled elsewhere)
+    // Or instant if triggered by defaultValue prop change (handled by scrollToIndex below)
+    scrollToIndex(selectedIndex, false); // Scroll instantly when state initializes/syncs
+  }, [selectedIndex]); // Runs when selectedIndex state is finally set
+
+  // Cleanup scroll timeout on unmount
+  useEffect(() => {
     return () => {
-      window.removeEventListener("touchstart", detectTouch);
-    };
-  }, [isMobile]);
-
-  // Update the onChange callback when selected index changes
-  useEffect(() => {
-    const selectedTime = options[selectedIndex];
-    const formattedTime = dayjs(`2000-01-01 ${selectedTime}`).format("HH:mm");
-
-    onChange(formattedTime);
-  }, [selectedIndex, onChange, options]);
-
-  // Scroll to  selected item on mount
-  useEffect(() => {
-    if (containerRef.current) {
-      setTimeout(() => {
-        scrollToIndex(selectedIndex, false);
-      }, 0);
-    }
-  }, [options, selectedIndex]);
-
-  // Update selectedIndex when defaultValue changes
-  useEffect(() => {
-    if (defaultValue && options.includes(defaultValue)) {
-      const newIndex = options.indexOf(defaultValue);
-      setSelectedIndex(newIndex);
-      scrollToIndex(newIndex, false);
-    }
-  }, []);
-
-  // Cleanup animation frame on unmount
-  useEffect(() => {
-    return () => {
-      if (animationFrameRef.current !== null) {
-        cancelAnimationFrame(animationFrameRef.current);
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
       }
     };
   }, []);
 
+  // --- Callbacks ---
+
+  // Scroll the container to a specific index
   const scrollToIndex = useCallback(
-    (index: number, animate = true) => {
-      if (containerRef.current) {
-        const targetScrollTop = index * itemHeight;
+    (index: number, animate: boolean) => {
+      const container = containerRef.current;
+      const currentOptions = latestOptionsRef.current;
+      if (!container || index < 0 || index >= currentOptions.length) return;
 
-        if (!animate) {
-          // Instant scroll
-          containerRef.current.scrollTop = targetScrollTop;
-          return;
-        }
+      const targetScrollTop = index * itemHeight;
 
-        // Set flag to indicate this is a programmatic scroll
-        isProgrammaticScrollRef.current = true;
+      // Prevent scroll handler from interfering during programmatic scroll
+      isProgrammaticScrollRef.current = true;
 
-        if (isActuallyMobile) {
-          // Custom animation for mobile
-          // Set the target for smooth animation
-          targetScrollTopRef.current = targetScrollTop;
+      // Use native smooth scrolling on desktop, allow JS animation on mobile (optional)
+      // Or just use instant scroll always for simplicity from programmatic changes
+      const behavior = animate && !isActuallyMobile ? "smooth" : "auto"; // 'smooth' on desktop if animated, else instant
 
-          // Cancel any ongoing animation
-          if (animationFrameRef.current !== null) {
-            cancelAnimationFrame(animationFrameRef.current);
-          }
+      container.scrollTo({
+        top: targetScrollTop,
+        behavior: behavior,
+      });
 
-          // Start the smooth animation
-          const startTime = performance.now();
-          const startScrollTop = containerRef.current.scrollTop;
-          const distance = targetScrollTop - startScrollTop;
-          const duration = 300;
-
-          const animateScroll = (currentTime: number) => {
-            const elapsed = currentTime - startTime;
-            const progress = Math.min(elapsed / duration, 1);
-
-            // Easing function for smoother animation (ease-out cubic)
-            const eased = 1 - Math.pow(1 - progress, 3);
-
-            if (containerRef.current) {
-              scrollingRef.current = true;
-              containerRef.current.scrollTop =
-                startScrollTop + distance * eased;
-
-              if (progress < 1) {
-                animationFrameRef.current =
-                  requestAnimationFrame(animateScroll);
-              } else {
-                // Animation completed
-                setTimeout(() => {
-                  scrollingRef.current = false;
-                  targetScrollTopRef.current = null;
-                  isProgrammaticScrollRef.current = false;
-                }, 50);
-              }
-            }
-          };
-
-          animationFrameRef.current = requestAnimationFrame(animateScroll);
-        } else {
-          // Use browser's native smooth scrolling for desktop
-          scrollingRef.current = true;
-
-          containerRef.current.scrollTo({
-            top: targetScrollTop,
-            behavior: "smooth",
-          });
-
-          // Reset flags after animation is likely complete
-          setTimeout(() => {
-            scrollingRef.current = false;
-            isProgrammaticScrollRef.current = false;
-          }, 300);
-        }
-      }
+      // If scrolling instantly ('auto'), the scroll event might not fire reliably or might be async.
+      // We need to ensure the programmatic scroll flag is reset *after* the scroll completes.
+      // Using a small timeout is a common way to handle this.
+      // For native 'smooth', the timeout needs to be longer.
+      const resetFlagTimeout = behavior === "smooth" ? 300 : 50; // Longer for smooth scroll animation
+      setTimeout(() => {
+        isProgrammaticScrollRef.current = false;
+      }, resetFlagTimeout);
     },
     [itemHeight, isActuallyMobile]
+  ); // Dependencies needed for calculation/behavior
+
+  // Handle the end of a scroll action (debounce)
+  const handleScrollEnd = useCallback(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const currentOptions = latestOptionsRef.current;
+    const scrollTop = container.scrollTop;
+    const calculatedIndex = Math.round(scrollTop / itemHeight);
+    const safeIndex = Math.max(
+      0,
+      Math.min(calculatedIndex, currentOptions.length - 1)
+    );
+
+    // Check if the final index differs from the current state
+    setSelectedIndex((prevIndex) => {
+      if (safeIndex !== prevIndex) {
+        // Snap to the final position if necessary (usually handled by CSS snap, but good fallback)
+        // Use non-animated scroll for snapping to avoid triggering more events
+        const targetScrollTop = safeIndex * itemHeight;
+        if (Math.abs(scrollTop - targetScrollTop) > 1) {
+          // No need to call scrollToIndex here if setSelectedIndex triggers the effect
+          // scrollToIndex(safeIndex, false);
+          // Let the useEffect hook handle the scroll correction based on state change
+        }
+        return safeIndex; // Update the state
+      }
+      return prevIndex; // No change needed
+    });
+  }, [itemHeight]); // itemHeight needed for calculation
+
+  // Handle the scroll event (debounced)
+  const handleScroll = useCallback(() => {
+    if (isProgrammaticScrollRef.current) {
+      // Ignore scroll events triggered by scrollToIndex
+      return;
+    }
+
+    // Clear any existing debounce timeout
+    if (scrollTimeoutRef.current) {
+      clearTimeout(scrollTimeoutRef.current);
+    }
+
+    // Set a new timeout to trigger handleScrollEnd after scrolling stops
+    scrollTimeoutRef.current = setTimeout(() => {
+      handleScrollEnd();
+    }, SCROLL_END_DEBOUNCE_MS);
+  }, [handleScrollEnd]); // Depends on handleScrollEnd
+
+  // Handle click on an option item
+  const handleOptionClick = useCallback(
+    (index: number) => {
+      setSelectedIndex((prevIndex) => {
+        if (index !== prevIndex) {
+          scrollToIndex(index, true); // Animate scroll on direct click
+          return index; // Update state
+        }
+        return prevIndex; // No change
+      });
+    },
+    [scrollToIndex]
   );
 
-  const handleScrollEnd = useCallback(() => {
-    if (!containerRef.current) return;
+  // Format time range for the selected item display
+  const getTimeRange = useCallback(
+    (index: number): string => {
+      const currentOptions = latestOptionsRef.current;
+      if (!currentOptions || !currentOptions[index]) return "Invalid time";
 
-    const scrollTop = containerRef.current.scrollTop;
-    const newIndex = Math.round(scrollTop / itemHeight);
+      const startTime = dayjs(
+        `2000-01-01 ${currentOptions[index]}`,
+        "YYYY-MM-DD h:mm A"
+      );
+      if (!startTime.isValid()) return "Invalid format";
 
-    // Ensure the new index is within bounds
-    const safeIndex = Math.max(0, Math.min(newIndex, options.length - 1));
+      const endTime = startTime.add(duration, "minute");
+      return `${startTime.format("h:mm A")} - ${endTime.format("h:mm A")}`;
+    },
+    [duration]
+  ); // Depends on duration prop
 
-    if (safeIndex !== selectedIndex) {
-      setSelectedIndex(safeIndex);
-    }
+  // --- Render ---
 
-    // Snap to the nearest item
-    if (Math.abs(scrollTop - safeIndex * itemHeight) > 1) {
-      scrollToIndex(safeIndex);
-    }
-  }, [itemHeight, options.length, scrollToIndex, selectedIndex]);
-
-  const handleScroll = useCallback(() => {
-    // Skip processing during programmatic scrolls
-    if (!containerRef.current || isProgrammaticScrollRef.current) return;
-
-    const currentScrollTop = containerRef.current.scrollTop;
-
-    // For mobile, track velocity for momentum scrolling
-    if (isActuallyMobile) {
-      const currentTime = performance.now();
-
-      // Calculate velocity for mobile momentum scrolling
-      if (lastTimeRef.current) {
-        const deltaTime = currentTime - lastTimeRef.current;
-        if (deltaTime > 0) {
-          const deltaY = currentScrollTop - lastScrollTopRef.current;
-          velocityRef.current =
-            0.7 * velocityRef.current + 0.3 * (deltaY / deltaTime) * 16.67;
-        }
-      }
-
-      lastScrollTopRef.current = currentScrollTop;
-      lastTimeRef.current = currentTime;
-
-      // Mobile momentum scrolling
-      clearTimeout(animationFrameRef.current as unknown as number);
-      animationFrameRef.current = setTimeout(() => {
-        if (Math.abs(velocityRef.current) > 0.5 && isActuallyMobile) {
-          applyMomentum();
-        } else {
-          handleScrollEnd();
-        }
-      }, 50) as unknown as number;
-    } else {
-      // Desktop scrolling - just a simple debounce for snapping
-      clearTimeout(animationFrameRef.current as unknown as number);
-      animationFrameRef.current = setTimeout(() => {
-        handleScrollEnd();
-      }, 150) as unknown as number;
-    }
-
-    // Update the selected index while scrolling
-    const newIndex = Math.round(currentScrollTop / itemHeight);
-    if (
-      newIndex >= 0 &&
-      newIndex < options.length &&
-      newIndex !== selectedIndex
-    ) {
-      setSelectedIndex(newIndex);
-    }
-  }, [
-    handleScrollEnd,
-    itemHeight,
-    options.length,
-    selectedIndex,
-    isActuallyMobile,
-  ]);
-
-  useEffect(() => {
-    const container = containerRef.current;
-    if (container) {
-      container.addEventListener("scroll", handleScroll);
-      return () => container.removeEventListener("scroll", handleScroll);
-    }
-  }, [handleScroll]);
-
-  const applyMomentum = useCallback(() => {
-    if (!containerRef.current || !isActuallyMobile) return;
-
-    // Physics-based deceleration
-    const friction = 0.92;
-    velocityRef.current *= friction;
-
-    containerRef.current.scrollTop += velocityRef.current;
-
-    if (Math.abs(velocityRef.current) > 0.5) {
-      animationFrameRef.current = requestAnimationFrame(applyMomentum);
-    } else {
-      handleScrollEnd();
-    }
-  }, [handleScrollEnd, isActuallyMobile]);
-
-  const handleWheel = (event: React.WheelEvent) => {
-    // For desktop, we want to let the browser handle the scrolling naturally
-    if (!isActuallyMobile) return;
-
-    // Only apply custom wheel behavior on mobile
-    event.preventDefault();
-
-    if (!containerRef.current) return;
-
-    // Cancel any ongoing animation
-    if (animationFrameRef.current !== null) {
-      cancelAnimationFrame(animationFrameRef.current);
-      animationFrameRef.current = null;
-    }
-
-    // Clear target scroll top
-    targetScrollTopRef.current = null;
-
-    // Apply delta with small factor for mobile
-    const scrollFactor = 0.1;
-    const delta = event.deltaY * scrollFactor;
-
-    // Update scroll position
-    containerRef.current.scrollTop += delta;
-
-    // Update velocity for momentum
-    const now = performance.now();
-    velocityRef.current = 0.6 * velocityRef.current + 0.4 * delta;
-    lastTimeRef.current = now;
-    lastScrollTopRef.current = containerRef.current.scrollTop;
-
-    // Debounce for scroll end
-    clearTimeout(animationFrameRef.current as unknown as number);
-    animationFrameRef.current = setTimeout(() => {
-      if (Math.abs(velocityRef.current) > 0.5) {
-        animationFrameRef.current = requestAnimationFrame(applyMomentum);
-      } else {
-        handleScrollEnd();
-      }
-    }, 100) as unknown as number;
-  };
-
-  // Handle direct click on an option
-  const handleOptionClick = (index: number) => {
-    setSelectedIndex(index);
-    scrollToIndex(index);
-  };
-
-  const renderOptions = () => {
-    const paddingItems = Math.floor(visibleItems / 2);
-
-    // Create padding elements
+  const renderOptions = useMemo(() => {
+    const paddingCount = Math.floor(VISIBLE_ITEMS / 2);
     const paddingTop = (
       <li
-        key="padding-top"
-        style={{ height: `${paddingItems * itemHeight}px` }}
+        key="pad-top"
+        style={{ height: `${paddingCount * itemHeight}px` }}
+        aria-hidden="true"
       ></li>
     );
     const paddingBottom = (
       <li
-        key="padding-bottom"
-        style={{ height: `${paddingItems * itemHeight}px` }}
+        key="pad-bottom"
+        style={{ height: `${paddingCount * itemHeight}px` }}
+        aria-hidden="true"
       ></li>
     );
 
-    const optionElements = options.map((option, index) => (
-      <li
-        key={index}
-        className={`flex items-center justify-center text-center transition-all duration-300 select-none snap-center ${
-          selectedIndex === index ? "text-white font-bold" : "text-gray-500"
-        }`}
-        style={{
-          height: `${itemHeight}px`,
-          cursor: "pointer",
-          opacity:
-            selectedIndex === index
-              ? 1
-              : Math.max(0.5, 1 - Math.abs(selectedIndex - index) * 0.2),
-        }}
-        onClick={() => handleOptionClick(index)}
-      >
-        {selectedIndex === index ? getTimeRange(index) : option}
-      </li>
-    ));
+    const items = options.map((option, index) => {
+      const isSelected = selectedIndex === index;
+      const distance = Math.abs(selectedIndex - index);
+      const opacity = isSelected ? 1 : Math.max(0.3, 1 - distance * 0.25);
+      const scale = isSelected ? 1 : Math.max(0.85, 1 - distance * 0.08);
 
-    return [paddingTop, ...optionElements, paddingBottom];
-  };
+      return (
+        <li
+          key={index}
+          role="option"
+          aria-selected={isSelected}
+          id={`option-${index}`} // ID for aria-activedescendant
+          className={`flex items-center justify-center text-center transition-opacity duration-200 ease-out select-none snap-center ${
+            isSelected ? "text-white font-bold" : "text-gray-400"
+          }`}
+          style={{
+            height: `${itemHeight}px`,
+            cursor: "pointer",
+            opacity: opacity,
+            transform: `scale(${scale})`,
+            transition: "opacity 0.2s ease-out, transform 0.2s ease-out", // Added transform transition
+          }}
+          onClick={() => handleOptionClick(index)}
+        >
+          {isSelected ? getTimeRange(index) : option}
+        </li>
+      );
+    });
+
+    return [paddingTop, ...items, paddingBottom];
+  }, [options, selectedIndex, itemHeight, handleOptionClick, getTimeRange]); // Dependencies for rendering options
 
   return (
-    <div className="px-20 lg:px-48">
+    <div
+      className="relative w-full"
+      style={{ height: `${itemHeight * VISIBLE_ITEMS}px` }}
+    >
+      {/* Selection Indicator */}
       <div
-        className="relative w-full"
-        style={{ height: `${itemHeight * visibleItems}px` }}
-      >
-        {/* Selection indicator */}
-        <div
-          className="absolute w-full bg-rose-400 rounded-lg pointer-events-none z-0 opacity-80"
-          style={{
-            top: "50%",
-            left: "50%",
-            height: `${itemHeight}px`,
-            transform: "translate(-50%, -50%)",
-          }}
-        />
+        className="absolute w-full bg-rose-400/50 rounded-lg pointer-events-none z-0"
+        style={{
+          top: "50%",
+          left: "50%",
+          height: `${itemHeight}px`,
+          transform: "translate(-50%, -50%)",
+          transition: "background-color 0.3s ease",
+        }}
+        aria-hidden="true"
+      />
 
-        {/* Main scrollable container */}
-        <div
-          ref={containerRef}
-          className="absolute inset-0 overflow-y-auto snap-y snap-mandatory "
-          style={{
-            scrollSnapType: "y mandatory",
-            WebkitOverflowScrolling: "touch",
-            scrollBehavior: isActuallyMobile ? "auto" : "smooth",
-            maskImage:
-              "linear-gradient(to bottom, transparent, black 30%, black 70%, transparent)",
-            WebkitMaskImage:
-              "linear-gradient(to bottom, transparent, black 30%, black 70%, transparent)",
-            msOverflowStyle: "none",
-            scrollbarWidth: "none",
-          }}
-          onWheel={isActuallyMobile ? handleWheel : undefined}
-        >
-          <style jsx>{`
-            div::-webkit-scrollbar {
-              display: none;
-            }
-          `}</style>
-          <ul className="flex flex-col items-center">{renderOptions()}</ul>
-        </div>
+      {/* Scrollable Container */}
+      <div
+        ref={containerRef}
+        className="absolute inset-0 overflow-y-auto snap-y snap-mandatory no-scrollbar"
+        style={{
+          scrollSnapType: "y mandatory",
+          WebkitOverflowScrolling: "touch",
+          // Let JS handle scroll behavior for programmatic scrolls
+          scrollBehavior: "auto", // Native smooth scrolling often fights with snapping/JS
+          maskImage:
+            "linear-gradient(to bottom, transparent, black 25%, black 75%, transparent)",
+          WebkitMaskImage:
+            "linear-gradient(to bottom, transparent, black 25%, black 75%, transparent)",
+        }}
+        onScroll={handleScroll} // Attach the debounced scroll handler
+        role="listbox"
+        aria-activedescendant={`option-${selectedIndex}`}
+        tabIndex={0} // Make focusable
+      >
+        {/* Hide scrollbar visually */}
+        <style jsx>{`
+          .no-scrollbar::-webkit-scrollbar {
+            display: none;
+          }
+          .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+          }
+        `}</style>
+        <ul className="flex flex-col items-center">{renderOptions}</ul>
       </div>
     </div>
   );

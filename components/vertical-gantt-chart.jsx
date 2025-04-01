@@ -95,7 +95,7 @@ const VerticalGanttChart = () => {
       {/* Header section */}
       <div className="flex-none">
         {/* Month and year heading */}
-        <h1
+        <span
           className="text-4xl font-bold mb-6 hover:cursor-pointer"
           onClick={handleHeaderClick}
         >
@@ -103,7 +103,7 @@ const VerticalGanttChart = () => {
           <span className="text-pink-500">
             {format(currentWeekStart, "yyyy")}
           </span>
-        </h1>
+        </span>
 
         {/* Week navigation controls */}
         <WeekNavigation />

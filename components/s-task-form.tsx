@@ -1,6 +1,6 @@
 "use client";
 import dayjs from "dayjs";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -65,12 +65,6 @@ const frequencyOptions = [
   { label: "Monthly", value: "monthly" },
 ];
 
-const timeSlots = Array.from({ length: (23 - 9) * 4 + 1 }, (_, i) => {
-  const hour = 9 + Math.floor(i / 4);
-  const minute = (i % 4) * 15;
-  return dayjs().hour(hour).minute(minute).format("h:mm A");
-});
-
 export function TaskForm({
   isOpen,
   onOpenChange,
@@ -120,6 +114,14 @@ export function TaskForm({
   const endType = watch("end_type");
   const formDate = watch("start_date");
 
+  const timeSlots = useMemo(() => {
+    return Array.from({ length: (23 - 9) * 4 + 1 }, (_, i) => {
+      const hour = 9 + Math.floor(i / 4);
+      const minute = (i % 4) * 15;
+      return dayjs().hour(hour).minute(minute).format("h:mm A");
+    });
+  }, []); // Memoize to prevent recreation
+
   useEffect(() => {
     if (selectedTask && isEditing) {
       console.log("Selected task: ", selectedTask);
@@ -134,7 +136,7 @@ export function TaskForm({
       const startDate = initialValues?.start_date
         ? dayjs(initialValues.start_date).toDate()
         : selectedDate;
-      console.log(startDate);
+
       reset({
         title: initialValues?.title || "",
         start_date: initialValues?.start_date ? startDate : selectedDate,
@@ -275,7 +277,7 @@ export function TaskForm({
               control={control}
               render={({ field }) => (
                 <div>
-                  <h3 className="text-xl text-gray-400">When</h3>
+                  <h3 className="text-2xl text-gray-400">When</h3>
                   <WheelPicker
                     options={timeSlots}
                     onChange={field.onChange}
@@ -325,7 +327,7 @@ export function TaskForm({
               control={control}
               render={({ field }) => (
                 <div>
-                  <h3 className="text-xl text-gray-400 mb-4">Duration</h3>
+                  <h3 className="text-2xl text-gray-400 mb-4">Duration</h3>
                   <SegmentedControl
                     data={durationOptions}
                     value={field.value.toString()}
@@ -348,7 +350,7 @@ export function TaskForm({
               control={control}
               render={({ field }) => (
                 <div>
-                  <h3 className="text-xl text-gray-400 mb-4">How often?</h3>
+                  <h3 className="text-2xl text-gray-400 mb-4">How often?</h3>
                   <SegmentedControl
                     data={frequencyOptions}
                     value={field.value}
@@ -370,7 +372,7 @@ export function TaskForm({
                 control={control}
                 render={({ field }) => (
                   <div>
-                    <h3 className="text-xl text-gray-400 mb-4">How often?</h3>
+                    <h3 className="text-2xl text-gray-400 mb-4">How often?</h3>
                     <SegmentedControl
                       data={frequencyOptions}
                       value={field.value}
@@ -391,7 +393,7 @@ export function TaskForm({
             {/* Recurrence Options */}
             {showRecurrenceOptions && (
               <div className="space-y-6 border-t border-gray-800 pt-6">
-                <h3 className="text-xl text-gray-400">Recurrence Settings</h3>
+                <h3 className="text-2xl text-gray-400">Recurrence Settings</h3>
 
                 {/* Interval */}
                 <Controller

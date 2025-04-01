@@ -125,10 +125,10 @@ export const SegmentedControl = React.forwardRef<
           variant="ghost"
           size="sm"
           className={cn(
-            "flex-1 py-8 rounded-md relative z-10 transition-colors",
+            "flex-1 py-8 rounded-md relative z-10 transition-colors hover:text-white",
             item.value === value
-              ? "text-white shadow-sm bg-rose-400 hover:bg-rose-400"
-              : "text-white hover:bg-rose-400/10 hover:text-zinc-300",
+              ? "text-white shadow-sm bg-rose-400 hover:bg-rose-500"
+              : "text-white hover:bg-rose-400/10",
             "border-0"
           )}
           onClick={() => {
