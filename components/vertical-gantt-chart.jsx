@@ -122,7 +122,7 @@ const VerticalGanttChart = () => {
         </div>
       </div>
       {/* Scrollable timeline container */}
-      <div ref={containerRef} className="flex-grow overflow-hidden">
+      <div ref={containerRef} className="flex-grow overflow-hidden pb-[260px]">
         <div
           ref={timelineRef}
           className="h-full overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent"
@@ -176,14 +176,6 @@ const VerticalGanttChart = () => {
 
       {/* Bottom Navigation */}
       <BottomNavigation />
-
-      {/* Task Form */}
-      {/* <TaskForm
-        isOpen={isTaskFormOpen}
-        onClose={closeTaskForm}
-        initialValues={taskFormValues}
-        isEditing={isEditingTask}
-      /> */}
 
       {/* TODO For sform, copy its recurring option select and its animation behavior,  */}
       <TaskForm

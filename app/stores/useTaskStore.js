@@ -445,37 +445,128 @@ export const useTaskStore = create((set, get) => ({
       supabase.removeChannel(taskInstancesChannel);
     };
   },
-
   handleInstanceChange: (payload) => {
     set((state) => {
+      // Get the currently selected task's ID for comparison
+      const currentSelectedTaskId = state.selectedTask?.id;
+      let newSelectedTask = state.selectedTask; // Start with current selected task
+
       switch (payload.eventType) {
-        case "INSERT":
-          // Check if the instance already exists
+        case "INSERT": {
+          // Check if the instance already exists to prevent duplicates
           const exists = state.taskInstances.some(
             (instance) => instance.id === payload.new.id
           );
           if (!exists) {
-            return { taskInstances: [...state.taskInstances, payload.new] };
+            // Add the new instance
+            const updatedInstances = [...state.taskInstances, payload.new];
+            // Sort instances after adding (optional, but good for consistency)
+            updatedInstances.sort((a, b) => {
+              const dateComparison = dayjs(a.scheduled_date).diff(
+                dayjs(b.scheduled_date)
+              );
+              if (dateComparison !== 0) return dateComparison;
+              // If dates are same, sort by start_time (assuming HH:mm format)
+              return a.start_time.localeCompare(b.start_time);
+            });
+            return { taskInstances: updatedInstances };
           }
+          // If it already exists, return the current state
           return state;
+        }
 
         case "UPDATE": {
-          const updatedInstances = state.taskInstances.map((instance) =>
-            instance.id === payload.new.id ? payload.new : instance
-          );
-          return { taskInstances: updatedInstances };
+          let instanceUpdatedIsSelected = false;
+          const updatedInstances = state.taskInstances.map((instance) => {
+            if (instance.id === payload.new.id) {
+              // Check if this updated instance is the currently selected one
+              if (instance.id === currentSelectedTaskId) {
+                instanceUpdatedIsSelected = true;
+              }
+              // Return the new, updated instance data
+              return payload.new;
+            }
+            return instance;
+          });
+
+          // If the instance that was updated WAS the selectedTask,
+          // update the selectedTask in the root state to the new reference as well.
+          if (instanceUpdatedIsSelected) {
+            newSelectedTask = payload.new;
+          }
+
+          // Return the updated array and potentially the updated selectedTask
+          return {
+            taskInstances: updatedInstances,
+            selectedTask: newSelectedTask,
+          };
         }
 
         case "DELETE": {
-          const filteredInstances = state.taskInstances.filter(
-            (instance) => instance.id !== payload.old.id
-          );
-          return { taskInstances: filteredInstances };
+          let instanceDeletedIsSelected = false;
+          // Filter out the deleted instance
+          const filteredInstances = state.taskInstances.filter((instance) => {
+            if (instance.id === payload.old.id) {
+              // Check if this deleted instance WAS the selected one
+              if (instance.id === currentSelectedTaskId) {
+                instanceDeletedIsSelected = true;
+              }
+              // Don't include this instance in the filtered array
+              return false;
+            }
+            // Keep other instances
+            return true;
+          });
+
+          // If the instance that was deleted WAS the selectedTask,
+          // set selectedTask in the root state to null.
+          if (instanceDeletedIsSelected) {
+            newSelectedTask = null;
+          }
+
+          // Return the filtered array and potentially nullified selectedTask
+          return {
+            taskInstances: filteredInstances,
+            selectedTask: newSelectedTask,
+          };
         }
 
         default:
+          // For any other event type, return the state unchanged
           return state;
       }
     });
   },
+  // handleInstanceChange: (payload) => {
+  //   set((state) => {
+  //     switch (payload.eventType) {
+  //       case "INSERT":
+  //         // Check if the instance already exists
+  //         const exists = state.taskInstances.some(
+  //           (instance) => instance.id === payload.new.id
+  //         );
+  //         if (!exists) {
+  //           return { taskInstances: [...state.taskInstances, payload.new] };
+  //         }
+  //         return state;
+
+  //       case "UPDATE": {
+  //         const updatedInstances = state.taskInstances.map((instance) =>
+  //           instance.id === payload.new.id ? payload.new : instance
+  //         );
+  //         return { taskInstances: updatedInstances };
+  //       }
+
+  //       case "DELETE": {
+  //         const filteredInstances = state.taskInstances.filter(
+  //           (instance) => instance.id !== payload.old.id
+  //         );
+  //         return { taskInstances: filteredInstances };
+  //       }
+
+  //       default:
+  //         return state;
+  //     }
+  //   });
+  // },
 }));
