@@ -14,24 +14,6 @@ import useCalendarStore from "@/app/stores/useCalendarStore";
 import { useTaskStore } from "@/app/stores/useTaskStore";
 
 /**
- * Gets the appropriate icon for a task type
- * @param {string} type - The task type ('alarm', 'workout', or 'night')
- * @returns {JSX.Element} The icon component
- */
-const getTaskIcon = (type) => {
-  switch (type) {
-    case "alarm":
-      return <AlarmClock className="w-5 h-5" />;
-    case "workout":
-      return <Dumbbell className="w-5 h-5" />;
-    case "night":
-      return <Moon className="w-5 h-5" />;
-    default:
-      return null;
-  }
-};
-
-/**
  * TaskItem component
  *
  * @param {Object} props - Component props
@@ -51,9 +33,8 @@ export default function TaskItem({
 }) {
   const { currentTime, getTaskProgress, selectDay } = useCalendarStore();
 
-  const { setSelectedTaskId } = useTaskStore();
+  const { setSelectedInstance } = useTaskStore();
 
-  console.log({ task, currentTime });
   // Calculate task progress and determine visual states
   const progress = getTaskProgress(task, currentTime);
   const isActive = progress > 0 && progress < 100;
@@ -63,8 +44,10 @@ export default function TaskItem({
    * Handle task click - select the day and the task
    */
   const handleTaskClick = () => {
+    console.log("clicked it");
+    console.log({ date, task });
     selectDay(date);
-    setSelectedTaskId(task.id);
+    setSelectedInstance(task);
   };
 
   return (

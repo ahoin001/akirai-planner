@@ -190,19 +190,17 @@ export default function DayColumn({ date, tasks = [], isNext = false }) {
 
       {/* Tasks - Map over the calculated instances */}
       {tasks.map((instance) => {
-        // Calculate position and height using the new functions
         const top = calculateTaskPosition(instance);
         const height = calculateTaskHeight(instance);
 
         // Render the TaskItem, passing the calculated instance and positioning
-        // Ensure TaskItem is refactored to accept `instance` and use `top`/`height` props
         return (
           <TaskItem
             key={instance.id} // Use the unique calculated instance ID
-            instance={instance} // Pass the whole instance object
-            // date={date} // Date prop might not be needed by TaskItem now
+            instance={instance}
+            date={date} // Date prop might not be needed by TaskItem now
             top={top} // Pass calculated top position
-            height={height} // Pass calculated height
+            height={height}
             isNext={isNext} // Pass isNext for potential animation sync
             // onClick prop is now handled by parent (WeekTimeline -> DayColumn -> TaskItem -> handleTaskSelect)
             // If TaskItem needs its own click handler, add it here.

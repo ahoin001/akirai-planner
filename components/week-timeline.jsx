@@ -11,7 +11,6 @@ import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
 import DayColumn from "@/components/day-column";
 import TimeLabels from "./time-labels";
 
-// Let's try extending with the ones we know we need for comparison:
 dayjs.extend(isSameOrBefore);
 dayjs.extend(isSameOrAfter);
 

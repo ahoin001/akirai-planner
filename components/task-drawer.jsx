@@ -1,13 +1,10 @@
 "use client";
 
-// ****** CHANGE: Removed date-fns imports unless used elsewhere ******
-// import { isAfter, isSameDay } from "date-fns";
-
-// ****** CHANGE: Import necessary hooks/utils ******
 import React, { useRef, useEffect, useState, memo, useMemo } from "react"; // Added useMemo
 import { useTaskStore } from "@/app/stores/useTaskStore"; // Use the *new* store
-// ****** CHANGE: Import calculator ******
+
 import { calculateInstancesForRange } from "@/lib/taskCalculator"; // Adjust path
+
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
@@ -150,20 +147,6 @@ const TaskDrawer = ({ drawerRef }) => {
   const { currentTime, drawerOpen, selectedDay, toggleDrawer } =
     useCalendarStore();
 
-  // ****** CHANGE: Get new state and actions from Task store ******
-  // const {
-  //   tasks, // Task definitions
-  //   exceptions, // Exceptions
-  //   selectedInstance, // The currently selected *calculated* instance
-  //   handleTaskSelect, // Action to select a calculated instance
-  //   isLoading, // Loading state from task store
-  // } = useTaskStore((state) => ({
-  //   tasks: state.tasks,
-  //   exceptions: state.exceptions,
-  //   selectedInstance: state.selectedInstance,
-  //   handleTaskSelect: state.handleTaskSelect,
-  //   isLoading: state.isLoading, // Optional loading state
-  // }));
   const tasks = useTaskStore((state) => state.tasks);
   const exceptions = useTaskStore((state) => state.exceptions);
   const selectedDate = useTaskStore((state) => state.selectedDate);

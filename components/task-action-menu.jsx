@@ -37,7 +37,6 @@ export default function TaskActionMenu() {
   const [isRecurring, setIsRecurring] = useState(null);
   const [isVisible, setIsVisible] = useState(false);
 
-  // ****
   // ****** CHANGE: Determine if the PARENT task is recurring ******
   // Find the parent task definition from the store's tasks array
   const parentTaskDefinition = useMemo(() => {
@@ -45,7 +44,6 @@ export default function TaskActionMenu() {
     return tasks.find((task) => task.id === selectedTask.task_id);
   }, [selectedTask, tasks]);
 
-  console.log({ parentTaskDefinition });
   // Determine if the series is recurring based on the parent task's rrule
   const isParentRecurring = !!parentTaskDefinition?.rrule;
   // ***
