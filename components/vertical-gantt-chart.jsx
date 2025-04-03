@@ -42,7 +42,9 @@ const VerticalGanttChart = () => {
     isEditingTask,
     isTaskFormOpen,
     openTaskForm,
+    setTaskForm,
     taskFormValues,
+    taskInstances,
   } = useTaskStore();
 
   const {
@@ -51,14 +53,12 @@ const VerticalGanttChart = () => {
     selectedDay,
     slideDirection,
     navigateToDate,
-    isTransitioning,
-    nextTasks,
-    nextWeekDays,
-    nextWeekStart,
+    // isTransitioning,
+    // nextTasks,
+    // nextWeekDays,
+    // nextWeekStart,
     // getNextWeekDays,
   } = useCalendarStore();
-
-  const { selectedTask, taskInstances, setTaskForm } = useTaskStore();
 
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [datePickerFor, setDatePickerFor] = useState(null);

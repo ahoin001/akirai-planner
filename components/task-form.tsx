@@ -186,14 +186,6 @@ export function TaskForm({
         : undefined;
 
     try {
-      // const payload = {
-      //   title: data.title,
-      //   start_datetime: startDateTime, // Combined datetime
-      //   duration_minutes: data.duration_minutes,
-      //   recurrence: recurrencePayload,
-      //   is_recurring: data.frequency !== "once",
-      // };
-
       const payload = {
         title: data.title,
         start_date: dayjs(data.start_date).format("YYYY-MM-DD"),
@@ -406,29 +398,6 @@ export function TaskForm({
                 </div>
               )}
             />
-            {/* {showRecurrenceOptions && (
-              <Controller
-                name="frequency"
-                control={control}
-                render={({ field }) => (
-                  <div>
-                    <h3 className="text-2xl text-gray-400 mb-4">How often?</h3>
-                    <SegmentedControl
-                      data={frequencyOptions}
-                      value={field.value}
-                      onChange={field.onChange}
-                      fullWidth
-                      fillSelected
-                    />
-                    {errors.frequency && (
-                      <span className="text-accent">
-                        {errors.frequency.message}
-                      </span>
-                    )}
-                  </div>
-                )}
-              />
-            )} */}
 
             {/* Recurrence Options */}
             {showRecurrenceOptions && (

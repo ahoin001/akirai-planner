@@ -111,6 +111,7 @@ export const useTaskStore = create((set, get) => ({
   setSelectedInstance: (instance) => set({ selectedInstance: instance }), // Usually handled by open/close menu
   setLoading: (loading) => set({ isLoading: loading }),
   setError: (error) => set({ error: error }),
+  setTaskForm: (bool) => set({ isTaskFormOpen: bool }),
   setCurrentViewStartDate: (date) => {
     const newStartDate = dayjs(date).startOf("week").toISOString();
     console.log(`Store: Setting current view start date to: ${newStartDate}`);
