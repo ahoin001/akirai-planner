@@ -331,20 +331,99 @@ const useCalendarStore = create((set, get) => ({
    * @param {Object} task - The task object
    * @returns {number} Progress percentage (0-100)
    */
-  getTaskProgress: (task) => {
-    const { currentTime } = get();
-    const startTime = parseISO(`${task.start_date}T${task.start_time}`);
-    const endTime = new Date(
-      startTime.getTime() + task.duration_minutes * 60 * 1000
-    );
+  // getTaskProgress: (task) => {
+  //   const { currentTime } = get();
+  //   const startTime = parseISO(`${task.start_date}T${task.start_time}`);
+  //   const endTime = new Date(
+  //     startTime.getTime() + task.duration_minutes * 60 * 1000
+  //   );
 
-    if (isBefore(currentTime, startTime)) return 0;
-    if (isAfter(currentTime, endTime)) return 100;
+  //   if (isBefore(currentTime, startTime)) return 0;
+  //   if (isAfter(currentTime, endTime)) return 100;
 
-    const totalDuration = differenceInMinutes(endTime, startTime);
-    const elapsedDuration = differenceInMinutes(currentTime, startTime);
-    return (elapsedDuration / totalDuration) * 100;
+  //   const totalDuration = differenceInMinutes(endTime, startTime);
+  //   const elapsedDuration = differenceInMinutes(currentTime, startTime);
+  //   return (elapsedDuration / totalDuration) * 100;
+  // },
+
+  // Assuming this function lives inside the create() call of useCalendarStore
+  // or is a standalone utility function that receives currentTime.
+
+  /**
+   * Calculates the progress percentage of a specific task occurrence (instance).
+   * @param {CalculatedInstance} instance - The calculated task instance object.
+   * @param {Date} currentTime - The current time (as a Date object or compatible).
+   * @returns {number} Progress percentage (0-100), clamped. Returns 0 if instance data is invalid.
+   */
+  getTaskProgress: (instance, currentTime) => {
+    // Validate input
+    if (
+      !instance ||
+      !instance.scheduled_time_utc ||
+      !instance.duration_minutes ||
+      !currentTime
+    ) {
+      console.warn(
+        "getTaskProgress: Invalid instance or currentTime provided",
+        { instance, currentTime }
+      );
+      return 0; // Cannot calculate progress without valid data
+    }
+
+    // Use dayjs with UTC plugin for accurate time manipulation
+    const now = dayjs.utc(currentTime); // Ensure current time is treated as UTC for comparison
+    const startTime = dayjs.utc(instance.scheduled_time_utc); // Start time is already UTC
+
+    // Check if start time is valid
+    if (!startTime.isValid()) {
+      console.warn(
+        "getTaskProgress: Invalid scheduled_time_utc for instance:",
+        instance.id,
+        instance.scheduled_time_utc
+      );
+      return 0;
+    }
+
+    // Calculate end time by adding duration to the UTC start time
+    const endTime = startTime.add(instance.duration_minutes, "minute");
+
+    // --- Determine Progress ---
+
+    // 1. If current time is before the instance starts: Progress is 0%
+    if (now.isBefore(startTime)) {
+      return 0;
+    }
+
+    // 2. If current time is after the instance ends: Progress is 100%
+    if (now.isSameOrAfter(endTime)) {
+      // Use isSameOrAfter to include the exact end time as 100%
+      return 100;
+    }
+
+    // 3. If current time is during the instance: Calculate percentage
+    const totalDuration = endTime.diff(startTime, "minute"); // Total duration in minutes
+    // Ensure totalDuration is not zero to avoid division by zero
+    if (totalDuration <= 0) {
+      return 100; // If duration is 0 or negative, consider it instantly complete if current time is >= start time
+    }
+
+    const elapsedDuration = now.diff(startTime, "minute"); // Elapsed duration in minutes
+
+    const progress = (elapsedDuration / totalDuration) * 100;
+
+    // Clamp the result between 0 and 100 just in case of floating point issues
+    return Math.min(100, Math.max(0, progress));
   },
+
+  // --- Example usage within the store or a component ---
+  // Assuming 'get' exists if this is inside create()
+  // const someAction = () => {
+  //   const { currentTime, selectedInstance } = get(); // Or pass selectedInstance in
+  //   if (selectedInstance) {
+  //     const progress = get().getTaskProgress(selectedInstance, currentTime);
+  //     console.log(`Progress for ${selectedInstance.title}: ${progress.toFixed(2)}%`);
+  //   }
+  // }
 
   /**
    * Calculates the day progress percentage for timeline visualization

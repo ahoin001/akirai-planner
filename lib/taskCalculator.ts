@@ -4,10 +4,8 @@ import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
 import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
-import isBetween from "dayjs/plugin/isBetween"; // Needed for checking if single instance falls in range
-// Import RRule (make sure it's installed: npm install rrule)
+import isBetween from "dayjs/plugin/isBetween";
 import { RRule, RRuleSet, rrulestr } from "rrule";
-// Import types (adjust path as needed)
 import {
   TaskDefinition,
   TaskException,

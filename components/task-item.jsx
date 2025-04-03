@@ -42,13 +42,20 @@ const getTaskIcon = (type) => {
  * @param {boolean} props.isNext - Whether this task is in the next week view
  * @returns {JSX.Element} Rendered component
  */
-export default function TaskItem({ task, date, top, height, isNext = false }) {
+export default function TaskItem({
+  instance: task,
+  date,
+  top,
+  height,
+  isNext = false,
+}) {
   const { currentTime, getTaskProgress, selectDay } = useCalendarStore();
 
   const { setSelectedTaskId } = useTaskStore();
 
+  console.log({ task, currentTime });
   // Calculate task progress and determine visual states
-  const progress = getTaskProgress(task);
+  const progress = getTaskProgress(task, currentTime);
   const isActive = progress > 0 && progress < 100;
   const isGrayed = isAfter(date, currentTime) || isNext;
 
@@ -75,7 +82,7 @@ export default function TaskItem({ task, date, top, height, isNext = false }) {
         className={`absolute inset-0 ${
           isGrayed
             ? "bg-gray-700"
-            : task.color === "pink"
+            : task?.color === "pink"
               ? "bg-pink-500"
               : "bg-blue-500"
         }`}
@@ -86,7 +93,7 @@ export default function TaskItem({ task, date, top, height, isNext = false }) {
         className={`absolute inset-0 bg-gradient-to-t ${
           isGrayed
             ? "from-gray-700 to-transparent"
-            : task.color === "pink"
+            : task?.color === "pink"
               ? "from-pink-500 to-transparent"
               : "from-blue-500 to-transparent"
         } transition-all duration-1000`}

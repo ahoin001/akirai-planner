@@ -1,28 +1,18 @@
 "use client";
 
 // Keep existing imports
-import { useEffect, useState } from "react";
-import { useTaskStore } from "@/app/stores/useTaskStore"; // Assuming this store exists and works
+import { useEffect, useMemo, useState } from "react";
+import { useTaskStore } from "@/app/stores/useTaskStore";
 import dayjs from "dayjs";
 import {
-  // Assuming these actions exist and work correctly
-  deleteTaskAndAllInstances,
-  deleteFutureRecurringInstances,
-  deleteTaskSeriesByInstanceId,
-  toggleTaskInstanceCompletionAction,
-  deleteSingleTaskInstance,
+  deleteFutureOccurrencesAction,
+  deleteSingleTaskOrOccurrenceAction,
+  deleteTaskSeriesAction,
+  toggleTaskOccurrenceCompletionAction,
   updateTask,
-} from "@/app/actions"; // Make sure path is correct
-import {
-  CheckCircle,
-  Circle,
-  Edit,
-  Trash2,
-  X,
-  Clock,
-  Calendar,
-} from "lucide-react"; // Add Clock/Calendar if needed
-import { ConfirmationModal } from "@/components/modals/confirmation-modal"; // Assuming these modals exist
+} from "@/app/actions";
+import { CheckCircle, Circle, Edit, Trash2, X, Clock } from "lucide-react";
+import { ConfirmationModal } from "@/components/modals/confirmation-modal";
 import { RecurrenceActionModal } from "@/components/modals/recurrence-action-modal";
 
 /**
@@ -36,24 +26,37 @@ export default function TaskActionMenu() {
     closeTaskMenu,
     openTaskFormInEditMode,
     isTaskMenuOpen,
-    selectedTask,
+    selectedInstance: selectedTask,
+    tasks,
   } = useTaskStore();
 
-  // Component state - Original logic
-  const [deleteScope, setDeleteScope] = useState(null);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [scopeActionType, setScopeActionType] = useState(null);
+  const [isConfirmationModalOpen, setIsConfirmationModalOpen] = useState(false);
   const [isRecurrenceModalOpen, setIsRecurrenceModalOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const [isRecurring, setIsRecurring] = useState(null);
   const [isVisible, setIsVisible] = useState(false);
 
+  // ****
+  // ****** CHANGE: Determine if the PARENT task is recurring ******
+  // Find the parent task definition from the store's tasks array
+  const parentTaskDefinition = useMemo(() => {
+    if (!selectedTask?.task_id || !tasks) return null;
+    return tasks.find((task) => task.id === selectedTask.task_id);
+  }, [selectedTask, tasks]);
+
+  console.log({ parentTaskDefinition });
+  // Determine if the series is recurring based on the parent task's rrule
+  const isParentRecurring = !!parentTaskDefinition?.rrule;
+  // ***
+
   useEffect(() => {
     setIsRecurring(selectedTask?.tasks?.is_recurring || false);
   }, [selectedTask]);
 
-  // Animation/Visibility Effect (Original logic, keep 500ms duration)
+  // Animation/Visibility Effect
   useEffect(() => {
-    const animationDuration = 500; // Keep original duration
+    const animationDuration = 500;
     let mountTimer;
     let visibilityTimer;
 
@@ -67,78 +70,136 @@ export default function TaskActionMenu() {
         animationDuration
       ); // Hide after animation
     }
-    // Cleanup timers
+
     return () => {
       clearTimeout(mountTimer);
       clearTimeout(visibilityTimer);
     };
   }, [isTaskMenuOpen]);
 
-  // --- Action Handlers (Original Logic - Renamed for clarity) ---
   const handleBackdropClick = () => closeTaskMenu();
 
   const handleCompleteToggle = async () => {
-    // Renamed from handleComplete
-    if (!selectedTask) return;
+    if (
+      !selectedTask ||
+      !selectedTask.task_id ||
+      !selectedTask.original_occurrence_time_utc
+    ) {
+      toast.error("Cannot toggle completion: Task details missing.");
+      return;
+    }
+
+    const newCompletionState = !selectedTask.is_complete;
+
     try {
-      await toggleTaskInstanceCompletionAction(selectedTask.id);
-      closeTaskMenu();
+      await toggleTaskOccurrenceCompletionAction({
+        taskId: selectedTask.task_id,
+        originalOccurrenceTimeUTC: selectedTask.original_occurrence_time_utc,
+        newCompletionState: newCompletionState,
+        // Pass exception ID if available (from calculated instance)
+        exceptionId: selectedTask.id.startsWith(selectedTask.task_id + "-")
+          ? null
+          : selectedTask.id,
+        // Note: userId is handled within the server action using auth context
+      });
+      // toast.success(
+      //   `Task marked as ${newCompletionState ? "complete" : "incomplete"}.`
+      // );
+      // OPTIONAL: Optimistic UI update (update state locally before waiting for realtime)
+      // This requires more complex state management in useTaskStore
+      closeTaskMenu(); // Close menu after action (realtime should update the list)
     } catch (error) {
       console.error("Failed to toggle task completion:", error);
+      // toast.error(error.message || "Failed to update task status.");
+      // Optionally revert optimistic update here if implemented
     }
   };
 
+  // const handleCompleteToggle = async () => {
+  //   if (!selectedTask) return;
+  //   try {
+  //     await toggleTaskOccurrenceCompletionAction(selectedTask.id);
+  //     closeTaskMenu();
+  //   } catch (error) {
+  //     console.error("Failed to toggle task completion:", error);
+  //   }
+  // };
+
+  // Step 1: User clicks the main delete button
   const handleDeleteRequest = () => {
-    // Renamed from onDelete
-    if (isRecurring) {
-      setDeleteScope(null);
+    if (isParentRecurring) {
+      // If the parent task is recurring, ask for scope
+      setScopeActionType(null);
       setIsRecurrenceModalOpen(true);
     } else {
-      setIsDeleteModalOpen(true);
+      // If it's a single occurrence task (parent has no rrule),
+      // proceed directly to final confirmation
+      setScopeActionType("single"); // Deleting single non-recurring task = deleting the 'series' (the task itself)
+      setIsConfirmationModalOpen(true);
     }
   };
 
-  const handleDeleteRecurringConfirmed = (scope) => {
-    if (!selectedTask || !scope) return;
+  // Step 2: User chooses scope in RecurrenceActionModal (for recurring tasks)
+  const handlescopeActionTypeSelected = (scope) => {
+    if (!scope) return; // Should not happen if modal requires selection
+    setScopeActionType(scope);
     setIsRecurrenceModalOpen(false);
-    setDeleteScope(scope);
-    setIsDeleteModalOpen(true);
+    setIsConfirmationModalOpen(true);
   };
 
+  // Step 3: User confirms deletion in ConfirmationModal
   const handleFinalDeleteConfirmed = async () => {
-    // Renamed from handleDeleteConfirmation
-    if (!selectedTask) return;
-    setIsDeleteModalOpen(false);
+    if (!selectedTask || !scopeActionType) return;
+
+    setIsConfirmationModalOpen(false);
+    const taskId = selectedTask.task_id; // ID of the parent task definition
+    const originalTimeUTC = selectedTask.original_occurrence_time_utc;
+    console.log("delete scope: ", scopeActionType);
     try {
-      if (isRecurring && deleteScope) {
-        switch (deleteScope) {
-          case "single":
-            await deleteSingleTaskInstance(selectedTask.id);
-            break;
-          case "future":
-            if (selectedTask.tasks?.id && selectedTask.scheduled_date) {
-              await deleteFutureRecurringInstances(
-                selectedTask.tasks.id,
-                selectedTask.scheduled_date
-              );
-            } else {
-              throw new Error("Missing data for future delete.");
-            }
-            break;
-          case "all":
-            await deleteTaskSeriesByInstanceId(selectedTask.id);
-            break;
-        }
-      } else if (!isRecurring) {
-        await deleteSingleTaskInstance(selectedTask.id);
-      } else {
-        throw new Error("Invalid state for deletion.");
+      let successMessage = "Task deleted.";
+      switch (scopeActionType) {
+        case "single":
+          // ****** CHANGE: Call action to create a cancellation exception ******
+          console.log(
+            `Action: Deleting single occurrence at ${originalTimeUTC}`
+          );
+          await deleteSingleTaskOrOccurrenceAction({
+            // Use the new specific action
+            taskId: taskId,
+            originalOccurrenceTimeUTC: originalTimeUTC,
+            isParentRecurring: isParentRecurring,
+            // Pass exception ID if known, so action can potentially update instead of insert
+            exceptionId: selectedTask.id.startsWith(taskId + "-")
+              ? null
+              : selectedTask.id,
+          });
+          successMessage = "Task occurrence deleted.";
+          break;
+        case "future":
+          // ****** CHANGE: Call action to update RRULE with UNTIL ******
+          console.log(
+            `Action: Deleting future occurrences from ${originalTimeUTC}`
+          );
+          await deleteFutureOccurrencesAction(taskId, originalTimeUTC);
+          successMessage = "Future occurrences deleted.";
+          break;
+        case "all":
+          // ****** CHANGE: Call action to delete the parent task definition ******
+          console.log(`Action: Deleting entire task series ${taskId}`);
+          await deleteTaskSeriesAction(taskId); // Use the new specific action
+          successMessage = "Entire task series deleted.";
+          break;
+        default:
+          throw new Error("Invalid delete scope selected.");
       }
-      closeTaskMenu();
+
+      // toast.success(successMessage);
+      closeTaskMenu(); // Close menu on success
     } catch (error) {
       console.error("Delete failed:", error);
+      // toast.error(error.message || "Failed to delete task.");
     } finally {
-      setDeleteScope(null);
+      setScopeActionType(null); // Reset scope state
     }
   };
 
@@ -150,10 +211,8 @@ export default function TaskActionMenu() {
     }
   };
 
-  // --- Render Logic ---
   if (!isVisible || !selectedTask) return null;
 
-  // Format data for display (Original logic)
   const startTimeFormatted = dayjs(
     `2000-01-01 ${selectedTask.start_time}`
   ).format("h:mm A");
@@ -162,16 +221,14 @@ export default function TaskActionMenu() {
     .format("h:mm A");
   const dateFormatted = dayjs(selectedTask.scheduled_date).format("M/D/YY"); // Keep original date format
 
-  // Task Icon Component (Original logic)
   const TaskIcon = () => {
     return (
       <div
         className={`w-10 h-10 rounded-full ${
           // Keep original rounding/size
-          selectedTask?.color === "pink" ? "bg-pink-500" : "bg-blue-500" // Keep original colors
+          selectedTask?.color === "pink" ? "bg-pink-500" : "bg-blue-500"
         } flex items-center justify-center text-white flex-shrink-0`} // Add flex-shrink-0
       >
-        {/* Keep original icon logic */}
         {selectedTask?.type === "alarm" && <div className="w-5 h-5">⏰</div>}
         {selectedTask?.type === "workout" && <div className="w-5 h-5">💪</div>}
         {selectedTask?.type === "night" && <div className="w-5 h-5">🌙</div>}
@@ -183,10 +240,8 @@ export default function TaskActionMenu() {
     );
   };
 
-  // --- Responsive JSX Refactor ---
   return (
     <>
-      {/* Backdrop: Unchanged visually, added fade transition */}
       <div
         className={`fixed inset-0 bg-black/50 z-40 transition-opacity duration-300 ease-in-out ${
           isMounted ? "opacity-100" : "opacity-0" // Fade based on mount
@@ -228,7 +283,6 @@ export default function TaskActionMenu() {
               aria-label="Close menu"
             >
               <X size={24} />{" "}
-              {/* Keep original icon size preference if desired */}
             </button>
             {/* Optional Drag Handle (can add if desired) */}
             {/* <div className="mx-auto w-12 h-1.5 bg-gray-600 rounded-full mb-4" /> */}
@@ -272,11 +326,9 @@ export default function TaskActionMenu() {
                 onClick={handleDeleteRequest}
                 className="flex flex-col items-center justify-center bg-zinc-800 p-3 sm:p-4 rounded-xl hover:bg-zinc-700/80 active:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-900 focus-visible:ring-blue-500" // Added hover/focus, responsive padding
               >
-                {/* Keep original icon styling */}
                 <div className="text-pink-500 mb-1 sm:mb-2">
                   <Trash2 size={28} />
                 </div>
-                {/* Keep original text styling */}
                 <span className="text-xl">Delete</span>
               </button>
               {/* Complete/Uncheck Button */}
@@ -316,32 +368,30 @@ export default function TaskActionMenu() {
         </div>
       </div>
 
-      {/* --- Modals (Original logic) --- */}
       <RecurrenceActionModal
         actionType="delete"
         isOpen={isRecurrenceModalOpen}
         onClose={() => setIsRecurrenceModalOpen(false)}
-        onConfirm={handleDeleteRecurringConfirmed}
+        onConfirm={handlescopeActionTypeSelected}
         // Pass original props if needed by your modal
-        selectedOption={deleteScope}
-        setSelectedOption={setDeleteScope}
+        selectedOption={scopeActionType}
+        setSelectedOption={setScopeActionType}
       />
 
       <ConfirmationModal
-        isOpen={isDeleteModalOpen}
+        isOpen={isConfirmationModalOpen}
         onClose={() => {
-          setIsDeleteModalOpen(false);
-          setDeleteScope(null);
+          setIsConfirmationModalOpen(false);
+          setScopeActionType(null);
         }}
         onConfirm={handleFinalDeleteConfirmed}
         title="Confirm Deletion"
         message={
-          /* Original message logic */
-          isRecurring && deleteScope
+          isRecurring && scopeActionType
             ? `Are you sure you want to delete ${
-                deleteScope === "single"
+                scopeActionType === "single"
                   ? "this instance"
-                  : deleteScope === "future"
+                  : scopeActionType === "future"
                     ? "this and all future instances"
                     : "all instances in this series"
               }? This cannot be undone.`

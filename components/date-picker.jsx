@@ -40,7 +40,15 @@ export default function DatePicker({
   selectedDate,
 }) {
   // State to track the currently displayed month
-  const [currentMonth, setCurrentMonth] = useState(selectedDate || new Date());
+  // const [currentMonth, setCurrentMonth] = useState(selectedDate || new Date());
+
+  // Update the currentMonth state initialization
+  const [currentMonth, setCurrentMonth] = useState(
+    selectedDate instanceof Date && !isNaN(selectedDate)
+      ? selectedDate
+      : new Date()
+  );
+
   const pickerRef = useRef(null);
 
   // Close when clicking outside

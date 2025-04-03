@@ -113,6 +113,7 @@ export function TaskForm({
   const frequency = watch("frequency");
   const endType = watch("end_type");
   const formDate = watch("start_date");
+  // console.log("form date: ", formDate);
 
   const timeSlots = useMemo(() => {
     return Array.from({ length: (23 - 9) * 4 + 1 }, (_, i) => {
@@ -133,13 +134,22 @@ export function TaskForm({
   useEffect(() => {
     if (isOpen) {
       // Ensure start_date is a proper Date object
-      const startDate = initialValues?.start_date
+      // const startDate = initialValues?.start_date
+      //   ? dayjs(initialValues.start_date).toDate()
+      //   : selectedDate;
+
+      const parsedSelectedDate = selectedDate
+        ? dayjs(selectedDate).toDate()
+        : new Date();
+
+      const initialStartDate = initialValues?.start_date
         ? dayjs(initialValues.start_date).toDate()
-        : selectedDate;
+        : parsedSelectedDate;
 
       reset({
         title: initialValues?.title || "",
-        start_date: initialValues?.start_date ? startDate : selectedDate,
+        start_date: initialStartDate,
+        // start_date: initialValues?.start_date ? startDate : selectedDate,
         frequency: initialValues?.frequency || "once",
         start_time: initialValues?.start_time || "11:00",
         duration_minutes: initialValues?.duration_minutes || 30,
@@ -155,7 +165,35 @@ export function TaskForm({
     setIsSubmitting(true);
     setFormError(null);
 
+    // Combine date and time into ISO string
+    const startDateTime = dayjs(data.start_date)
+      .hour(parseInt(data.start_time.split(":")[0]))
+      .minute(parseInt(data.start_time.split(":")[1]))
+      .toISOString();
+
+    // Handle recurrence rules
+    const recurrencePayload =
+      data.frequency !== "once"
+        ? {
+            frequency: data.frequency,
+            interval: data.interval,
+            end_type: data.end_type,
+            ...(data.end_type === "after" && { occurrences: data.occurrences }),
+            ...(data.end_type === "on" && {
+              end_date: dayjs(data.end_date).endOf("day").toISOString(),
+            }),
+          }
+        : undefined;
+
     try {
+      // const payload = {
+      //   title: data.title,
+      //   start_datetime: startDateTime, // Combined datetime
+      //   duration_minutes: data.duration_minutes,
+      //   recurrence: recurrencePayload,
+      //   is_recurring: data.frequency !== "once",
+      // };
+
       const payload = {
         title: data.title,
         start_date: dayjs(data.start_date).format("YYYY-MM-DD"),
@@ -172,6 +210,8 @@ export function TaskForm({
         },
         is_recurring: data.frequency !== "once",
       };
+
+      console.log("payload : ", payload);
 
       if (isEditing) {
         if (selectedTask?.tasks?.is_recurring) {

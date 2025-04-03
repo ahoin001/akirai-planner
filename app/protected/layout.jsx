@@ -7,21 +7,57 @@ import { Loader2 } from "lucide-react";
 
 export default function AppLayout({ children }) {
   const { fetchUser } = useAuthStore();
-  const hydrateAndSubscribe = useTaskStore(
-    (state) => state.hydrateAndSubscribe
-  );
+  const loadInitialTaskData = useTaskStore((state) => state.loadInitialData);
 
   const [isLoading, setIsLoading] = useState(true);
 
+  // useEffect(() => {
+  //   const loadData = async () => {
+  //     await fetchUser();
+  //     await loadInitialData();
+  //     setIsLoading(false);
+  //   };
+
+  //   loadData();
+  // }, [fetchUser, loadInitialData]);
+
   useEffect(() => {
+    let isMounted = true; // Flag to prevent state updates on unmounted component
+    let unsubscribeRealtime = () => {}; // Initialize unsubscribe function
+
     const loadData = async () => {
-      await fetchUser();
-      await hydrateAndSubscribe();
-      setIsLoading(false);
+      try {
+        // Ensure fetchUser completes before loading tasks (if task loading depends on user)
+        await fetchUser();
+
+        // ****** CHANGE: Call the new loading function ******
+        // It fetches initial tasks/exceptions AND sets up subscriptions
+        // It returns the unsubscribe function
+        unsubscribeRealtime = await loadInitialTaskData();
+
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      } catch (err) {
+        console.error("Error during initial data load:", err);
+        if (isMounted) {
+          setIsLoading(false); // Stop loading even on error
+          // toast.error(err.message || "Failed to load planner data.");
+        }
+      }
     };
 
     loadData();
-  }, [fetchUser, hydrateAndSubscribe]);
+
+    // Cleanup function: This runs when the component unmounts
+    return () => {
+      isMounted = false;
+      console.log("AppLayout unmounting, calling unsubscribe...");
+      // ****** CHANGE: Call the unsubscribe function returned by loadInitialData ******
+      unsubscribeRealtime();
+    };
+    // ****** CHANGE: Dependency array includes the new function ******
+  }, [fetchUser, loadInitialTaskData]); // Add loadInitialTaskData as dependency
 
   if (isLoading) {
     return (

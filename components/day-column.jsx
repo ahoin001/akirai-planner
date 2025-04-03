@@ -1,153 +1,211 @@
 "use client";
 
-/**
- * DayColumn Component
- *
- * Renders a single day column in the timeline with hour markers,
- * vertical timeline, and tasks.
- *
- * @component
- */
-import { useEffect, useState } from "react";
-import { isSameDay, isBefore, isAfter } from "date-fns";
+import React, { useEffect, useState, memo } from "react"; // Removed useMemo if not needed here
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+import timezone from "dayjs/plugin/timezone";
+import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
+import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
+// import isSame from "dayjs/plugin/isSame";
+
+// ****** REMOVED: date-fns imports ******
+// import { isSameDay, isBefore, isAfter } from "date-fns";
+
 import { Moon } from "lucide-react";
-import TaskItem from "./task-item";
-import useCalendarStore from "@/app/stores/useCalendarStore";
+import TaskItem from "./task-item"; // Assuming TaskItem is updated for CalculatedInstance
+import useCalendarStore from "@/app/stores/useCalendarStore"; // Keep for currentTime
+
+// Extend Dayjs (Best practice: centralize)
+dayjs.extend(utc);
+dayjs.extend(timezone);
+dayjs.extend(isSameOrBefore);
+dayjs.extend(isSameOrAfter);
+// dayjs.extend(isSame);
 
 // Constants for timeline configuration
-const dayStart = 8; // 8 AM
-const dayEnd = 23; // 11 PM
+const dayStartHour = 8; // 8 AM (0-23 range)
+const dayEndHour = 23; // End of 10 PM hour (effectively up to 11 PM)
 const hourHeight = 60; // Height of one hour in pixels
+const totalTimelineHeight = (dayEndHour - dayStartHour) * hourHeight;
 
 /**
- * DayColumn component
+ * DayColumn component (Refactored for new schema/instances)
  *
- * @param {Object} props - Component props
- * @param {Date} props.date - The date this column represents
- * @param {Array} props.tasks - Array of tasks for this day
- * @param {boolean} props.isNext - Whether this column is in the next week view
+ * Renders a single day column in the timeline with hour markers,
+ * vertical timeline, and tasks calculated for that day.
+ *
+ * @param {object} props - Component props
+ * @param {Date|string} props.date - The date this column represents (local date).
+ * @param {Array<CalculatedInstance>} props.tasks - Array of calculated task instances for this day.
+ * @param {boolean} props.isNext - Whether this column is in the next week view (for animation).
  * @returns {JSX.Element} Rendered component
  */
-export default function DayColumn({ date, tasks, isNext = false }) {
+export default function DayColumn({ date, tasks = [], isNext = false }) {
+  // Default tasks to empty array
+  // Get currentTime from store (assuming it's a Date object or similar)
+  // Also assuming getDayProgress and updateCurrentTime are still relevant for the visual line
   const { currentTime, getDayProgress, updateCurrentTime } = useCalendarStore();
-  const [progress, setProgress] = useState(getDayProgress(date));
 
+  // ****** CHANGE: Calculate progress based on Dayjs ******
+  // Memoize progress calculation? Maybe not needed if updated frequently anyway.
+  const calculateProgress = (targetDate, now) => {
+    const startOfDay = dayjs(targetDate).startOf("day").hour(dayStartHour); // Start at 8 AM
+    const endOfDay = dayjs(targetDate).startOf("day").hour(dayEndHour); // End at 11 PM
+    const current = dayjs(now);
+
+    // Check if current time is outside the displayed range
+    if (current.isBefore(startOfDay)) return 0;
+    if (current.isAfter(endOfDay)) return 100;
+
+    // Calculate percentage based on time passed since dayStartHour within the visible range
+    const totalMinutesInRange = (dayEndHour - dayStartHour) * 60;
+    const minutesPassed = current.diff(startOfDay, "minute");
+    const progressPercent = (minutesPassed / totalMinutesInRange) * 100;
+
+    return Math.min(100, Math.max(0, progressPercent)); // Clamp between 0 and 100
+  };
+
+  const [progress, setProgress] = useState(() =>
+    calculateProgress(date, currentTime)
+  );
   const [isClient, setIsClient] = useState(false);
 
-  // Set isClient to true after first render
   useEffect(() => {
     setIsClient(true);
-    // Update time once after component mounts on client
-    updateCurrentTime();
-  }, []);
+    updateCurrentTime(); // Update on mount
+  }, [updateCurrentTime]); // Added dependency
 
-  // Determine visual states - only use real-time values on client
-  const isInFuture = isClient ? isAfter(date, currentTime) : false;
-  const isPast = isClient
-    ? isBefore(date, new Date(currentTime).setHours(0, 0, 0, 0))
-    : false;
-  const isToday = isClient ? isSameDay(date, currentTime) : false;
+  // Determine visual states using dayjs
+  const today = dayjs(currentTime);
+  const columnDate = dayjs(date); // Ensure `date` prop is usable by dayjs
 
-  // Update progress in real-time for the current day
+  const isToday = isClient && columnDate.isSame(today, "day");
+  const isPast = isClient && columnDate.isBefore(today, "day");
+  const isInFuture = isClient && columnDate.isAfter(today, "day");
+
+  // Update progress effect
   useEffect(() => {
-    if (!isClient || !isToday) return;
+    // Update progress state whenever currentTime or date changes
+    setProgress(calculateProgress(date, currentTime));
 
-    // Update progress immediately
-    setProgress(getDayProgress(date));
+    // Only set up interval for today's column
+    if (isClient && isToday) {
+      const interval = setInterval(() => {
+        updateCurrentTime(); // Trigger store update
+        // Progress will update via the dependency change on currentTime below
+      }, 60000); // Update every minute
+      return () => clearInterval(interval);
+    }
+  }, [currentTime, date, isClient, isToday, updateCurrentTime]); // Add updateCurrentTime
 
-    // Set up interval to update progress every minute
-    const interval = setInterval(() => {
-      updateCurrentTime(); // Update the time in the store
-      setProgress(getDayProgress(date));
-    }, 60000); // Update every minute
-
-    return () => clearInterval(interval);
-  }, [date, isToday, getDayProgress, isClient, updateCurrentTime]);
-
-  // Update progress when currentTime changes
+  // Update progress whenever currentTime changes (triggered by interval or external)
   useEffect(() => {
-    setProgress(getDayProgress(date));
-  }, [currentTime, date, getDayProgress]);
+    setProgress(calculateProgress(date, currentTime));
+  }, [currentTime, date]); // Rerun calculation when time/date changes
 
   /**
-   * Calculates the vertical position of a task
-   * @param {Object} task - The task object
-   * @returns {number} Top position in pixels
+   * Calculates the vertical top position of a calculated task instance.
+   * Converts the instance's UTC start time to the local time of the column's date
+   * to find its position relative to the dayStartHour.
+   *
+   * @param {CalculatedInstance} instance - The calculated task instance object.
+   * @returns {number} Top position in pixels relative to the column top.
    */
-  const calculateTaskPosition = (task) => {
-    const [hours, minutes] = task.start_time.split(":").map(Number);
-    const timeInHours = hours + minutes / 60 - dayStart;
-    return timeInHours * hourHeight;
+  const calculateTaskPosition = (instance) => {
+    if (!instance?.scheduled_time_utc || !instance?.timezone) return 0;
+
+    // Convert the instance's scheduled UTC time to the local timezone of the task
+    const startTimeLocal = dayjs
+      .utc(instance.scheduled_time_utc)
+      .tz(instance.timezone);
+
+    if (!startTimeLocal.isValid()) return 0;
+
+    // Get hours and minutes from the local start time
+    const hours = startTimeLocal.hour(); // 0-23
+    const minutes = startTimeLocal.minute();
+
+    // Calculate position relative to the start hour of the column (dayStartHour)
+    const timeFromDayStartInHours = hours - dayStartHour + minutes / 60;
+
+    // Calculate pixel offset, ensuring it's not negative if task starts before dayStartHour
+    return Math.max(0, timeFromDayStartInHours * hourHeight);
   };
 
   /**
-   * Calculates the height of a task based on duration
-   * @param {Object} task - The task object
-   * @returns {number} Height in pixels
+   * Calculates the height of a task based on its duration.
+   *
+   * @param {CalculatedInstance} instance - The calculated task instance object.
+   * @returns {number} Height in pixels.
    */
-  const calculateTaskHeight = (task) => {
-    return (task.duration_minutes / 60) * hourHeight;
+  const calculateTaskHeight = (instance) => {
+    if (!instance?.duration_minutes) return hourHeight / 2; // Default height?
+    return (instance.duration_minutes / 60) * hourHeight;
   };
 
   return (
     <div
       className="relative"
-      style={{ height: `${(dayEnd - dayStart) * hourHeight}px` }}
+      style={{ height: `${totalTimelineHeight}px` }} // Use calculated total height
     >
       {/* Hour grid lines */}
-      {Array.from({ length: dayEnd - dayStart }, (_, i) => (
+      {Array.from({ length: dayEndHour - dayStartHour }, (_, i) => (
         <div
-          key={i}
-          className="absolute w-full border-t border-gray-800"
-          style={{ top: `${i * hourHeight}px` }}
+          key={`line-${i}`}
+          className="absolute w-full border-t border-gray-700/50" // Adjusted border color/opacity
+          style={{ top: `${i * hourHeight}px`, left: 0, right: 0 }} // Ensure full width
         />
       ))}
 
-      {/* Vertical timeline line - always full height with color indicating progress */}
-      <div className="absolute inset-0 flex flex-col items-center">
-        {/* Timeline line with progress indicator */}
-        <div className="relative w-1 flex-grow">
-          {/* Background line (always full height) */}
-          <div className="absolute inset-0 bg-gray-700"></div>
-
+      {/* Vertical timeline line */}
+      <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-0.5 flex flex-col items-center">
+        {" "}
+        {/* Centered line */}
+        <div className="relative w-full flex-grow">
+          {/* Background line */}
+          <div className="absolute inset-0 bg-gray-700 rounded-full"></div>{" "}
+          {/* Softer gray */}
           {/* Progress overlay */}
           <div
-            className={`absolute inset-0 ${
+            className={`absolute left-0 right-0 top-0 ${
+              // Use more distinct colors based on state
               isPast
-                ? "bg-pink-500"
+                ? "bg-gray-500"
                 : isToday
-                  ? "bg-pink-500"
+                  ? "bg-indigo-500"
                   : "bg-transparent"
-            } transition-all duration-1000`}
-            style={{
-              height: `${progress}%`,
-              top: 0, // Fill from top to bottom
-            }}
+            } rounded-full transition-all duration-1000 ease-linear`} // Smooth progress animation
+            style={{ height: `${progress}%` }}
           />
         </div>
-
-        {/* Moon icon at bottom */}
+        {/* Moon icon at bottom (Keep original logic) */}
         <div
-          className={`w-8 h-8 rounded-full ${
-            isInFuture ? "bg-gray-800" : "bg-blue-500/20"
-          } flex items-center justify-center mb-2`}
+          className={`w-8 h-8 rounded-full ${isInFuture ? "bg-gray-800/50" : "bg-blue-900/30"} flex items-center justify-center my-1 flex-shrink-0`}
         >
           <Moon
-            className={`w-5 h-5 ${isInFuture ? "text-gray-600" : "text-blue-400"}`}
+            className={`w-4 h-4 ${isInFuture ? "text-gray-600" : "text-blue-400"}`}
           />
         </div>
       </div>
 
-      {/* Tasks */}
-      {tasks.map((task) => {
+      {/* Tasks - Map over the calculated instances */}
+      {tasks.map((instance) => {
+        // Calculate position and height using the new functions
+        const top = calculateTaskPosition(instance);
+        const height = calculateTaskHeight(instance);
+
+        // Render the TaskItem, passing the calculated instance and positioning
+        // Ensure TaskItem is refactored to accept `instance` and use `top`/`height` props
         return (
           <TaskItem
-            key={task.id}
-            task={task}
-            date={date}
-            top={calculateTaskPosition(task)}
-            height={calculateTaskHeight(task)}
-            isNext={isNext}
+            key={instance.id} // Use the unique calculated instance ID
+            instance={instance} // Pass the whole instance object
+            // date={date} // Date prop might not be needed by TaskItem now
+            top={top} // Pass calculated top position
+            height={height} // Pass calculated height
+            isNext={isNext} // Pass isNext for potential animation sync
+            // onClick prop is now handled by parent (WeekTimeline -> DayColumn -> TaskItem -> handleTaskSelect)
+            // If TaskItem needs its own click handler, add it here.
           />
         );
       })}
