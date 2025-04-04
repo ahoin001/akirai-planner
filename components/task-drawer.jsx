@@ -260,11 +260,12 @@ const TaskDrawer = ({ drawerRef }) => {
         </div>
         {/* Task list */}
         {selectedDay && (
+          //  className={`overflow-y-auto flex-grow transition-opacity duration-300 ${
+          //   isAnimating ? "opacity-0" : "opacity-100"
+          // }`}
           <div
             ref={taskListRef}
-            className={`overflow-y-auto flex-grow transition-opacity duration-300 ${
-              isAnimating ? "opacity-0" : "opacity-100"
-            }`}
+            className={`overflow-y-auto flex-grow`}
             // Add padding inside the scrollable area
             style={{ padding: "8px 16px 16px 16px" }} // p-4 equivalent but avoids header padding
           >

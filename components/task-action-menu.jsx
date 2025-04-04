@@ -152,7 +152,7 @@ export default function TaskActionMenu() {
     setIsConfirmationModalOpen(false);
     const taskId = selectedTask.task_id; // ID of the parent task definition
     const originalTimeUTC = selectedTask.original_occurrence_time_utc;
-    console.log("delete scope: ", scopeActionType);
+
     try {
       let successMessage = "Task deleted.";
       switch (scopeActionType) {

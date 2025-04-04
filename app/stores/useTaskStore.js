@@ -53,6 +53,7 @@ export const useTaskStore = create((set, get) => ({
   // GETTERS (Conceptual - Calculation happens outside store)
   // **********************************************************
 
+  // *** Not used anywhere??
   /**
    * Retrieves calculated task instances for a specific day.
    * NOTE: This calls the external calculator function.
@@ -75,6 +76,7 @@ export const useTaskStore = create((set, get) => ({
     }
   },
 
+  // *** Not used anywhere??
   /**
    * Retrieves calculated task instances for the currently viewed week.
    * NOTE: This calls the external calculator function.
@@ -188,83 +190,124 @@ export const useTaskStore = create((set, get) => ({
    */
   setupRealtimeSubscriptions: async () => {
     console.log("Store: Setting up Realtime subscriptions...");
+    // Use the client creation function you defined
     const supabase = createSupabaseBrowserClient();
     const {
       data: { user },
     } = await supabase.auth.getUser();
 
     if (!user) {
-      console.log("Store: No user, skipping realtime subscriptions.");
-      return () => {}; // Return no-op unsubscribe
+      console.log(
+        "Store: No authenticated user found, skipping realtime subscriptions."
+      );
+      return () => {
+        console.log("Store: No-op unsubscribe (no user).");
+      }; // Return no-op unsubscribe
     }
+    console.log(`Store: Subscribing for user ${user.id}`);
 
-    // Clean up previous channels associated with this client instance first
-    supabase.removeAllChannels();
+    // Get references to the handler functions FROM THE CURRENT STORE INSTANCE
+    // Using get() inside ensures we always use the latest version of these handlers
+    // if the store definition were ever hot-reloaded (less common for stores).
+    const handleTaskChange = (payload) => get()._handleTaskChange(payload);
+    const handleExceptionChange = (payload) =>
+      get()._handleExceptionChange(payload);
 
-    const handleTaskChange = get()._handleTaskChange;
-    const handleExceptionChange = get()._handleExceptionChange;
+    // IMPORTANT: Clean up any *previous* channels for this specific client instance
+    // This prevents duplicate subscriptions if setupRealtimeSubscriptions is called again somehow
+    // without the page refreshing (e.g., during development HMR).
+    // Note: Channels are specific to the client instance.
+    const existingChannels = supabase.getChannels();
+    console.log(
+      `Store: Found ${existingChannels.length} existing channels. Removing...`
+    );
+    existingChannels.forEach((channel) => {
+      if (
+        channel.channelName.startsWith("public:tasks") ||
+        channel.channelName.startsWith("public:task_instance_exceptions")
+      ) {
+        console.log(`Store: Removing existing channel: ${channel.channelName}`);
+        supabase.removeChannel(channel);
+      }
+    });
+    // Alternative: supabase.removeAllChannels(); // Use if appropriate for your app structure
 
-    // Subscribe to TASKS table
+    // Define channel names uniquely (e.g., include user ID if needed, but filter usually handles this)
+    const taskChannelName = `public:tasks:${user.id}`; // Example unique name per user
+    const exceptionChannelName = `public:task_instance_exceptions:${user.id}`; // Example unique name
+
+    // --- Subscribe to TASKS table ---
     const tasksChannel = supabase
-      .channel("public:tasks") // Use documented format
+      .channel(taskChannelName) // Use potentially unique channel name
       .on(
-        // REMOVED <TaskDefinition> generic
         "postgres_changes",
         {
-          event: "*",
+          event: "*", // Listen for INSERT, UPDATE, DELETE
           schema: "public",
           table: "tasks",
-          filter: `user_id=eq.${user.id}`,
         },
-        handleTaskChange
+        handleTaskChange // Call the handler function
       )
       .subscribe((status, err) => {
-        if (status === "SUBSCRIBED")
-          console.log("Store: Subscribed to tasks channel");
-        else if (err) {
-          console.error("Store: Tasks subscription error:", err);
-          toast.error("Realtime connection issue (Tasks).");
-          // Potentially try to resubscribe after a delay?
+        // Add detailed status/error logging
+        console.log(
+          `Store: Tasks Channel (${taskChannelName}) status: ${status}`
+        );
+        if (err) {
+          console.error(
+            `Store: Tasks Channel (${taskChannelName}) subscription error:`,
+            err
+          );
+          toast.error("Realtime connection error (Tasks). Check console.");
+          // Consider retry logic here if needed
         }
       });
 
-    // Subscribe to TASK INSTANCE EXCEPTIONS table
+    // --- Subscribe to TASK INSTANCE EXCEPTIONS table ---
     const exceptionsChannel = supabase
-      .channel("public:task_instance_exceptions") // Use documented format
+      .channel(exceptionChannelName) // Use potentially unique channel name
       .on(
-        // REMOVED <TaskException> generic
         "postgres_changes",
         {
           event: "*",
           schema: "public",
           table: "task_instance_exceptions",
-          filter: `user_id=eq.${user.id}`,
         },
-        handleExceptionChange
+        handleExceptionChange // Call the handler function
       )
       .subscribe((status, err) => {
-        if (status === "SUBSCRIBED")
-          console.log("Store: Subscribed to exceptions channel");
-        else if (err) {
-          console.error("Store: Exceptions subscription error:", err);
-          toast.error("Realtime connection issue (Exceptions).");
+        // Add detailed status/error logging
+        console.log(
+          `Store: Exceptions Channel (${exceptionChannelName}) status: ${status}`
+        );
+        if (err) {
+          console.error(
+            `Store: Exceptions Channel (${exceptionChannelName}) subscription error:`,
+            err
+          );
+          toast.error("Realtime connection error (Exceptions). Check console.");
+          // Consider retry logic here if needed
         }
       });
 
-    // Return unsubscribe function
+    // Return a cleanup function that removes THESE specific channels
     return () => {
-      console.log("Store: Unsubscribing from realtime channels");
-      // Use removeChannel safely
-      if (tasksChannel)
-        supabase
-          .removeChannel(tasksChannel)
-          .catch((err) => console.error("Error removing tasks channel", err));
-      if (exceptionsChannel)
-        supabase
-          .removeChannel(exceptionsChannel)
-          .catch((err) =>
-            console.error("Error removing exceptions channel", err)
-          );
+      console.log("Store: Unsubscribing from realtime channels...");
+      // Use supabase.removeChannel for specific channels
+      supabase
+        .removeChannel(tasksChannel)
+        .then((status) =>
+          console.log(`Store: Removed tasks channel, status: ${status}`)
+        )
+        .catch((err) => console.error("Error removing tasks channel:", err));
+      supabase
+        .removeChannel(exceptionsChannel)
+        .then((status) =>
+          console.log(`Store: Removed exceptions channel, status: ${status}`)
+        )
+        .catch((err) =>
+          console.error("Error removing exceptions channel:", err)
+        );
     };
   },
 
@@ -274,10 +317,12 @@ export const useTaskStore = create((set, get) => ({
    */
   _handleTaskChange: (payload) => {
     console.log("Store: Realtime Task Change Received:", payload);
+    console.log("Store: Realtime Task Change PLEASE");
     set((state) => {
       let updatedTasks = [...state.tasks];
       switch (payload.eventType) {
         case "INSERT":
+          console.log("Fllooop");
           // Avoid adding duplicates if optimistic update already happened
           if (!updatedTasks.some((t) => t.id === payload.new?.id)) {
             updatedTasks.push(payload.new);
@@ -289,6 +334,8 @@ export const useTaskStore = create((set, get) => ({
           );
           break;
         case "DELETE":
+          console.log(" IN DELETE");
+          console.log({ updatedTasks, payload });
           updatedTasks = updatedTasks.filter((t) => t.id !== payload.old?.id);
           // If the deleted task definition matches the selected instance's parent, clear selection
           if (state.selectedInstance?.task_id === payload.old?.id) {
@@ -360,6 +407,8 @@ export const useTaskStore = create((set, get) => ({
           }
           break;
         case "DELETE":
+          console.log(" IN DELETE Instance");
+          console.log({ updatedTasks, payload });
           updatedExceptions = updatedExceptions.filter(
             (e) => e.id !== payload.old?.id
           );
@@ -386,7 +435,7 @@ export const useTaskStore = create((set, get) => ({
   },
 
   // **********************************************************
-  // UI CONTROL ACTIONS (Revised)
+  // UI CONTROL ACTIONS
   // **********************************************************
 
   /**
@@ -525,8 +574,6 @@ export const useTaskStore = create((set, get) => ({
    * @param {object} instance - The calculated instance object (should conform to CalculatedInstance structure).
    */
   openTaskMenu: (instance) => {
-    console.log("Store: Opening Task Menu for instance:", instance);
-
     // ****** CORRECTED VALIDATION ******
     // Check if 'instance' is a valid object and has the essential 'task_id' property.
     // The 'id' of a calculated instance might be the exception ID or a generated one (task_id + time),

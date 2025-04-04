@@ -35,17 +35,11 @@ export default function TaskItem({
 
   const { setSelectedInstance } = useTaskStore();
 
-  // Calculate task progress and determine visual states
   const progress = getTaskProgress(task, currentTime);
   const isActive = progress > 0 && progress < 100;
   const isGrayed = isAfter(date, currentTime) || isNext;
 
-  /**
-   * Handle task click - select the day and the task
-   */
   const handleTaskClick = () => {
-    console.log("clicked it");
-    console.log({ date, task });
     selectDay(date);
     setSelectedInstance(task);
   };

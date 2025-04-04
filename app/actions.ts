@@ -16,10 +16,9 @@ import { revalidatePath } from "next/cache"; // For refreshing UI data
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
-const DATE_FORMAT = "YYYY-MM-DD";
-const MAX_OCCURRENCES = 25; // Safety cap
-
-// *************** CREATE ACTIONS *******************
+// ***************
+// * CREATE ACTIONS
+// ***************
 export const createTaskAction = async (taskData) => {
   console.log("SERVER ACTION (createTaskAction): Received Data:", taskData);
 
@@ -243,7 +242,9 @@ export const createTaskAction = async (taskData) => {
   }
 };
 
-// *************** DELETE ACTIONS *******************
+// *******************
+// * DELETE ACTIONS
+// *******************
 // --- Action to Delete Future Occurrences (Updates RRULE UNTIL) ---
 /**
  * Modifies a recurring task's RRULE to end just before a specific occurrence.
@@ -522,8 +523,8 @@ export const deleteSingleTaskOrOccurrenceAction = async (payload) => {
       console.log(`SERVER ACTION: Single task definition ${taskId} deleted.`);
     }
 
-    revalidatePath("/"); // Revalidate relevant paths
-    revalidatePath("/protected");
+    // revalidatePath("/"); // Revalidate relevant paths
+    // revalidatePath("/protected");
     return { success: true };
   } catch (error) {
     console.error(
