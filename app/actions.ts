@@ -535,198 +535,281 @@ export const deleteSingleTaskOrOccurrenceAction = async (payload) => {
   }
 };
 
-// *************** UPDATE ACTIONS *******************
+// **********************************************************
+// UPDATES
+// **********************************************************
 
-export const updateTask = async (
-  taskInstanceId: string,
-  updates: object,
-  scope: "single" | "future" | "all" = "single"
-) => {
+// --- Update Task Definition (Rule) ---
+/**
+ * Updates the main definition (rule) of a task in the 'tasks' table.
+ * Handles scope ('single', 'future', 'all') to adjust RRULE or cleanup exceptions.
+ *
+ * @param {string} taskId - The ID of the task definition to update.
+ * @param {object} taskData - Object containing the updated fields (title, start_date, start_time, duration, recurrence details, timezone).
+ * @param {'single' | 'future' | 'all'} scope - How widely the changes should apply.
+ * @returns {Promise<object>} The updated task definition record.
+ * @throws {Error} If validation or database operations fail.
+ */
+export const updateTaskDefinitionAction = async (taskId, taskData, scope) => {
+  console.log(
+    `SERVER ACTION (updateTaskDefinitionAction): Updating task ${taskId} with scope ${scope}`,
+    taskData
+  );
+  if (!taskId) throw new Error("Task ID is required for update.");
+  if (!scope)
+    throw new Error("Update scope ('single', 'future', 'all') is required.");
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+  if (authError || !user) throw new Error("User not authenticated.");
+
+  // --- Validation (Similar to create action) ---
+  if (!taskData.title?.trim()) throw new Error("Task title is required.");
+  // ... Add other necessary validations for duration, time format etc. ...
+  if (!taskData.start_date || !taskData.start_time)
+    throw new Error("Start date and time required.");
+  if (!taskData.recurrence?.frequency) throw new Error("Frequency required.");
+  // ...
+
+  // --- Fetch Original Task (Needed for context, ownership check, and RRULE modification) ---
+  const { data: originalTask, error: fetchError } = await supabase
+    .from("tasks")
+    .select("id, user_id, dtstart, rrule, timezone") // Select fields needed for logic/auth
+    .eq("id", taskId)
+    .single(); // Expect one task
+
+  if (fetchError)
+    throw new Error(
+      `Database error fetching original task: ${fetchError.message}`
+    );
+  if (!originalTask) throw new Error("Original task not found.");
+  if (originalTask.user_id !== user.id)
+    throw new Error("Unauthorized to update this task.");
+
   try {
-    const supabase = await createClient();
+    // --- Handle 'single' scope: Convert this edit into an exception ---
+    if (scope === "single") {
+      console.log(
+        "SERVER ACTION: Scope is 'single', converting definition edit to an exception."
+      );
+      // We need the *original* occurrence time that the user was viewing/editing
+      // This MUST be passed from the client (e.g., via initialValues._originalOccurrenceTimeUTC)
+      const originalOccurrenceTimeUTC = taskData._originalOccurrenceTimeUTC; // Get this from payload if passed!
+      if (!originalOccurrenceTimeUTC) {
+        throw new Error(
+          "Cannot apply change to single instance: Original occurrence time context is missing."
+        );
+      }
+
+      const guessedTimezone = taskData.timezone || dayjs.tz.guess() || "UTC";
+      const newStartTimeISO = dayjs
+        .tz(
+          `${taskData.start_date} ${taskData.start_time}`,
+          "YYYY-MM-DD HH:mm",
+          guessedTimezone
+        )
+        .toISOString();
+
+      const exceptionPayload = {
+        taskId: taskId,
+        originalOccurrenceTimeUTC: originalOccurrenceTimeUTC,
+        userId: user.id,
+        overrideTitle: taskData.title.trim(),
+        newStartTimeISO: newStartTimeISO,
+        newDurationMinutes: parseInt(taskData.duration_minutes, 10),
+        // Reset completion/cancellation if time/details changed significantly? Optional.
+        isComplete: false,
+        isCancelled: false,
+        // exceptionId: taskData._exceptionId, // Pass if editing existing exception
+      };
+      // Call modify action to create/update the exception
+      return await modifyTaskOccurrenceAction(exceptionPayload);
+    }
+
+    // --- Handle 'future' or 'all' scope: Update the main task definition ---
+
+    // --- Calculate new dtstart (TIMESTAMPTZ) ---
+    const timeZone =
+      taskData.timezone || originalTask.timezone || dayjs.tz.guess() || "UTC"; // Prioritize incoming, then original, then guess
+    const localStartDateTime = dayjs.tz(
+      `${taskData.start_date} ${taskData.start_time}`,
+      "YYYY-MM-DD HH:mm",
+      timeZone
+    );
+    if (!localStartDateTime.isValid())
+      throw new Error("Invalid updated start date/time.");
+    const newDtstartISO = localStartDateTime.toISOString();
+
+    // --- Generate new RRULE String ---
+    let newRruleString = null;
     const {
-      data: { user },
-    } = await supabase.auth.getUser();
+      frequency,
+      interval = 1,
+      end_type = "never",
+      occurrences,
+      end_date,
+    } = taskData.recurrence || {};
 
-    if (!user) throw new Error("User not authenticated");
+    if (frequency && frequency !== "once") {
+      const freqMap = {
+        daily: RRule.DAILY,
+        weekly: RRule.WEEKLY,
+        monthly: RRule.MONTHLY,
+      };
+      if (!freqMap[frequency])
+        throw new Error(`Invalid frequency: ${frequency}`);
 
-    // 1. Fetch task instance with parent task relationship
-    const { data: taskInstance, error: fetchError } = await supabase
-      .from("task_instances")
-      .select("*, tasks!task_instances_task_id_fkey(*)")
-      .eq("id", taskInstanceId)
+      const ruleOptions = {
+        freq: freqMap[frequency],
+        interval: Math.max(1, parseInt(interval, 10) || 1),
+        dtstart: localStartDateTime.toDate(), // Use new start time for rule generation
+      };
+
+      // --- Adjust Rule Based on Scope ---
+      if (scope === "future") {
+        // Set the UNTIL for the *new* rule to end just before the original instance time
+        const originalOccurrenceTimeUTC = taskData._originalOccurrenceTimeUTC; // Get this from payload!
+        if (!originalOccurrenceTimeUTC) {
+          throw new Error(
+            "Cannot apply change to future instances: Original occurrence time context is missing."
+          );
+        }
+        const untilDateTime = dayjs
+          .utc(originalOccurrenceTimeUTC)
+          .subtract(1, "millisecond");
+        ruleOptions.until = untilDateTime.isValid()
+          ? untilDateTime.toDate()
+          : undefined;
+        if (!ruleOptions.until)
+          throw new Error(
+            "Invalid original time for future scope calculation."
+          );
+        console.log(
+          `SERVER ACTION: Applying 'future' scope, new rule will have UNTIL: ${ruleOptions.until?.toISOString()}`
+        );
+        // Note: This logic might need refinement. Updating a rule for "future" is complex.
+        // Often, it might involve creating a *new* task definition starting from the edit point
+        // and setting an UNTIL on the *old* task definition.
+        // For simplicity here, we are just modifying the existing rule's end point.
+      } else {
+        // scope === 'all'
+        // Apply the end condition from the form directly
+        switch (end_type) {
+          case "after":
+            const count = Math.max(1, parseInt(occurrences, 10) || 0);
+            if (count === 0) throw new Error("Occurrences must be >= 1.");
+            ruleOptions.count = count;
+            break;
+          case "on":
+            if (!end_date) throw new Error("End date required.");
+            const untilDateTime = dayjs
+              .tz(end_date, "YYYY-MM-DD", timeZone)
+              .endOf("day");
+            if (!untilDateTime.isValid())
+              throw new Error("Invalid end date format.");
+            if (untilDateTime.isBefore(localStartDateTime, "day"))
+              throw new Error("End date cannot be before start date.");
+            ruleOptions.until = untilDateTime.utc().toDate();
+            break;
+          case "never":
+          default:
+            break; // No end needed
+        }
+      }
+
+      try {
+        newRruleString = new RRule(ruleOptions).toString();
+      } catch (rruleError) {
+        /* ... error handling ... */ throw new Error(
+          "Failed to update recurrence rule."
+        );
+      }
+    }
+
+    // --- Prepare Update Payload for 'tasks' table ---
+    const taskUpdatePayload = {
+      title: taskData.title.trim(),
+      dtstart: newDtstartISO,
+      duration_minutes: parseInt(taskData.duration_minutes, 10),
+      rrule: newRruleString,
+      timezone: timeZone,
+      // Maybe update status? Depends on business logic.
+      // status: 'active',
+      updated_at: new Date().toISOString(), // Manually set or rely on trigger
+    };
+
+    // --- Perform Update ---
+    const { data: updatedTask, error: updateError } = await supabase
+      .from("tasks")
+      .update(taskUpdatePayload)
+      .eq("id", taskId) // Match task ID
+      // .eq('user_id', user.id) // RLS handles this check
+      .select()
       .single();
 
-    if (fetchError) throw fetchError;
-
-    const parentTask = taskInstance.tasks;
-    if (!parentTask) throw new Error("Parent task not found");
-
-    console.log("Before scope check: ", scope);
-
-    // 2. Validate recurrence for non-single scopes
-    if (scope !== "single" && !parentTask.is_recurring) {
-      throw new Error(
-        "Cannot update future/all instances of non-recurring task"
+    if (updateError) {
+      console.error(
+        "SERVER ACTION Error: Supabase task update failed",
+        updateError
       );
+      throw new Error(`Database error updating task: ${updateError.message}`);
     }
 
-    // 3. Perform scope-specific updates
-    switch (scope) {
-      case "single":
-        return await updateSingleInstance(
-          supabase,
-          taskInstanceId,
-          updates,
-          parentTask,
-          user.id
+    // --- Cleanup Exceptions (Important for Rule Changes) ---
+    if (scope === "all") {
+      // If changing the rule for ALL occurrences, existing exceptions might be invalid/obsolete.
+      // Simplest approach: Delete all exceptions for this task.
+      console.log(
+        `SERVER ACTION: Scope is 'all', deleting existing exceptions for task ${taskId}`
+      );
+      const { error: deleteExError } = await supabase
+        .from("task_instance_exceptions")
+        .delete()
+        .eq("task_id", taskId);
+      if (deleteExError)
+        console.warn(
+          "SERVER ACTION Warning: Failed to clear old exceptions on 'all' scope update.",
+          deleteExError
         );
-
-      case "future":
-        return await updateFutureInstances(
-          supabase,
-          taskInstanceId,
-          updates,
-          parentTask,
-          user.id,
-          taskInstance.scheduled_date
+    } else if (scope === "future") {
+      // If changing rule for future, delete exceptions that fall *after* the point of change.
+      const originalOccurrenceTimeUTC = taskData._originalOccurrenceTimeUTC;
+      if (originalOccurrenceTimeUTC) {
+        console.log(
+          `SERVER ACTION: Scope is 'future', deleting exceptions on or after ${originalOccurrenceTimeUTC} for task ${taskId}`
         );
-
-      case "all":
-        return await updateAllInstances(
-          supabase,
-          taskInstanceId,
-          updates,
-          parentTask,
-          user.id
-        );
-
-      default:
-        throw new Error("Invalid update scope");
+        const { error: deleteExError } = await supabase
+          .from("task_instance_exceptions")
+          .delete()
+          .eq("task_id", taskId)
+          .gte("original_occurrence_time", originalOccurrenceTimeUTC);
+        if (deleteExError)
+          console.warn(
+            "SERVER ACTION Warning: Failed to clear future exceptions.",
+            deleteExError
+          );
+      }
     }
+
+    console.log(
+      `SERVER ACTION: Task definition ${taskId} updated (scope: ${scope}).`,
+      updatedTask
+    );
+    revalidatePath("/");
+    revalidatePath("/protected");
+    return updatedTask; // Return the updated task definition
   } catch (error) {
-    console.error("Update task error:", error);
+    console.error(
+      "SERVER ACTION Error: Updating task definition failed.",
+      error
+    );
     throw error;
   }
 };
 
-// Helper functions
-async function updateSingleInstance(
-  supabase: SupabaseClient,
-  taskInstanceId: string,
-  updates: any,
-  parentTask: any,
-  userId: string
-) {
-  console.log("tI ID: ", taskInstanceId);
-  console.log("Updates: ", updates);
-
-  const supabaseInit = await createClient();
-  // Verify ownership
-  if (parentTask.user_id !== userId) throw new Error("Unauthorized");
-
-  // Update instance
-  const { data: updatedInstance, error: instanceError } = await supabaseInit
-    .from("task_instances")
-    .update({
-      duration_minutes: updates.duration_minutes,
-      override_title: updates.title,
-      scheduled_date: updates.start_date,
-      start_time: updates.start_time,
-    })
-    .eq("id", taskInstanceId)
-    .select("*")
-    .single();
-
-  console.log("updated instance");
-
-  if (instanceError) throw instanceError;
-
-  return { instance: updatedInstance };
-}
-
-async function updateFutureInstances(
-  supabase: SupabaseClient,
-  taskInstanceId: string,
-  updates: any,
-  parentTask: any,
-  userId: string,
-  cutoffDate: string
-) {
-  if (parentTask.user_id !== userId) throw new Error("Unauthorized");
-
-  // 1. Update the edited instance
-  const { data: updatedInstance, error: instanceError } = await supabase
-    .from("task_instances")
-    .update({
-      duration_minutes: updates.duration_minutes,
-      override_title: updates.title,
-      scheduled_date: updates.start_date,
-      start_time: updates.start_time,
-    })
-    .eq("id", taskInstanceId)
-    .single();
-
-  if (instanceError) throw instanceError;
-
-  // 2. Update future instances (excluding edited one) without changing dates
-  const { data: updatedInstances, error: instancesError } = await supabase
-    .from("task_instances")
-    .update({
-      override_title: updates.title,
-      duration_minutes: updates.duration_minutes,
-      start_time: updates.start_time,
-    })
-    .gte("scheduled_date", cutoffDate)
-    .eq("task_id", parentTask.id)
-    .neq("id", taskInstanceId)
-    .select("*");
-
-  if (instancesError) throw instancesError;
-
-  return {
-    task: parentTask, // Parent task remains unchanged
-    instances: [updatedInstance, ...updatedInstances],
-  };
-}
-
-async function updateAllInstances(
-  supabase: SupabaseClient,
-  taskInstanceId: string,
-  updates: any,
-  parentTask: any,
-  userId: string
-) {
-  if (parentTask.user_id !== userId) throw new Error("Unauthorized");
-
-  const { data: updatedInstance, error: instanceError } = await supabase
-    .from("task_instances")
-    .update({
-      duration_minutes: updates.duration_minutes,
-      override_title: updates.title,
-      scheduled_date: updates.start_date,
-      start_time: updates.start_time,
-    })
-    .eq("id", taskInstanceId)
-    .single();
-
-  if (instanceError) throw instanceError;
-
-  const { data: updatedInstances, error: instancesError } = await supabase
-    .from("task_instances")
-    .update({
-      override_title: updates.title,
-      duration_minutes: updates.duration_minutes,
-      start_time: updates.start_time,
-    })
-    .eq("task_id", parentTask.id)
-    .neq("id", taskInstanceId)
-    .select("*");
-
-  if (instancesError) throw instancesError;
-
-  return { task: updatedInstance, instances: updatedInstances };
-}
 // **********************************************************
 // HELPERS
 // **********************************************************
@@ -809,32 +892,44 @@ export const toggleTaskOccurrenceCompletionAction = async (payload) => {
 // (Should be similar to the version provided previously)
 export const modifyTaskOccurrenceAction = async (payload) => {
   console.log("SERVER ACTION (modifyTaskOccurrenceAction): Received:", payload);
+  const supabase = await createClient(); // Get server client
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+  if (authError || !user) {
+    console.error("SERVER ACTION Error: Authentication Failed", authError);
+    throw new Error("User not authenticated");
+  }
+
+  const userId = user.id;
+
   const {
     taskId,
     originalOccurrenceTimeUTC,
-    userId,
+    // userId,
     exceptionId,
     ...overrides
   } = payload;
 
   // Basic validation
-  if (
-    !taskId ||
-    !originalOccurrenceTimeUTC ||
-    !userId ||
-    userId.includes("placeholder")
-  ) {
-    throw new Error(
-      "Task ID, original time, and valid User ID required for modification."
-    );
+  if (!taskId) {
+    throw new Error("Task ID is required for modification.");
   }
+  if (!originalOccurrenceTimeUTC) {
+    throw new Error("Original occurrence time is required for modification.");
+  }
+  if (!userId) {
+    throw new Error("User ID is required for modification.");
+  }
+  if (userId.includes("placeholder")) {
+    throw new Error("User ID contains an invalid placeholder value.");
+  }
+
   const originalTime = dayjs.utc(originalOccurrenceTimeUTC);
   if (!originalTime.isValid()) {
     throw new Error("Invalid original occurrence time format.");
   }
-
-  const supabase = await createClient();
-  // Optional: Verify user owns the parent task if needed (RLS should handle)
 
   // Prepare data for upsert, handling potential null/undefined overrides
   const exceptionData = {

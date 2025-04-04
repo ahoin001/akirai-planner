@@ -24,8 +24,10 @@ export default function TaskActionMenu() {
   // --- State and Store (Original logic) ---
   const {
     closeTaskMenu,
-    openTaskFormInEditMode,
     isTaskMenuOpen,
+    openTaskFormInEditMode,
+    openTaskFormForEditRule,
+    openTaskFormForException,
     selectedInstance: selectedTask,
     tasks,
   } = useTaskStore();
@@ -113,16 +115,6 @@ export default function TaskActionMenu() {
     }
   };
 
-  // const handleCompleteToggle = async () => {
-  //   if (!selectedTask) return;
-  //   try {
-  //     await toggleTaskOccurrenceCompletionAction(selectedTask.id);
-  //     closeTaskMenu();
-  //   } catch (error) {
-  //     console.error("Failed to toggle task completion:", error);
-  //   }
-  // };
-
   // Step 1: User clicks the main delete button
   const handleDeleteRequest = () => {
     if (isParentRecurring) {
@@ -138,7 +130,7 @@ export default function TaskActionMenu() {
   };
 
   // Step 2: User chooses scope in RecurrenceActionModal (for recurring tasks)
-  const handlescopeActionTypeSelected = (scope) => {
+  const handleScopeActionTypeSelected = (scope) => {
     if (!scope) return; // Should not happen if modal requires selection
     setScopeActionType(scope);
     setIsRecurrenceModalOpen(false);
@@ -201,13 +193,35 @@ export default function TaskActionMenu() {
     }
   };
 
-  const handleEdit = () => {
-    // Renamed from onEdit
-    if (selectedTask) {
-      openTaskFormInEditMode(selectedTask.id);
-      closeTaskMenu();
+  // Step 1 (Edit): User clicks main edit button
+  const handleEditRequest = () => {
+    if (!selectedTask) return;
+
+    if (isParentRecurring) {
+      // --- OPTION 1: Default to editing the single occurrence ---
+      console.log(
+        "Edit clicked on recurring instance - opening form for exception."
+      );
+      // Open the form pre-filled to modify *this specific occurrence*.
+      openTaskFormForException(selectedTask);
+    } else {
+      // Non-recurring task: Editing the 'single' instance IS editing the rule definition
+      console.log(
+        "Edit clicked on non-recurring task - opening form for rule edit."
+      );
+      openTaskFormForEditRule(selectedTask);
     }
+    // Close the action menu *after* calling the form open action
+    setTimeout(closeTaskMenu, 50); // Small delay helps state update smoothly
   };
+
+  // const handleEdit = () => {
+  //   // Renamed from onEdit
+  //   if (selectedTask) {
+  //     openTaskFormInEditMode(selectedTask.id);
+  //     closeTaskMenu();
+  //   }
+  // };
 
   if (!isVisible || !selectedTask) return null;
 
@@ -349,7 +363,7 @@ export default function TaskActionMenu() {
               </button>
               {/* Edit Button */}
               <button
-                onClick={handleEdit}
+                onClick={handleEditRequest}
                 className="flex flex-col items-center justify-center bg-zinc-800 p-3 sm:p-4 rounded-xl hover:bg-zinc-700/80 active:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-900 focus-visible:ring-blue-500" // Added hover/focus, responsive padding
               >
                 {/* Keep original icon styling */}
@@ -370,8 +384,7 @@ export default function TaskActionMenu() {
         actionType="delete"
         isOpen={isRecurrenceModalOpen}
         onClose={() => setIsRecurrenceModalOpen(false)}
-        onConfirm={handlescopeActionTypeSelected}
-        // Pass original props if needed by your modal
+        onConfirm={handleScopeActionTypeSelected}
         selectedOption={scopeActionType}
         setSelectedOption={setScopeActionType}
       />

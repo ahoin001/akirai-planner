@@ -11,16 +11,6 @@ export default function AppLayout({ children }) {
 
   const [isLoading, setIsLoading] = useState(true);
 
-  // useEffect(() => {
-  //   const loadData = async () => {
-  //     await fetchUser();
-  //     await loadInitialData();
-  //     setIsLoading(false);
-  //   };
-
-  //   loadData();
-  // }, [fetchUser, loadInitialData]);
-
   useEffect(() => {
     let isMounted = true; // Flag to prevent state updates on unmounted component
     let unsubscribeRealtime = () => {}; // Initialize unsubscribe function
@@ -30,7 +20,6 @@ export default function AppLayout({ children }) {
         // Ensure fetchUser completes before loading tasks (if task loading depends on user)
         await fetchUser();
 
-        // ****** CHANGE: Call the new loading function ******
         // It fetches initial tasks/exceptions AND sets up subscriptions
         // It returns the unsubscribe function
         unsubscribeRealtime = await loadInitialTaskData();

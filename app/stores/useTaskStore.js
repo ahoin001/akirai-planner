@@ -21,7 +21,7 @@ dayjs.extend(isSameOrBefore);
 // Create the Zustand store
 export const useTaskStore = create((set, get) => ({
   // **********************************************************
-  // INITIAL STATE (Revised for new schema)
+  // INITIAL STATE
   // **********************************************************
   /** @type {Array<object>} Holds raw task definitions from 'tasks' table */
   tasks: [],
@@ -408,7 +408,6 @@ export const useTaskStore = create((set, get) => ({
           break;
         case "DELETE":
           console.log(" IN DELETE Instance");
-          console.log({ updatedTasks, payload });
           updatedExceptions = updatedExceptions.filter(
             (e) => e.id !== payload.old?.id
           );
@@ -442,11 +441,14 @@ export const useTaskStore = create((set, get) => ({
    * Opens the Task Form to create a new task definition.
    * @param {Date | string} [initialDate] - Optional date to pre-fill.
    */
+  // openTaskForm: (initialDate) => {
   openTaskForm: (initialDate) => {
     console.log("Store: Opening Task Form for New Task");
+    console.log("Store: task form initial date", initialDate);
     const defaultStartDate = initialDate
       ? dayjs(initialDate).toDate()
       : new Date();
+
     set({
       isTaskFormOpen: true,
       isEditingTask: false, // Creating a new task definition
@@ -471,46 +473,160 @@ export const useTaskStore = create((set, get) => ({
    * NOTE: Requires parsing RRULE back into form fields (complex).
    * @param {string} taskId - The ID of the task definition to edit.
    */
-  openTaskFormForEditRule: (taskId) => {
+  /**
+   * Opens the Task Form to edit an existing task definition (the rule),
+   * using a specific instance for context (especially its original time).
+   * Parses the existing RRULE to pre-fill recurrence fields.
+   * @param {object} instanceContext - The calculated instance object that triggered the edit rule action.
+   */
+  // openTaskFormForEditRule: (taskId) => {
+  openTaskFormForEditRule: (instanceContext) => {
     console.warn(
-      `Store: Opening Task Form to Edit Rule for Task ID: ${taskId} (RRULE parsing not implemented)`
+      `Store: Opening Task Form to Edit Rule for instanceContext: ${instanceContext} (RRULE parsing not implemented)`
     );
+
+    if (
+      !instanceContext ||
+      !instanceContext.task_id ||
+      !instanceContext.original_occurrence_time_utc
+    ) {
+      console.log("Cannot edit rule: Context instance details missing.");
+      // toast.error("Cannot edit rule: Context instance details missing.");
+      return;
+    }
+
+    const taskId = instanceContext.task_id;
+    console.log(
+      `Store: Opening Task Form to Edit Rule for Task ID: ${taskId}, using instance at ${instanceContext.original_occurrence_time_utc} for context.`
+    );
+
     const taskDefinition = get().tasks.find((t) => t.id === taskId);
     if (!taskDefinition) {
       toast.error("Cannot find task definition to edit.");
       return;
     }
-    // !!! Placeholder - Requires RRULE parsing logic !!!
+
+    // *****************************
+    // const taskDefinition = get().tasks.find((t) => t.id === taskId);
+    // if (!taskDefinition) {
+    //   toast.error("Cannot find task definition to edit.");
+    //   return;
+    // }
+
+    // --- Default recurrence values ---
+    let frequency = "once";
+    let interval = 1;
+    let end_type = "never";
+    let occurrences = undefined; // Use undefined for optional number fields
+    let end_date = undefined; // Use undefined for optional date fields
+
+    if (taskDefinition.rrule) {
+      try {
+        // Use rrulestr to parse the rule string.
+        // Pass dtstart for context if the RRULE string itself doesn't contain it
+        // (though rrule.js often handles DTSTART within the string correctly).
+        const rule = rrulestr(taskDefinition.rrule, {
+          dtstart: dayjs.utc(taskDefinition.dtstart).toDate(),
+        });
+        const options = rule.options; // Get the parsed options
+
+        console.log("Parsed RRULE options:", options);
+
+        // Map RRule frequency back to form value
+        const freqMapReverse = {
+          [RRule.DAILY]: "daily",
+          [RRule.WEEKLY]: "weekly",
+          [RRule.MONTHLY]: "monthly",
+          [RRule.YEARLY]: "yearly", // Add if you support yearly
+        };
+        frequency = freqMapReverse[options.freq] || "once"; // Default to 'once' if unknown
+
+        interval = options.interval || 1;
+
+        // Determine end_type based on parsed options
+        if (options.count) {
+          end_type = "after";
+          occurrences = options.count;
+        } else if (options.until) {
+          end_type = "on";
+          // Convert UTC 'until' date back to the task's original timezone for the date picker
+          end_date = dayjs
+            .utc(options.until)
+            .tz(taskDefinition.timezone)
+            .toDate();
+        } else {
+          end_type = "never";
+        }
+      } catch (e) {
+        console.error(
+          "Store Error: Failed to parse existing RRULE string:",
+          taskDefinition.rrule,
+          e
+        );
+        toast.error(
+          "Could not parse existing recurrence rule. Please set again."
+        );
+        // Keep defaults if parsing fails
+        frequency = "once";
+        interval = 1;
+        end_type = "never";
+        occurrences = undefined;
+        end_date = undefined;
+      }
+    } else {
+      // If no rrule exists, it's a 'once' task
+      frequency = "once";
+    }
+
+    // --- Prepare Form Values ---
     const formValues = {
-      id: taskDefinition.id, // Pass ID for update action
+      // id is not a form field, but useful context maybe
+      // id: taskDefinition.id,
       title: taskDefinition.title,
-      start_date: dayjs(taskDefinition.dtstart)
+      // Convert dtstart (TIMESTAMPTZ) back to local date and HH:mm time for form
+      start_date: dayjs
+        .utc(taskDefinition.dtstart)
         .tz(taskDefinition.timezone)
         .toDate(),
-      start_time: dayjs(taskDefinition.dtstart)
+      start_time: dayjs
+        .utc(taskDefinition.dtstart)
         .tz(taskDefinition.timezone)
         .format("HH:mm"),
       duration_minutes: taskDefinition.duration_minutes,
-      // --- Add RRULE parsing logic here to set these ---
-      frequency: "once", // Requires parsing taskDefinition.rrule
-      interval: 1, // Requires parsing taskDefinition.rrule
-      end_type: "never", // Requires parsing taskDefinition.rrule
-      occurrences: undefined, // Requires parsing taskDefinition.rrule
-      end_date: undefined, // Requires parsing taskDefinition.rrule
-      // Store original data if needed for update logic
-      _originalRrule: taskDefinition.rrule,
-      _originalTimezone: taskDefinition.timezone,
-      _originalDtstart: taskDefinition.dtstart,
+      // --- Parsed recurrence values ---
+      frequency: frequency,
+      interval: interval,
+      end_type: end_type,
+      occurrences: occurrences,
+      end_date: end_date,
+      // --- Hidden fields ---
+      _isExceptionEdit: false, // Explicitly false when editing the rule
+      _taskId: taskDefinition.id, // The ID of the task being edited
+      // ****** CHANGE: Store the ORIGINAL time of the instance used for context ******
+      _originalOccurrenceTimeUTC: instanceContext.original_occurrence_time_utc,
+      _exceptionId: undefined, // Not editing an exception directly
+      // _originalOccurrenceTimeUTC: taskDefinition.dtstart, // Use original dtstart as context maybe? Or null? Depends on update logic. Let's omit for rule edit.
+      // _exceptionId: undefined, // Not editing an exception
+      // Store original data for potential comparison or complex update logic if needed
+      // _originalRrule: taskDefinition.rrule,
+      // _originalTimezone: taskDefinition.timezone,
+      // _originalDtstart: taskDefinition.dtstart,
     };
-    toast.info(
-      "Editing recurrence rules is complex and may require manual adjustment."
-    ); // User warning
 
+    if (frequency === "once") {
+      console.log("Editing a non-recurring task.");
+      // toast.info("Editing a non-recurring task.");
+    } else if (taskDefinition.rrule && frequency === "once") {
+      // This case happens if RRULE parsing failed
+      toast.warn("Failed to read recurrence rule. Please reset if needed.");
+    }
+
+    // Set the store state
     set({
       isTaskFormOpen: true,
-      isEditingTask: true, // Indicates editing the definition
-      taskFormValues: formValues,
-      selectedInstance: null, // Not tied to a specific instance when editing the rule
+      isEditingTask: true, // General editing flag
+      taskFormValues: formValues, // Set the calculated initial values
+      selectedInstance: null, // Not selecting a specific instance
     });
   },
 
@@ -531,7 +647,7 @@ export const useTaskStore = create((set, get) => ({
       toast.error("Invalid instance data provided for editing.");
       return;
     }
-    // Pre-fill form based on the *calculated* instance data
+
     const formValues = {
       // We don't need the parent task ID *in the form data itself* typically,
       // but we store it below (_taskId) to know which exception to create/update.
@@ -539,7 +655,7 @@ export const useTaskStore = create((set, get) => ({
       start_date: dayjs
         .utc(instance.scheduled_time_utc)
         .tz(instance.timezone)
-        .toDate(), // Use actual scheduled date
+        .toDate(),
       start_time: dayjs
         .utc(instance.scheduled_time_utc)
         .tz(instance.timezone)
@@ -560,21 +676,18 @@ export const useTaskStore = create((set, get) => ({
     };
     set({
       isTaskFormOpen: true,
-      isEditingTask: true, // Form is technically "editing" this occurrence
-      taskFormValues: formValues, // Pre-fill with instance data
-      selectedInstance: instance, // Keep context of which instance is being edited
+      isEditingTask: true,
+      taskFormValues: formValues,
+      selectedInstance: instance,
     });
   },
 
-  // Inside the create() call for useTaskStore
-
   /**
    * Opens the Task Action Menu for a specific calculated instance.
-   * Stores the selected instance context.
+   * Stores the selected calculated instance context.
    * @param {object} instance - The calculated instance object (should conform to CalculatedInstance structure).
    */
   openTaskMenu: (instance) => {
-    // ****** CORRECTED VALIDATION ******
     // Check if 'instance' is a valid object and has the essential 'task_id' property.
     // The 'id' of a calculated instance might be the exception ID or a generated one (task_id + time),
     // but 'task_id' links it back to the definition.
@@ -583,36 +696,16 @@ export const useTaskStore = create((set, get) => ({
         "Store Error: Invalid instance passed to openTaskMenu (missing task_id):",
         instance
       );
-      toast.error("Cannot open menu for this task."); // User feedback
-      set({ selectedInstance: null, isTaskMenuOpen: false }); // Clear selection, close menu
+      // toast.error("Cannot open menu for this task.");
+      set({ selectedInstance: null, isTaskMenuOpen: false });
       return;
     }
 
-    // Set the selected instance and open the menu state
     set({
-      selectedInstance: instance, // Store the *entire calculated instance* object
-      isTaskMenuOpen: true, // Set flag to open the menu UI
+      selectedInstance: instance,
+      isTaskMenuOpen: true,
     });
   },
-
-  // *** May delete
-  /**
-   * Opens the Task Action Menu for a specific calculated instance.
-   * @param {object} instance - The calculated instance object.
-   */
-  // openTaskMenu: (instance) => {
-  //   console.log("Store: Opening Task Menu for instance:", instance);
-  //   if (!instance || !instance.task_id) {
-  //     console.error("Store: Invalid instance passed to openTaskMenu");
-  //     return;
-  //   }
-  //   set({ selectedInstance: instance, isTaskMenuOpen: true });
-  // },
-
-  // ****** REPLACED/REMOVED ******
-  // - changeWeek (Needs rework based on how view range is managed and data recalculated)
-  // - openTaskFormInEditMode (Replaced by more specific edit actions)
-  // - setTaskFormValues (Typically handled by form library)
 
   // ****** NEEDS IMPLEMENTATION ******
   // - Actions to create/update exceptions
