@@ -1,6 +1,5 @@
 "use client";
 
-// Keep existing imports
 import { useEffect, useMemo, useState } from "react";
 import { useTaskStore } from "@/app/stores/useTaskStore";
 import dayjs from "dayjs";
@@ -9,7 +8,6 @@ import {
   deleteSingleTaskOrOccurrenceAction,
   deleteTaskSeriesAction,
   toggleTaskOccurrenceCompletionAction,
-  updateTask,
 } from "@/app/actions";
 import { CheckCircle, Circle, Edit, Trash2, X, Clock } from "lucide-react";
 import { ConfirmationModal } from "@/components/modals/confirmation-modal";
@@ -21,7 +19,6 @@ import { RecurrenceActionModal } from "@/components/modals/recurrence-action-mod
  * Focus: Responsive layout adjustments while preserving original UI look.
  */
 export default function TaskActionMenu() {
-  // --- State and Store (Original logic) ---
   const {
     closeTaskMenu,
     isTaskMenuOpen,
@@ -31,20 +28,13 @@ export default function TaskActionMenu() {
   } = useTaskStore();
 
   // State for scope modal (now only used for DELETE)
-  const [isScopeModalOpen, setIsScopeModalOpen] = useState(false);
-  const [scopeActionType, setScopeActionType] = useState(null); // Only 'delete' needed here
-  // State for final DELETE confirmation
-  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
-  const [deleteConfirmScope, setDeleteConfirmScope] = useState(null);
-
-  // const [scopeActionType, setScopeActionType] = useState(null);
   const [isConfirmationModalOpen, setIsConfirmationModalOpen] = useState(false);
-  const [isRecurrenceModalOpen, setIsRecurrenceModalOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const [isRecurring, setIsRecurring] = useState(null);
+  const [isRecurrenceModalOpen, setIsRecurrenceModalOpen] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
+  const [scopeActionType, setScopeActionType] = useState(null);
 
-  // ****** CHANGE: Determine if the PARENT task is recurring ******
   // Find the parent task definition from the store's tasks array
   const parentTaskDefinition = useMemo(() => {
     if (!selectedTask?.task_id || !tasks) return null;
@@ -53,7 +43,6 @@ export default function TaskActionMenu() {
 
   // Determine if the series is recurring based on the parent task's rrule
   const isParentRecurring = !!parentTaskDefinition?.rrule;
-  // ***
 
   useEffect(() => {
     setIsRecurring(selectedTask?.tasks?.is_recurring || false);
@@ -105,18 +94,14 @@ export default function TaskActionMenu() {
         exceptionId: selectedTask.id.startsWith(selectedTask.task_id + "-")
           ? null
           : selectedTask.id,
-        // Note: userId is handled within the server action using auth context
       });
       // toast.success(
       //   `Task marked as ${newCompletionState ? "complete" : "incomplete"}.`
       // );
-      // OPTIONAL: Optimistic UI update (update state locally before waiting for realtime)
-      // This requires more complex state management in useTaskStore
-      closeTaskMenu(); // Close menu after action (realtime should update the list)
+      closeTaskMenu();
     } catch (error) {
       console.error("Failed to toggle task completion:", error);
       // toast.error(error.message || "Failed to update task status.");
-      // Optionally revert optimistic update here if implemented
     }
   };
 
@@ -151,12 +136,10 @@ export default function TaskActionMenu() {
       let successMessage = "Task deleted.";
       switch (scopeActionType) {
         case "single":
-          // ****** CHANGE: Call action to create a cancellation exception ******
           console.log(
             `Action: Deleting single occurrence at ${originalTimeUTC}`
           );
           await deleteSingleTaskOrOccurrenceAction({
-            // Use the new specific action
             taskId: taskId,
             originalOccurrenceTimeUTC: originalTimeUTC,
             isParentRecurring: isParentRecurring,
@@ -168,7 +151,6 @@ export default function TaskActionMenu() {
           successMessage = "Task occurrence deleted.";
           break;
         case "future":
-          // ****** CHANGE: Call action to update RRULE with UNTIL ******
           console.log(
             `Action: Deleting future occurrences from ${originalTimeUTC}`
           );
@@ -176,7 +158,6 @@ export default function TaskActionMenu() {
           successMessage = "Future occurrences deleted.";
           break;
         case "all":
-          // ****** CHANGE: Call action to delete the parent task definition ******
           console.log(`Action: Deleting entire task series ${taskId}`);
           await deleteTaskSeriesAction(taskId); // Use the new specific action
           successMessage = "Entire task series deleted.";
@@ -191,7 +172,7 @@ export default function TaskActionMenu() {
       console.error("Delete failed:", error);
       // toast.error(error.message || "Failed to delete task.");
     } finally {
-      setScopeActionType(null); // Reset scope state
+      setScopeActionType(null);
     }
   };
 
@@ -204,11 +185,9 @@ export default function TaskActionMenu() {
       "Edit button clicked, calling openTaskFormForEdit with instance:",
       selectedTask
     );
-    // ****** CHANGE: ALWAYS call the unified edit form opener ******
-    // It passes the instance context needed for the form and later scope decisions
 
     openTaskFormForEdit(selectedTask);
-    // Close this menu AFTER triggering the form open
+
     setTimeout(closeTaskMenu, 50);
   };
 
@@ -222,15 +201,14 @@ export default function TaskActionMenu() {
     .add(selectedTask.duration_minutes, "minute")
     .format("h:mm A");
 
-  const dateFormatted = dayjs(selectedTask.scheduled_date).format("M/D/YY"); // Keep original date format
+  const dateFormatted = dayjs(selectedTask.scheduled_date).format("M/D/YY");
 
   const TaskIcon = () => {
     return (
       <div
         className={`w-10 h-10 rounded-full ${
-          // Keep original rounding/size
           selectedTask?.color === "pink" ? "bg-pink-500" : "bg-blue-500"
-        } flex items-center justify-center text-white flex-shrink-0`} // Add flex-shrink-0
+        } flex items-center justify-center text-white flex-shrink-0`}
       >
         {selectedTask?.type === "alarm" && <div className="w-5 h-5">⏰</div>}
         {selectedTask?.type === "workout" && <div className="w-5 h-5">💪</div>}
@@ -287,25 +265,13 @@ export default function TaskActionMenu() {
             >
               <X size={24} />{" "}
             </button>
-            {/* Optional Drag Handle (can add if desired) */}
-            {/* <div className="mx-auto w-12 h-1.5 bg-gray-600 rounded-full mb-4" /> */}
-            {/* Header Section: Keep original structure, make gap responsive */}
-            {/* Removed outer alignment div, use padding */}
             <div className="flex items-start gap-3 sm:gap-4 mb-4 pt-6 sm:pt-4">
               {" "}
-              {/* Added top padding to account for absolute close btn */}
               <TaskIcon />
-              {/* Text container */}
               <div className="min-w-0">
-                {" "}
-                {/* Add min-w-0 for truncation */}
-                {/* Date/Time Info: Keep original format/style */}
                 <p className="mb-1 sm:mb-2 text-gray-400 text-sm">
-                  {" "}
-                  {/* Slightly adjusted margin */}
                   {dateFormatted}, {startTimeFormatted} - {endTimeFormatted}
                 </p>
-                {/* Title: Keep original style */}
                 <h2
                   id="task-action-menu-title"
                   className="text-2xl font-bold truncate"
@@ -313,17 +279,14 @@ export default function TaskActionMenu() {
                   {" "}
                   {/* Added truncate */}
                   {selectedTask?.override_title ??
-                    selectedTask?.tasks?.title ??
+                    selectedTask?.title ??
                     "Task"}
                 </h2>
               </div>
             </div>
-            {/* Divider: Keep original style, adjust margin */}
+            {/* Divider*/}
             <div className="w-full my-4 sm:my-6 border-t border-gray-700" />
-            {/* Action Buttons Grid: Keep original styles, make gap responsive */}
             <div className="grid grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6">
-              {" "}
-              {/* Adjusted gap/margin */}
               {/* Delete Button */}
               <button
                 onClick={handleDeleteRequest}
@@ -334,12 +297,12 @@ export default function TaskActionMenu() {
                 </div>
                 <span className="text-xl">Delete</span>
               </button>
+
               {/* Complete/Uncheck Button */}
               <button
                 onClick={handleCompleteToggle}
                 className="flex flex-col items-center justify-center bg-zinc-800 p-3 sm:p-4 rounded-xl hover:bg-zinc-700/80 active:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-900 focus-visible:ring-blue-500" // Added hover/focus, responsive padding
               >
-                {/* Keep original icon styling */}
                 <div className="mb-1 sm:mb-2">
                   {selectedTask?.is_complete ? (
                     <Circle size={28} className="text-gray-400" />
@@ -347,11 +310,11 @@ export default function TaskActionMenu() {
                     <CheckCircle size={28} className="text-green-500" />
                   )}
                 </div>
-                {/* Keep original text styling */}
                 <span className="text-xl">
                   {selectedTask?.is_complete ? "Uncheck" : "Complete"}
                 </span>
               </button>
+
               {/* Edit Button */}
               <button
                 onClick={handleEditRequest}
@@ -361,7 +324,6 @@ export default function TaskActionMenu() {
                 <div className="text-blue-500 mb-1 sm:mb-2">
                   <Edit size={28} />
                 </div>
-                {/* Keep original text styling */}
                 <span className="text-xl">Edit</span>
               </button>
             </div>
@@ -376,7 +338,6 @@ export default function TaskActionMenu() {
         isOpen={isRecurrenceModalOpen}
         onClose={() => setIsRecurrenceModalOpen(false)}
         onConfirm={handleScopeActionTypeSelected}
-        // Pass original props if needed by your modal
         selectedOption={scopeActionType}
         setSelectedOption={setScopeActionType}
       />
