@@ -1,26 +1,20 @@
 "use client";
 
-import React, { useEffect, useState, memo } from "react"; // Removed useMemo if not needed here
+import React, { useEffect, useState } from "react";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
 import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
 import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
-// import isSame from "dayjs/plugin/isSame";
-
-// ****** REMOVED: date-fns imports ******
-// import { isSameDay, isBefore, isAfter } from "date-fns";
 
 import { Moon } from "lucide-react";
 import TaskItem from "./task-item"; // Assuming TaskItem is updated for CalculatedInstance
-import useCalendarStore from "@/app/stores/useCalendarStore"; // Keep for currentTime
+import useCalendarStore from "@/app/stores/useCalendarStore";
 
-// Extend Dayjs (Best practice: centralize)
 dayjs.extend(utc);
 dayjs.extend(timezone);
 dayjs.extend(isSameOrBefore);
 dayjs.extend(isSameOrAfter);
-// dayjs.extend(isSame);
 
 // Constants for timeline configuration
 const dayStartHour = 8; // 8 AM (0-23 range)
@@ -43,10 +37,8 @@ const totalTimelineHeight = (dayEndHour - dayStartHour) * hourHeight;
 export default function DayColumn({ date, tasks = [], isNext = false }) {
   // Default tasks to empty array
   // Get currentTime from store (assuming it's a Date object or similar)
-  // Also assuming getDayProgress and updateCurrentTime are still relevant for the visual line
-  const { currentTime, getDayProgress, updateCurrentTime } = useCalendarStore();
+  const { currentTime, updateCurrentTime } = useCalendarStore();
 
-  // ****** CHANGE: Calculate progress based on Dayjs ******
   // Memoize progress calculation? Maybe not needed if updated frequently anyway.
   const calculateProgress = (targetDate, now) => {
     const startOfDay = dayjs(targetDate).startOf("day").hour(dayStartHour); // Start at 8 AM
@@ -178,7 +170,6 @@ export default function DayColumn({ date, tasks = [], isNext = false }) {
             style={{ height: `${progress}%` }}
           />
         </div>
-        {/* Moon icon at bottom (Keep original logic) */}
         <div
           className={`w-8 h-8 rounded-full ${isInFuture ? "bg-gray-800/50" : "bg-blue-900/30"} flex items-center justify-center my-1 flex-shrink-0`}
         >
@@ -193,17 +184,14 @@ export default function DayColumn({ date, tasks = [], isNext = false }) {
         const top = calculateTaskPosition(instance);
         const height = calculateTaskHeight(instance);
 
-        // Render the TaskItem, passing the calculated instance and positioning
         return (
           <TaskItem
             key={instance.id} // Use the unique calculated instance ID
             instance={instance}
-            date={date} // Date prop might not be needed by TaskItem now
+            date={date}
             top={top} // Pass calculated top position
             height={height}
             isNext={isNext} // Pass isNext for potential animation sync
-            // onClick prop is now handled by parent (WeekTimeline -> DayColumn -> TaskItem -> handleTaskSelect)
-            // If TaskItem needs its own click handler, add it here.
           />
         );
       })}

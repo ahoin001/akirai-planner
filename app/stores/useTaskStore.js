@@ -100,9 +100,6 @@ export const useTaskStore = create((set, get) => ({
     }
   },
 
-  // ****** REPLACED/REMOVED ******
-  // - getTasksForFormattedDay
-
   // **********************************************************
   // SETTERS (Simple state updates)
   // **********************************************************

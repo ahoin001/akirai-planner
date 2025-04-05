@@ -26,9 +26,6 @@ export default function TaskActionMenu() {
     closeTaskMenu,
     isTaskMenuOpen,
     openTaskFormForEdit,
-    // openTaskFormInEditMode,
-    // openTaskFormForEditRule,
-    // openTaskFormForException,
     selectedInstance: selectedTask,
     tasks,
   } = useTaskStore();
