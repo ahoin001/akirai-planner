@@ -58,6 +58,7 @@ export const RecurrenceActionModal = ({
   selectedOption,
   setSelectedOption,
 }) => {
+  console.log("Action type: ", actionType);
   const config = OPTIONS[actionType];
 
   return (

@@ -542,12 +542,14 @@ export const deleteSingleTaskOrOccurrenceAction = async (payload) => {
 // --- Update Task Definition (Rule) ---
 /**
  * Updates the main definition (rule) of a task in the 'tasks' table.
- * Handles scope ('single', 'future', 'all') to adjust RRULE or cleanup exceptions.
+ * Handles scope ('future', 'all') to adjust RRULE or cleanup exceptions.
+ * NOTE: Scope 'single' should call modifyTaskOccurrenceAction directly.
  *
  * @param {string} taskId - The ID of the task definition to update.
- * @param {object} taskData - Object containing the updated fields (title, start_date, start_time, duration, recurrence details, timezone).
- * @param {'single' | 'future' | 'all'} scope - How widely the changes should apply.
- * @returns {Promise<object>} The updated task definition record.
+ * @param {object} taskData - Object containing the updated fields from the form.
+ *   Requires _originalOccurrenceTimeUTC if scope is 'future'.
+ * @param {'future' | 'all'} scope - How widely the changes should apply.
+ * @returns {Promise<object>} The updated or newly created task definition record.
  * @throws {Error} If validation or database operations fail.
  */
 export const updateTaskDefinitionAction = async (taskId, taskData, scope) => {
@@ -555,9 +557,27 @@ export const updateTaskDefinitionAction = async (taskId, taskData, scope) => {
     `SERVER ACTION (updateTaskDefinitionAction): Updating task ${taskId} with scope ${scope}`,
     taskData
   );
+  // --- Basic Validation ---
   if (!taskId) throw new Error("Task ID is required for update.");
-  if (!scope)
-    throw new Error("Update scope ('single', 'future', 'all') is required.");
+  if (scope !== "future" && scope !== "all")
+    throw new Error("Update scope must be 'future' or 'all'.");
+  if (!taskData) throw new Error("Task data is required.");
+  // ... (Add back other core field validations: title, start_date, start_time, duration, frequency if scope !='single') ...
+  if (!taskData.title?.trim()) throw new Error("Title required.");
+  if (
+    !taskData.start_date ||
+    !taskData.start_time?.match(/^([01]\d|2[0-3]):([0-5]\d)$/)
+  )
+    throw new Error("Valid Start Date/Time required.");
+  if (!taskData.duration_minutes || taskData.duration_minutes < 1)
+    throw new Error("Valid Duration required.");
+  if (!taskData.recurrence?.frequency) throw new Error("Frequency required."); // Expect nested recurrence from form
+  if (scope === "future" && !taskData._originalOccurrenceTimeUTC) {
+    throw new Error(
+      "Original occurrence time context required for 'future' scope update."
+    );
+  }
+  // --- End Validation ---
 
   const supabase = await createClient();
   const {
@@ -566,74 +586,19 @@ export const updateTaskDefinitionAction = async (taskId, taskData, scope) => {
   } = await supabase.auth.getUser();
   if (authError || !user) throw new Error("User not authenticated.");
 
-  // --- Validation (Similar to create action) ---
-  if (!taskData.title?.trim()) throw new Error("Task title is required.");
-  // ... Add other necessary validations for duration, time format etc. ...
-  if (!taskData.start_date || !taskData.start_time)
-    throw new Error("Start date and time required.");
-  if (!taskData.recurrence?.frequency) throw new Error("Frequency required.");
-  // ...
-
-  // --- Fetch Original Task (Needed for context, ownership check, and RRULE modification) ---
+  // --- Fetch Original Task ---
   const { data: originalTask, error: fetchError } = await supabase
     .from("tasks")
-    .select("id, user_id, dtstart, rrule, timezone") // Select fields needed for logic/auth
+    .select("id, user_id, dtstart, rrule, timezone, status")
     .eq("id", taskId)
-    .single(); // Expect one task
-
-  if (fetchError)
-    throw new Error(
-      `Database error fetching original task: ${fetchError.message}`
-    );
-  if (!originalTask) throw new Error("Original task not found.");
-  if (originalTask.user_id !== user.id)
-    throw new Error("Unauthorized to update this task.");
+    .single();
+  if (fetchError || !originalTask)
+    throw new Error("Original task not found or DB error.");
+  if (originalTask.user_id !== user.id) throw new Error("Unauthorized.");
 
   try {
-    // --- Handle 'single' scope: Convert this edit into an exception ---
-    if (scope === "single") {
-      console.log(
-        "SERVER ACTION: Scope is 'single', converting definition edit to an exception."
-      );
-      // We need the *original* occurrence time that the user was viewing/editing
-      // This MUST be passed from the client (e.g., via initialValues._originalOccurrenceTimeUTC)
-      const originalOccurrenceTimeUTC = taskData._originalOccurrenceTimeUTC; // Get this from payload if passed!
-      if (!originalOccurrenceTimeUTC) {
-        throw new Error(
-          "Cannot apply change to single instance: Original occurrence time context is missing."
-        );
-      }
-
-      const guessedTimezone = taskData.timezone || dayjs.tz.guess() || "UTC";
-      const newStartTimeISO = dayjs
-        .tz(
-          `${taskData.start_date} ${taskData.start_time}`,
-          "YYYY-MM-DD HH:mm",
-          guessedTimezone
-        )
-        .toISOString();
-
-      const exceptionPayload = {
-        taskId: taskId,
-        originalOccurrenceTimeUTC: originalOccurrenceTimeUTC,
-        userId: user.id,
-        overrideTitle: taskData.title.trim(),
-        newStartTimeISO: newStartTimeISO,
-        newDurationMinutes: parseInt(taskData.duration_minutes, 10),
-        // Reset completion/cancellation if time/details changed significantly? Optional.
-        isComplete: false,
-        isCancelled: false,
-        // exceptionId: taskData._exceptionId, // Pass if editing existing exception
-      };
-      // Call modify action to create/update the exception
-      return await modifyTaskOccurrenceAction(exceptionPayload);
-    }
-
-    // --- Handle 'future' or 'all' scope: Update the main task definition ---
-
-    // --- Calculate new dtstart (TIMESTAMPTZ) ---
-    const timeZone =
-      taskData.timezone || originalTask.timezone || dayjs.tz.guess() || "UTC"; // Prioritize incoming, then original, then guess
+    // --- Calculate new common properties based on taskData ---
+    const timeZone = taskData.timezone || originalTask.timezone; // Use provided or original timezone
     const localStartDateTime = dayjs.tz(
       `${taskData.start_date} ${taskData.start_time}`,
       "YYYY-MM-DD HH:mm",
@@ -641,9 +606,13 @@ export const updateTaskDefinitionAction = async (taskId, taskData, scope) => {
     );
     if (!localStartDateTime.isValid())
       throw new Error("Invalid updated start date/time.");
-    const newDtstartISO = localStartDateTime.toISOString();
+    const newDtstartISO = localStartDateTime.toISOString(); // For DB TIMESTAMPTZ field
+    const newDtstartDate = localStartDateTime.toDate(); // For RRule library
+    const newDuration = parseInt(taskData.duration_minutes, 10);
+    const newTitle = taskData.title.trim();
+    const newStatus = taskData.status || originalTask.status || "active";
 
-    // --- Generate new RRULE String ---
+    // --- Generate the NEW RRULE String based on form's recurrence data ---
     let newRruleString = null;
     const {
       frequency,
@@ -652,7 +621,6 @@ export const updateTaskDefinitionAction = async (taskId, taskData, scope) => {
       occurrences,
       end_date,
     } = taskData.recurrence || {};
-
     if (frequency && frequency !== "once") {
       const freqMap = {
         daily: RRule.DAILY,
@@ -661,146 +629,170 @@ export const updateTaskDefinitionAction = async (taskId, taskData, scope) => {
       };
       if (!freqMap[frequency])
         throw new Error(`Invalid frequency: ${frequency}`);
-
-      const ruleOptions = {
+      const ruleOptions: any = {
         freq: freqMap[frequency],
         interval: Math.max(1, parseInt(interval, 10) || 1),
-        dtstart: localStartDateTime.toDate(), // Use new start time for rule generation
+        // Base the rule generation on the NEW dtstart date/time
+        dtstart: newDtstartDate,
       };
-
-      // --- Adjust Rule Based on Scope ---
-      if (scope === "future") {
-        // Set the UNTIL for the *new* rule to end just before the original instance time
-        const originalOccurrenceTimeUTC = taskData._originalOccurrenceTimeUTC; // Get this from payload!
-        if (!originalOccurrenceTimeUTC) {
-          throw new Error(
-            "Cannot apply change to future instances: Original occurrence time context is missing."
-          );
-        }
-        const untilDateTime = dayjs
-          .utc(originalOccurrenceTimeUTC)
-          .subtract(1, "millisecond");
-        ruleOptions.until = untilDateTime.isValid()
-          ? untilDateTime.toDate()
-          : undefined;
-        if (!ruleOptions.until)
-          throw new Error(
-            "Invalid original time for future scope calculation."
-          );
-        console.log(
-          `SERVER ACTION: Applying 'future' scope, new rule will have UNTIL: ${ruleOptions.until?.toISOString()}`
-        );
-        // Note: This logic might need refinement. Updating a rule for "future" is complex.
-        // Often, it might involve creating a *new* task definition starting from the edit point
-        // and setting an UNTIL on the *old* task definition.
-        // For simplicity here, we are just modifying the existing rule's end point.
-      } else {
-        // scope === 'all'
-        // Apply the end condition from the form directly
-        switch (end_type) {
-          case "after":
-            const count = Math.max(1, parseInt(occurrences, 10) || 0);
-            if (count === 0) throw new Error("Occurrences must be >= 1.");
-            ruleOptions.count = count;
-            break;
-          case "on":
-            if (!end_date) throw new Error("End date required.");
-            const untilDateTime = dayjs
-              .tz(end_date, "YYYY-MM-DD", timeZone)
-              .endOf("day");
-            if (!untilDateTime.isValid())
-              throw new Error("Invalid end date format.");
-            if (untilDateTime.isBefore(localStartDateTime, "day"))
-              throw new Error("End date cannot be before start date.");
-            ruleOptions.until = untilDateTime.utc().toDate();
-            break;
-          case "never":
-          default:
-            break; // No end needed
-        }
+      // Apply end condition FROM THE FORM DATA
+      switch (end_type) {
+        case "after":
+          ruleOptions.count = Math.max(1, parseInt(occurrences, 10) || 1);
+          break;
+        case "on":
+          if (!end_date) throw new Error("End date required for 'on'.");
+          const untilDateTime = dayjs
+            .tz(end_date, "YYYY-MM-DD", timeZone)
+            .endOf("day");
+          if (
+            !untilDateTime.isValid() ||
+            untilDateTime.isBefore(localStartDateTime, "day")
+          )
+            throw new Error("Invalid end date.");
+          ruleOptions.until = untilDateTime.utc().toDate();
+          break;
+        case "never":
+        default:
+          break;
       }
-
       try {
         newRruleString = new RRule(ruleOptions).toString();
-      } catch (rruleError) {
-        /* ... error handling ... */ throw new Error(
-          "Failed to update recurrence rule."
-        );
+      } catch (e) {
+        throw new Error(`Failed to generate new rule: ${e.message}`);
       }
     }
 
-    // --- Prepare Update Payload for 'tasks' table ---
+    // --- Prepare base payload for updating the 'tasks' table ---
     const taskUpdatePayload = {
-      title: taskData.title.trim(),
-      dtstart: newDtstartISO,
-      duration_minutes: parseInt(taskData.duration_minutes, 10),
-      rrule: newRruleString,
+      title: newTitle,
+      // dtstart: newDtstartISO, // Decide: Update start for 'all' or only for new task in 'future'? Let's update only for 'all'.
+      duration_minutes: newDuration,
+      rrule: newRruleString, // The new rule based on form input
       timezone: timeZone,
-      // Maybe update status? Depends on business logic.
-      // status: 'active',
-      updated_at: new Date().toISOString(), // Manually set or rely on trigger
+      status: newStatus,
+      updated_at: new Date().toISOString(),
     };
 
-    // --- Perform Update ---
-    const { data: updatedTask, error: updateError } = await supabase
-      .from("tasks")
-      .update(taskUpdatePayload)
-      .eq("id", taskId) // Match task ID
-      // .eq('user_id', user.id) // RLS handles this check
-      .select()
-      .single();
+    // --- Execute based on scope ---
+    let finalResultTask;
 
-    if (updateError) {
-      console.error(
-        "SERVER ACTION Error: Supabase task update failed",
-        updateError
-      );
-      throw new Error(`Database error updating task: ${updateError.message}`);
-    }
-
-    // --- Cleanup Exceptions (Important for Rule Changes) ---
     if (scope === "all") {
-      // If changing the rule for ALL occurrences, existing exceptions might be invalid/obsolete.
-      // Simplest approach: Delete all exceptions for this task.
+      // --- "All Occurrences" Logic ---
       console.log(
-        `SERVER ACTION: Scope is 'all', deleting existing exceptions for task ${taskId}`
+        `SERVER ACTION: Updating task ${taskId} for ALL occurrences.`
       );
-      const { error: deleteExError } = await supabase
+      // Update the original task record with the full payload, INCLUDING new dtstart
+      const { data: updatedTask, error: updateError } = await supabase
+        .from("tasks")
+        .update({ ...taskUpdatePayload, dtstart: newDtstartISO }) // Update dtstart for 'all'
+        .eq("id", taskId)
+        .select()
+        .single();
+      if (updateError)
+        throw new Error(`DB update error ('all'): ${updateError.message}`);
+      finalResultTask = updatedTask;
+
+      // Delete ALL existing exceptions
+      console.log(`Deleting ALL exceptions for task ${taskId}`);
+      await supabase
         .from("task_instance_exceptions")
         .delete()
         .eq("task_id", taskId);
-      if (deleteExError)
-        console.warn(
-          "SERVER ACTION Warning: Failed to clear old exceptions on 'all' scope update.",
-          deleteExError
-        );
     } else if (scope === "future") {
-      // If changing rule for future, delete exceptions that fall *after* the point of change.
-      const originalOccurrenceTimeUTC = taskData._originalOccurrenceTimeUTC;
-      if (originalOccurrenceTimeUTC) {
-        console.log(
-          `SERVER ACTION: Scope is 'future', deleting exceptions on or after ${originalOccurrenceTimeUTC} for task ${taskId}`
-        );
-        const { error: deleteExError } = await supabase
-          .from("task_instance_exceptions")
-          .delete()
-          .eq("task_id", taskId)
-          .gte("original_occurrence_time", originalOccurrenceTimeUTC);
-        if (deleteExError)
-          console.warn(
-            "SERVER ACTION Warning: Failed to clear future exceptions.",
-            deleteExError
-          );
+      // --- "This and Future" Logic (Series Splitting) ---
+      console.log(
+        `SERVER ACTION: Splitting task ${taskId} for FUTURE occurrences.`
+      );
+      const originalOccurrenceTimeUTC = taskData._originalOccurrenceTimeUTC; // Get from payload
+      if (!originalOccurrenceTimeUTC)
+        throw new Error("Original time missing for future scope.");
+
+      // 1. End the OLD task rule just before the split point
+      const oldUntilDateTime = dayjs
+        .utc(originalOccurrenceTimeUTC)
+        .subtract(1, "millisecond");
+      let oldRruleUpdated = null;
+      if (originalTask.rrule) {
+        try {
+          const oldRule = rrulestr(originalTask.rrule, {
+            dtstart: dayjs.utc(originalTask.dtstart).toDate(),
+          });
+          const oldOptions = {
+            ...oldRule.options,
+            until: oldUntilDateTime.toDate(),
+            count: undefined,
+          };
+          // Only update if the new end is after the original start
+          if (oldUntilDateTime.isAfter(dayjs.utc(originalTask.dtstart))) {
+            oldRruleUpdated = new RRule(oldOptions).toString();
+          }
+        } catch (e) {
+          throw new Error(`Failed to modify original task rule: ${e.message}`);
+        }
       }
+      // Update original task - ONLY change rrule and updated_at
+      const { error: updateOldError } = await supabase
+        .from("tasks")
+        .update({
+          rrule: oldRruleUpdated,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", taskId);
+      if (updateOldError)
+        throw new Error(
+          `DB error ending original task: ${updateOldError.message}`
+        );
+      console.log(
+        `Ended original task ${taskId} with rule: ${oldRruleUpdated}`
+      );
+
+      // 2. Create a NEW task definition for the future series
+      const { data: newTask, error: insertNewError } = await supabase
+        .from("tasks")
+        .insert({
+          // Insert new row with updated details
+          user_id: user.id,
+          title: newTitle,
+          dtstart: newDtstartISO, // Starts at the NEW time specified in form
+          duration_minutes: newDuration,
+          rrule: newRruleString, // The NEW rule (with form's end condition)
+          timezone: timeZone,
+          status: "active",
+        })
+        .select()
+        .single();
+      if (insertNewError)
+        throw new Error(
+          `DB error creating new future task: ${insertNewError.message}`
+        );
+      console.log(
+        `Created new task ${newTask.id} for future occurrences starting ${newDtstartISO}.`
+      );
+      finalResultTask = newTask; // Return the NEW task
+
+      // 3. Delete exceptions from OLD task occurring ON or AFTER the split point
+      console.log(
+        `Deleting future exceptions for OLD task ${taskId} from ${originalOccurrenceTimeUTC}`
+      );
+      await supabase
+        .from("task_instance_exceptions")
+        .delete()
+        .eq("task_id", taskId)
+        .gte("original_occurrence_time", originalOccurrenceTimeUTC);
+    } else {
+      // Should have been caught earlier or handled as 'single' via modifyTaskOccurrenceAction
+      throw new Error(
+        `Invalid scope '${scope}' reached in updateTaskDefinitionAction.`
+      );
     }
 
     console.log(
-      `SERVER ACTION: Task definition ${taskId} updated (scope: ${scope}).`,
-      updatedTask
+      `SERVER ACTION: Task definition update (scope: ${scope}) successful.`
     );
     revalidatePath("/");
     revalidatePath("/protected");
-    return updatedTask; // Return the updated task definition
+    return finalResultTask;
   } catch (error) {
     console.error(
       "SERVER ACTION Error: Updating task definition failed.",

@@ -25,14 +25,22 @@ export default function TaskActionMenu() {
   const {
     closeTaskMenu,
     isTaskMenuOpen,
-    openTaskFormInEditMode,
-    openTaskFormForEditRule,
-    openTaskFormForException,
+    openTaskFormForEdit,
+    // openTaskFormInEditMode,
+    // openTaskFormForEditRule,
+    // openTaskFormForException,
     selectedInstance: selectedTask,
     tasks,
   } = useTaskStore();
 
-  const [scopeActionType, setScopeActionType] = useState(null);
+  // State for scope modal (now only used for DELETE)
+  const [isScopeModalOpen, setIsScopeModalOpen] = useState(false);
+  const [scopeActionType, setScopeActionType] = useState(null); // Only 'delete' needed here
+  // State for final DELETE confirmation
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [deleteConfirmScope, setDeleteConfirmScope] = useState(null);
+
+  // const [scopeActionType, setScopeActionType] = useState(null);
   const [isConfirmationModalOpen, setIsConfirmationModalOpen] = useState(false);
   const [isRecurrenceModalOpen, setIsRecurrenceModalOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
@@ -118,12 +126,9 @@ export default function TaskActionMenu() {
   // Step 1: User clicks the main delete button
   const handleDeleteRequest = () => {
     if (isParentRecurring) {
-      // If the parent task is recurring, ask for scope
       setScopeActionType(null);
       setIsRecurrenceModalOpen(true);
     } else {
-      // If it's a single occurrence task (parent has no rrule),
-      // proceed directly to final confirmation
       setScopeActionType("single"); // Deleting single non-recurring task = deleting the 'series' (the task itself)
       setIsConfirmationModalOpen(true);
     }
@@ -193,44 +198,33 @@ export default function TaskActionMenu() {
     }
   };
 
-  // Step 1 (Edit): User clicks main edit button
+  // --- EDIT FLOW ---
+  // Step 1 (Edit): User clicks main edit button - ALWAYS opens the form
   const handleEditRequest = () => {
     if (!selectedTask) return;
 
-    if (isParentRecurring) {
-      // --- OPTION 1: Default to editing the single occurrence ---
-      console.log(
-        "Edit clicked on recurring instance - opening form for exception."
-      );
-      // Open the form pre-filled to modify *this specific occurrence*.
-      openTaskFormForException(selectedTask);
-    } else {
-      // Non-recurring task: Editing the 'single' instance IS editing the rule definition
-      console.log(
-        "Edit clicked on non-recurring task - opening form for rule edit."
-      );
-      openTaskFormForEditRule(selectedTask);
-    }
-    // Close the action menu *after* calling the form open action
-    setTimeout(closeTaskMenu, 50); // Small delay helps state update smoothly
-  };
+    console.log(
+      "Edit button clicked, calling openTaskFormForEdit with instance:",
+      selectedTask
+    );
+    // ****** CHANGE: ALWAYS call the unified edit form opener ******
+    // It passes the instance context needed for the form and later scope decisions
 
-  // const handleEdit = () => {
-  //   // Renamed from onEdit
-  //   if (selectedTask) {
-  //     openTaskFormInEditMode(selectedTask.id);
-  //     closeTaskMenu();
-  //   }
-  // };
+    openTaskFormForEdit(selectedTask);
+    // Close this menu AFTER triggering the form open
+    setTimeout(closeTaskMenu, 50);
+  };
 
   if (!isVisible || !selectedTask) return null;
 
   const startTimeFormatted = dayjs(
     `2000-01-01 ${selectedTask.start_time}`
   ).format("h:mm A");
+
   const endTimeFormatted = dayjs(`2000-01-01 ${selectedTask.start_time}`)
     .add(selectedTask.duration_minutes, "minute")
     .format("h:mm A");
+
   const dateFormatted = dayjs(selectedTask.scheduled_date).format("M/D/YY"); // Keep original date format
 
   const TaskIcon = () => {
@@ -385,6 +379,7 @@ export default function TaskActionMenu() {
         isOpen={isRecurrenceModalOpen}
         onClose={() => setIsRecurrenceModalOpen(false)}
         onConfirm={handleScopeActionTypeSelected}
+        // Pass original props if needed by your modal
         selectedOption={scopeActionType}
         setSelectedOption={setScopeActionType}
       />

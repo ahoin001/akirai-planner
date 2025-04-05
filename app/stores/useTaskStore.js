@@ -468,11 +468,110 @@ export const useTaskStore = create((set, get) => ({
     });
   },
 
+  // ****** CHANGE: Consolidated action to open form for ANY edit ******
   /**
-   * Opens the Task Form to edit an existing task definition (the rule).
-   * NOTE: Requires parsing RRULE back into form fields (complex).
-   * @param {string} taskId - The ID of the task definition to edit.
+   * Opens the Task Form pre-filled for editing, using an instance for context.
+   * The user will choose the edit scope (single/future/all) AFTER submitting changes.
+   * Requires RRULE parsing to populate recurrence fields from the parent task.
+   * @param {object} instanceContext - The calculated instance object that was interacted with.
    */
+  openTaskFormForEdit: (instanceContext) => {
+    console.log("shabang");
+    if (
+      !instanceContext ||
+      !instanceContext.task_id ||
+      !instanceContext.original_occurrence_time_utc
+    ) {
+      toast.error("Cannot edit task: Essential instance details missing.");
+      return;
+    }
+    const taskId = instanceContext.task_id;
+    console.log(
+      `Store: Opening Task Form in Edit Mode for Task ID: ${taskId}, using instance at ${instanceContext.original_occurrence_time_utc} for context.`
+    );
+
+    // Find the parent task definition
+    const taskDefinition = get().tasks.find((t) => t.id === taskId);
+    if (!taskDefinition) {
+      toast.error("Cannot find original task definition to edit.");
+      return;
+    }
+
+    // --- Default & RRULE Parsing Logic ---
+    let frequency = "once",
+      interval = 1,
+      end_type = "never",
+      occurrences,
+      end_date;
+    // Parse parent's RRULE if it exists
+    if (taskDefinition.rrule) {
+      try {
+        const rule = rrulestr(taskDefinition.rrule, {
+          dtstart: dayjs.utc(taskDefinition.dtstart).toDate(),
+        });
+        const options = rule.options;
+        const freqMapReverse = {
+          [RRule.DAILY]: "daily",
+          [RRule.WEEKLY]: "weekly",
+          [RRule.MONTHLY]: "monthly",
+        };
+        frequency = freqMapReverse[options.freq] || "once";
+        interval = options.interval || 1;
+        if (options.count) {
+          end_type = "after";
+          occurrences = options.count;
+        } else if (options.until) {
+          end_type = "on";
+          end_date = dayjs
+            .utc(options.until)
+            .tz(taskDefinition.timezone)
+            .toDate();
+        } else {
+          end_type = "never";
+        }
+      } catch (e) {
+        console.error("RRULE Parse Error:", e);
+        toast.error("Could not parse recurrence rule.");
+      }
+    }
+
+    // --- Prepare Form Values ---
+    // Populate with CURRENT values of the selected INSTANCE for core fields,
+    // but use parsed/default recurrence values from the PARENT RULE.
+    const formValues = {
+      title: instanceContext.title, // Instance title
+      start_date: dayjs
+        .utc(instanceContext.scheduled_time_utc)
+        .tz(instanceContext.timezone)
+        .toDate(), // Instance date
+      start_time: dayjs
+        .utc(instanceContext.scheduled_time_utc)
+        .tz(instanceContext.timezone)
+        .format("HH:mm"), // Instance time
+      duration_minutes: instanceContext.duration_minutes, // Instance duration
+      // --- Recurrence from parsed parent rule ---
+      frequency: frequency,
+      interval: interval,
+      end_type: end_type,
+      occurrences: occurrences,
+      end_date: end_date,
+      // --- Hidden fields for context ---
+      _isExceptionEdit: false, // Initially assume we MIGHT edit the rule
+      _taskId: taskDefinition.id,
+      _originalOccurrenceTimeUTC: instanceContext.original_occurrence_time_utc, // Time of the instance clicked
+      _exceptionId: instanceContext.id.startsWith(taskId + "-")
+        ? undefined
+        : instanceContext.id, // Existing exception ID if applicable
+    };
+
+    set({
+      isTaskFormOpen: true,
+      isEditingTask: true, // Set the general editing flag
+      taskFormValues: formValues,
+      selectedInstance: null, // Clear instance selection from menu context
+    });
+  },
+
   /**
    * Opens the Task Form to edit an existing task definition (the rule),
    * using a specific instance for context (especially its original time).
@@ -505,13 +604,6 @@ export const useTaskStore = create((set, get) => ({
       toast.error("Cannot find task definition to edit.");
       return;
     }
-
-    // *****************************
-    // const taskDefinition = get().tasks.find((t) => t.id === taskId);
-    // if (!taskDefinition) {
-    //   toast.error("Cannot find task definition to edit.");
-    //   return;
-    // }
 
     // --- Default recurrence values ---
     let frequency = "once";
@@ -602,9 +694,9 @@ export const useTaskStore = create((set, get) => ({
       // --- Hidden fields ---
       _isExceptionEdit: false, // Explicitly false when editing the rule
       _taskId: taskDefinition.id, // The ID of the task being edited
-      // ****** CHANGE: Store the ORIGINAL time of the instance used for context ******
+      // ****** IMPORTANT: Store original time from the instance that triggered the edit ******
       _originalOccurrenceTimeUTC: instanceContext.original_occurrence_time_utc,
-      _exceptionId: undefined, // Not editing an exception directly
+      _exceptionId: undefined, // Not directly editing an exception record
       // _originalOccurrenceTimeUTC: taskDefinition.dtstart, // Use original dtstart as context maybe? Or null? Depends on update logic. Let's omit for rule edit.
       // _exceptionId: undefined, // Not editing an exception
       // Store original data for potential comparison or complex update logic if needed

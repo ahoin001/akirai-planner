@@ -7,7 +7,7 @@ import timezone from "dayjs/plugin/timezone";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet"; // Removed SheetClose
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import {
   Dumbbell,
@@ -19,18 +19,17 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { SegmentedControl } from "@/components/segmented-control"; // Assuming component exists
-import { WheelPicker } from "@/components/wheel-picker"; // Assuming component exists and uses HH:mm
-import DatePicker from "@/components/date-picker"; // Assuming component exists
-// ****** CHANGE: Import NEW action names ******
+import { SegmentedControl } from "@/components/segmented-control";
+import { WheelPicker } from "@/components/wheel-picker";
+import DatePicker from "@/components/date-picker";
+
 import {
   createTaskAction,
   updateTaskDefinitionAction,
   modifyTaskOccurrenceAction,
-} from "@/app/actions"; // Adjust path
-// ****** CHANGE: Import store hook and shallow ******
+} from "@/app/actions";
+
 import { useTaskStore } from "@/app/stores/useTaskStore";
-import { shallow } from "zustand/shallow";
 import { toast } from "react-hot-toast";
 
 import { RecurrenceActionModal } from "./modals/recurrence-action-modal";
@@ -73,6 +72,7 @@ const formSchema = z
     _originalOccurrenceTimeUTC: z.string().optional(),
     _exceptionId: z.string().optional(),
   })
+
   // --- Refinements for conditional validation ---
   .refine(
     (data) =>
@@ -153,19 +153,15 @@ export function TaskForm({
     tasks,
   } = useTaskStore();
 
-  // --- Component State ---
   const [formError, setFormError] = useState(null);
   const [isStartDatePickerOpen, setIsStartDatePickerOpen] = useState(false);
   const [isEndDatePickerOpen, setIsEndDatePickerOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showRecurrenceOptions, setShowRecurrenceOptions] = useState(false);
-  // State for RecurrenceActionModal
   const [isScopeModalOpen, setIsScopeModalOpen] = useState(false); // Unified visibility state
   const [scopeActionType, setScopeActionType] = useState(null); // 'modify' or 'delete' (for modal text context)
   const [selectedScopeOption, setSelectedScopeOption] = useState(null); // 'single', 'future', 'all' (set by modal clicks)
-  // State to hold data/action while modal is open
   const [pendingPayload, setPendingPayload] = useState(null);
-  const [pendingAction, setPendingAction] = useState(null); // Store the function: () => actionFunction
 
   // --- React Hook Form Setup ---
   const {
@@ -192,7 +188,7 @@ export function TaskForm({
       const minute = (i % 4) * 15;
       return dayjs().hour(hour).minute(minute).format("h:mm A");
     });
-  }, []); // Memoize to prevent recreation
+  }, []);
 
   // --- Effects ---
 
@@ -237,7 +233,6 @@ export function TaskForm({
         _exceptionId: undefined,
       };
 
-      // Use initialValues from the store directly
       const resetValues =
         initialValues && Object.keys(initialValues).length > 0
           ? {
@@ -275,15 +270,15 @@ export function TaskForm({
       setShowRecurrenceOptions(
         resetValues.frequency !== "once" && !resetValues._isExceptionEdit
       );
+    } else {
+      setFormError(null);
+      setIsStartDatePickerOpen(false);
+      setIsEndDatePickerOpen(false);
+      setIsScopeModalOpen(false);
+      setPendingPayload(null);
+      setScopeActionType(null);
+      setSelectedScopeOption(null);
     }
-
-    // else { // Cleanup on close
-    //   setFormError(null); setIsStartDatePickerOpen(false); setIsEndDatePickerOpen(false);
-    //   // ****** CHANGE: Reset scope modal state ******
-    //   setIsScopeModalOpen(false); setPendingPayload(null); setPendingAction(null); setScopeActionType(null); setSelectedScopeOption(null);
-    // }
-    // No cleanup needed here, handleSheetOpenChange handles store updates
-    // which triggers this effect again if isOpen changes externally.
   }, [isOpen, initialValues, isEditing, reset, selectedDate]); // Added store's isEditing
 
   // --- Submission Logic ---
@@ -304,25 +299,6 @@ export function TaskForm({
       }
     }
 
-    // if (
-    //   !data.start_time ||
-    //   !data.start_time.match(/^([01]\d|2[0-3]):([0-5]\d)$/)
-    // ) {
-    //   // Try to fix common AM/PM issue if WheelPicker still outputs it
-    //   const parsedTime = dayjs(data.start_time, ["h:mm A", "HH:mm"]); // Try both formats
-    //   if (parsedTime.isValid()) {
-    //     data.start_time = parsedTime.format("HH:mm"); // Correct the format
-    //     setValue("start_time", data.start_time); // Update form state silently
-    //   } else {
-    //     setValue("start_time", "09:00"); // Reset to default if parsing fails
-    //     errors.start_time = { type: "manual", message: "Invalid time." };
-    //     setFormError(
-    //       "Invalid start time format. Please use HH:mm (e.g., 09:00 or 14:30)."
-    //     );
-    //     return;
-    //   }
-    // }
-
     // --- 2. Prepare Base Payload ---
     // These fields are common to most actions
     const guessedTimezone = dayjs.tz.guess() || "UTC";
@@ -336,102 +312,50 @@ export function TaskForm({
 
     // --- 3. Differentiate Logic based on Mode ---
     // Use isEditing prop and hidden form field _isExceptionEdit
-    const effectiveIsEditing = isEditing || !!data._taskId;
+    const effectiveIsEditing = isEditing || !!data._taskId; // Use store's isEditing
 
     if (effectiveIsEditing) {
       // --- EDIT MODE ---
-      if (data._isExceptionEdit) {
-        // --- A) EDITING SINGLE OCCURRENCE (Modify/Create Exception) ---
-        console.log("Preparing payload for: Modify Occurrence");
-        const exceptionPayload = {
-          // Override fields - these come directly from the form data
-          overrideTitle: data.title.trim(),
-          // Action needs local date/time/tz to calculate potential newStartTimeISO
-          start_date: basePayload.start_date,
-          start_time: basePayload.start_time,
-          duration_minutes: data.duration_minutes,
-          timezone: basePayload.timezone,
 
-          // Identifiers for the target exception/occurrence
-          taskId: data._taskId, // ID of the parent task definition
-          originalOccurrenceTimeUTC: data._originalOccurrenceTimeUTC, // Original UTC time identifier
-          exceptionId: data._exceptionId, // Pass existing exception ID (if editing an existing one)
-          userId: "user-id-placeholder", // !!! GET ACTUAL USER ID !!!
-          // Other exception fields default in action/DB (is_complete, is_cancelled etc.)
-        };
+      // Prepare the payload containing all form changes
+      const updatePayload = {
+        ...basePayload, // title, start_date, start_time, duration, timezone
+        recurrence: {
+          // Include recurrence fields for the action
+          frequency: data.frequency,
+          interval: data.interval,
+          end_type: data.end_type,
+          occurrences: data.occurrences,
+          end_date: data.end_date
+            ? dayjs(data.end_date).format("YYYY-MM-DD")
+            : undefined,
+        },
+        // Pass context needed for 'single'/'future' scope handling in action/confirmation
+        _originalOccurrenceTimeUTC: data._originalOccurrenceTimeUTC,
+        _exceptionId: data._exceptionId,
+        _taskId: data._taskId, // Ensure taskId is in payload if needed by action directly
+      };
 
-        // Validate essential IDs needed by the action
-        if (
-          !exceptionPayload.taskId ||
-          !exceptionPayload.originalOccurrenceTimeUTC ||
-          !exceptionPayload.userId.includes("placeholder")
-        ) {
-          setFormError(
-            "Cannot modify occurrence: Missing required internal identifiers."
-          );
-          return;
-        }
+      // Check if the parent task (identified by _taskId) is recurring
+      const parentTask = tasks.find((t) => t.id === data._taskId); // Use data._taskId
+      const isParentRecurring = !!parentTask?.rrule;
 
-        setPendingPayload(exceptionPayload);
-        setPendingAction(() => modifyTaskOccurrenceAction); // Store action function
-        setScopeActionType("modify"); // Context for modal text
-        setSelectedScopeOption("single"); // Pre-select conceptually for UI maybe
-        setIsScopeModalOpen(true); // Open RecurrenceActionModal
+      if (isParentRecurring) {
+        // If parent IS recurring, save payload and SHOW SCOPE MODAL
+        console.log("Editing a recurring task, showing scope modal.");
+        setPendingPayload(updatePayload);
+        // Action is determined *after* scope selection in handleScopeConfirm
+        setScopeActionType("modify"); // Context for RecurrenceActionModal text
+        setSelectedScopeOption(null); // Reset selection in modal
+        setIsScopeModalOpen(true); // <<<<<<<<< OPEN SCOPE MODAL HERE
       } else {
-        // --- B) EDITING TASK RULE/DEFINITION ---
-        console.log("Preparing payload for: Update Task Definition");
-
-        const definitionPayload = {
-          ...basePayload, // Includes title, start_date, start_time, duration, timezone
-          // NEST recurrence details as expected by the action
-          recurrence: {
-            frequency: data.frequency,
-            // Include original time needed for 'single'/'future' scope conversion/action
-            _originalOccurrenceTimeUTC: data._originalOccurrenceTimeUTC,
-            // Only include other details if frequency is not 'once'
-            ...(data.frequency !== "once" && {
-              interval: data.interval,
-              end_type: data.end_type,
-              occurrences:
-                data.end_type === "after" ? data.occurrences : undefined,
-              end_date:
-                data.end_type === "on" && data.end_date
-                  ? dayjs(data.end_date).format("YYYY-MM-DD")
-                  : undefined,
-            }),
-            // Ensure frequency: 'once' is passed if selected
-            ...(data.frequency === "once" && { frequency: "once" }),
-          },
-        };
-
-        console.log("Definition Payload: ", definitionPayload);
-
-        // ****** FIX: Check if the parent task is ACTUALLY recurring ******
-        // Need access to the tasks array from the store OR pass isParentRecurring info via initialValues
-        const parentTask = tasks.find((t) => t.id === taskIdToEdit); // Assuming 'tasks' is available via store hook
-        const isActuallyRecurring = !!parentTask?.rrule; // Check if the fetched task has an RRULE
-
-        if (isActuallyRecurring) {
-          // Ask scope via RecurrenceActionModal
-          setPendingPayload(definitionPayload);
-          setPendingAction(() => updateTaskDefinitionAction);
-          setScopeActionType("modify");
-          setSelectedScopeOption(null); // No pre-selection
-          setIsScopeModalOpen(true);
-        } else {
-          // If it IS NOT recurring, execute update directly (effectively 'all'/'single' scope)
-          console.log("Task IS NOT recurring, executing update directly.");
-          // The scope 'all' for updateTaskDefinitionAction should handle updating the single task record
-          await executeSubmit(
-            updateTaskDefinitionAction,
-            definitionPayload,
-            "all"
-          );
-        }
+        // If parent IS NOT recurring, update directly using updateTaskDefinitionAction
+        console.log("Editing non-recurring task, executing update directly.");
+        // Scope 'all' correctly updates the single task record
+        await executeSubmit(updateTaskDefinitionAction, updatePayload, "all");
       }
     } else {
-      // --- C) CREATING NEW TASK ---
-      console.log("Preparing payload for: Create Task");
+      // --- CREATING NEW TASK ---
       const createPayload = {
         ...basePayload, // Title, start date/time, duration, timezone
         // Pass recurrence details object for action to parse
@@ -452,8 +376,6 @@ export function TaskForm({
           ...(data.frequency === "once" && { frequency: "once" }),
         },
       };
-
-      // No scope confirmation needed for create
       await executeSubmit(createTaskAction, createPayload, null);
     }
   };
@@ -469,25 +391,27 @@ export function TaskForm({
     }
     setIsSubmitting(true);
     setFormError(null);
-    if (!action) {
-      /* error handling */ setIsSubmitting(false);
-      return;
-    }
 
     try {
       console.log(
         `Executing Action ${action.name || "anonymous"} with scope: ${scope || "N/A"}`,
         payload
       );
-      // Logic to call correct action based on type
+
       if (action === createTaskAction) {
+        console.log("Creating task with payload:", payload);
         await action(payload);
       } else if (action === modifyTaskOccurrenceAction) {
+        console.log("Modifying occurrence with payload:", payload);
         await action(payload);
       } else if (action === updateTaskDefinitionAction) {
-        if (!taskIdToEdit && !payload?._taskId)
-          throw new Error("Task ID missing."); // Get ID context
-        await action(taskIdToEdit, payload, scope);
+        console.log("Updating task with payload:", payload);
+        console.log("Updating task with scope:", scope);
+        // Ensure taskIdToEdit is available for update definition calls
+        const idToUpdate = taskIdToEdit || payload?._taskId; // Get ID from context or payload
+        if (!idToUpdate)
+          throw new Error("Task ID missing for definition update.");
+        await action(idToUpdate, payload, scope); // Pass ID, payload, scope
       } else {
         throw new Error("Unknown action type.");
       }
@@ -498,8 +422,7 @@ export function TaskForm({
       // toast.success(
       //   `Task ${isEditing ? (isExceptionEditMode ? "occurrence updated" : "updated") : "created"}!`
       // );
-      // ****** SUCCESS: Call store action to close ******
-      closeForm(); // Use store action
+      closeForm();
     } catch (error) {
       console.error("Submission Execute Error:", error);
       const message =
@@ -508,141 +431,82 @@ export function TaskForm({
       // toast.error(message);
     } finally {
       setIsSubmitting(false);
-      // Reset modal specific state AFTER execution attempt
       setIsScopeModalOpen(false);
       setPendingPayload(null);
-      setPendingAction(null);
       setScopeActionType(null);
       setSelectedScopeOption(null);
-    }
-  };
-
-  // Handles confirmation from the Edit Scope Dialog
-  const handleEditScopeConfirm = (scope) => {
-    if (!editPayload || !editScopeAction) return;
-    if (isExceptionEditMode) {
-      executeSubmit(modifyTaskOccurrenceAction, editPayload, "single");
-    } else {
-      // Editing the rule
-      if (scope === "single") {
-        console.log("In single scope logie");
-
-        // Convert rule edit to an exception payload
-        const originalTime = initialValues?._originalOccurrenceTimeUTC;
-        if (!originalTime || !taskIdToEdit) {
-          console.log("in if 2");
-          /* ... error handling ... */ return;
-        }
-
-        console.log("cp 2");
-
-        const tz = editPayload.timezone || dayjs.tz.guess() || "UTC";
-        const exceptionPayload = {
-          taskId: taskIdToEdit,
-          originalOccurrenceTimeUTC: originalTime,
-          userId: "user-id-placeholder", // !!! GET ACTUAL USER ID !!!
-          overrideTitle: editPayload.title,
-          newStartTimeISO: dayjs
-            .tz(
-              `${editPayload.start_date} ${editPayload.start_time}`,
-              "YYYY-MM-DD HH:mm",
-              tz
-            )
-            .toISOString(),
-          newDurationMinutes: editPayload.duration_minutes,
-          isComplete: false,
-          isCancelled: false,
-          exceptionId: initialValues?._exceptionId,
-        };
-
-        console.log("cp 3");
-
-        if (!exceptionPayload.userId.includes("placeholder")) {
-          console.log("cp 4");
-          executeSubmit(modifyTaskOccurrenceAction, exceptionPayload, "single");
-        } else {
-          console.log("missing user id error");
-          /* ... handle missing user id error ... */
-        }
-      } else {
-        // Update the main definition, pass scope to action
-        executeSubmit(updateTaskDefinitionAction, editPayload, scope);
-      }
     }
   };
 
   // ****** CHANGE: Handles confirmation from RecurrenceActionModal ******
   // This is now called when the user clicks the main confirm button in the modal,
   // after having selected an option (single/future/all).
-  const handleScopeConfirm = (selectedScope) => {
-    // Use the state `selectedScopeOption` which should have been updated by the modal's internal clicks
-    // The argument might just be a confirmation trigger, not the value itself.
-    const finalScope = selectedScopeOption; // Rely on state set by modal
+  const handleScopeConfirm = (selectedScopeFromModal) => {
+    const finalScope = selectedScopeOption || selectedScopeFromModal; // Use state or arg
 
     console.log(
       `handleScopeConfirm: Action Type: ${scopeActionType}, Selected Scope State: ${finalScope}`
     );
 
-    if (!pendingPayload || !pendingAction || !finalScope) {
-      console.error("Missing payload, action, or scope for confirmation.");
-      setIsScopeModalOpen(false); // Close modal anyway
+    // Determine the correct action based on scope chosen
+    let actionToExecute = null;
+    let payloadForAction = pendingPayload; // Start with the full payload saved earlier
+
+    if (!pendingPayload || !finalScope || scopeActionType !== "modify") {
+      console.error(
+        "Missing data or wrong context for edit scope confirmation."
+      );
+      setIsScopeModalOpen(false);
       return;
     }
 
-    if (scopeActionType === "modify") {
-      // We were editing
-      if (isExceptionEditMode) {
-        // Editing an exception is always 'single' scope, regardless of modal choice
-        executeSubmit(modifyTaskOccurrenceAction, pendingPayload, "single");
-      } else {
-        // Editing the rule definition
-        if (finalScope === "single") {
-          // Convert rule edit to an exception payload
-          const originalTime = pendingPayload._originalOccurrenceTimeUTC; // Get from payload
+    if (finalScope === "single") {
+      actionToExecute = modifyTaskOccurrenceAction;
 
-          if (!originalTime || !taskIdToEdit) {
-            /* error handling */ return;
-          }
+      console.log("In single with pending payload: ", pendingPayload);
 
-          const tz = pendingPayload.timezone || dayjs.tz.guess() || "UTC";
-          const exceptionPayload = {
-            taskId: taskIdToEdit,
-            originalOccurrenceTimeUTC: originalTime,
-            userId: "user-id-placeholder", // !!! GET USER ID !!!
-            overrideTitle: pendingPayload.title,
-            newStartTimeISO: dayjs
-              .tz(
-                `${pendingPayload.start_date} ${pendingPayload.start_time}`,
-                "YYYY-MM-DD HH:mm",
-                tz
-              )
-              .toISOString(),
-            newDurationMinutes: pendingPayload.duration_minutes,
-            isComplete: false,
-            isCancelled: false,
-            exceptionId: initialValues?._exceptionId, // Use _exceptionId from initialValues if available
-          };
-
-          if (!exceptionPayload.userId.includes("placeholder")) {
-            executeSubmit(
-              modifyTaskOccurrenceAction,
-              exceptionPayload,
-              "single"
-            );
-          } else {
-            /* error handling */
-          }
-        } else {
-          // Update definition for 'future' or 'all', passing scope
-          executeSubmit(updateTaskDefinitionAction, pendingPayload, finalScope);
-        }
+      // Convert pendingPayload (rule changes) into an exception payload
+      const originalTime = pendingPayload._originalOccurrenceTimeUTC;
+      const taskId = pendingPayload._taskId;
+      if (!originalTime || !taskId) {
+        setFormError("Missing context.");
+        return;
       }
-    }
-    // Add handling for scopeActionType === 'delete' if needed here,
-    // although the delete flow might use a separate ConfirmationModal after scope selection.
 
-    // Reset state after handling confirmation (might be redundant if executeSubmit resets)
-    // setEditPayload(null); setEditScopeActionFn(null); setScopeActionType(null); setSelectedScopeOption(null);
+      const tz = pendingPayload.timezone || dayjs.tz.guess() || "UTC";
+
+      payloadForAction = {
+        // Overwrite payload entirely for modify action
+        taskId: taskId,
+        originalOccurrenceTimeUTC: originalTime,
+        // userId: "user-id-placeholder", // !!! GET USER ID !!!
+        overrideTitle: pendingPayload.title,
+        newStartTimeISO: dayjs
+          .tz(
+            `${pendingPayload.start_date} ${pendingPayload.start_time}`,
+            "YYYY-MM-DD HH:mm",
+            tz
+          )
+          .toISOString(),
+        newDurationMinutes: pendingPayload.duration_minutes,
+        isComplete: false,
+        isCancelled: false, // Defaults
+        exceptionId: pendingPayload._exceptionId,
+      };
+
+      // if (payloadForAction.userId.includes("placeholder")) {
+      //   console.log("user id missing add it somewhee");
+      //   /* error */ return;
+      // }
+    } else {
+      // 'future' or 'all'
+      // Payload remains pendingPayload (containing all form data)
+      // Scope (finalScope) will be passed to executeSubmit
+      actionToExecute = updateTaskDefinitionAction;
+    }
+
+    // Close the modal happens inside executeSubmit finally block
+    executeSubmit(actionToExecute, payloadForAction, finalScope);
   };
 
   // --- Date Selection Handlers ---
@@ -672,7 +536,6 @@ export function TaskForm({
   ); // Dependency is the store action
 
   // --- JSX ---
-  // ****** CHANGE: Use store state for Sheet props ******
   return (
     <Sheet open={isOpen} onOpenChange={handleSheetOpenChange}>
       <SheetContent
@@ -1053,23 +916,20 @@ export function TaskForm({
         </form>
 
         {/* ****** CHANGE: Use RecurrenceActionModal for Edit Scope ****** */}
+        {/* ****** Use RecurrenceActionModal for Edit Scope Confirmation ****** */}
         <RecurrenceActionModal
-          // Pass 'modify' when opening for an edit action
-          actionType={scopeActionType || "modify"}
+          actionType={"modify"} // Pass 'modify' context
           isOpen={isScopeModalOpen}
           onClose={() => {
-            // Reset state when modal is closed without confirming
+            // Cleanup state on close
             setIsScopeModalOpen(false);
             setPendingPayload(null);
-            setPendingAction(null);
             setScopeActionType(null);
             setSelectedScopeOption(null);
           }}
-          // This is the CONFIRM button action of the modal
-          onConfirm={handleScopeConfirm}
-          // Allow modal to manage its internal selection and pass it to onConfirm
-          selectedOption={selectedScopeOption} // Pass state to show selection
-          setSelectedOption={setSelectedScopeOption} // Allow modal to update state
+          onConfirm={handleScopeConfirm} // Calls the handler which then calls executeSubmit
+          selectedOption={selectedScopeOption} // State to display selection
+          setSelectedOption={setSelectedScopeOption} // Function for modal to update state
         />
       </SheetContent>
     </Sheet>
