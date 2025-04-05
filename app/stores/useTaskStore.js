@@ -1,24 +1,19 @@
 // src/stores/useTaskStore.jsx (or .js)
 
 import { create } from "zustand";
-import { toast } from "react-hot-toast";
-// ****** CHANGE: Use component client for browser interactions ******
 import { createClient as createSupabaseBrowserClient } from "@/utils/supabase/client";
+import { toast } from "react-hot-toast";
+
 import dayjs from "dayjs";
-import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
 import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
-// ****** CHANGE: Import RRule (make sure it's installed: npm install rrule) ******
-import { RRule, RRuleSet, rrulestr } from "rrule";
-// ****** CHANGE: Import the calculation utility (create this file) ******
-import { calculateInstancesForRange } from "@/lib/taskCalculator"; // Example path
+import { RRule, rrulestr } from "rrule";
+import utc from "dayjs/plugin/utc";
 
-// Extend Dayjs with plugins
 dayjs.extend(utc);
 dayjs.extend(timezone);
 dayjs.extend(isSameOrBefore);
 
-// Create the Zustand store
 export const useTaskStore = create((set, get) => ({
   // **********************************************************
   // INITIAL STATE
@@ -44,62 +39,6 @@ export const useTaskStore = create((set, get) => ({
   /** @type {string | null} Stores last error message */
   error: null,
 
-  // ****** REPLACED/REMOVED ******
-  // - taskInstances state
-  // - selectedTask (renamed to selectedInstance)
-  // - pendingUpdates, updateScope (revisit for UPDATE logic)
-
-  // **********************************************************
-  // GETTERS (Conceptual - Calculation happens outside store)
-  // **********************************************************
-
-  // *** Not used anywhere??
-  /**
-   * Retrieves calculated task instances for a specific day.
-   * NOTE: This calls the external calculator function.
-   * @param {Date | string} date - The target date.
-   * @returns {Array<object>} Array of calculated instance objects for the day.
-   */
-  getInstancesForDay: (date) => {
-    const { tasks, exceptions } = get();
-    if (!date) return [];
-    const dayStart = dayjs(date).startOf("day").toISOString();
-    const dayEnd = dayjs(date).endOf("day").toISOString();
-    // Call the external calculation function
-    try {
-      return calculateInstancesForRange(tasks, exceptions, dayStart, dayEnd);
-    } catch (error) {
-      console.error("Error calculating instances for day:", error);
-      // Optionally set an error state in the store here
-      // get().setError("Failed to calculate tasks for the day.");
-      return [];
-    }
-  },
-
-  // *** Not used anywhere??
-  /**
-   * Retrieves calculated task instances for the currently viewed week.
-   * NOTE: This calls the external calculator function.
-   * @returns {Array<object>} Array of calculated instance objects for the week.
-   */
-  getInstancesForCurrentWeek: () => {
-    const { tasks, exceptions, currentViewStartDate } = get();
-    if (!currentViewStartDate) return [];
-    const weekStart = dayjs(currentViewStartDate).startOf("day").toISOString();
-    const weekEnd = dayjs(currentViewStartDate)
-      .add(7, "days")
-      .startOf("day")
-      .toISOString(); // Get start of next week for exclusive end
-    // Call the external calculation function
-    try {
-      return calculateInstancesForRange(tasks, exceptions, weekStart, weekEnd);
-    } catch (error) {
-      console.error("Error calculating instances for week:", error);
-      // get().setError("Failed to calculate tasks for the week.");
-      return [];
-    }
-  },
-
   // **********************************************************
   // SETTERS (Simple state updates)
   // **********************************************************
@@ -116,11 +55,6 @@ export const useTaskStore = create((set, get) => ({
     console.log(`Store: Setting current view start date to: ${newStartDate}`);
     set({ currentViewStartDate: newStartDate });
   },
-
-  // ****** REPLACED/REMOVED ******
-  // - clearPendingUpdates, setPendingUpdates, setUpdateScope (related to old update logic)
-  // - setTaskForm (replaced by open/close)
-  // - setSelectedTask, setSelectedTaskId (replaced by selectedInstance logic)
 
   // **********************************************************
   // DATA FETCHING & SUBSCRIPTIONS (Revised for new schema)
@@ -186,7 +120,6 @@ export const useTaskStore = create((set, get) => ({
    * @returns {Promise<Function>} A function to unsubscribe from the channels.
    */
   setupRealtimeSubscriptions: async () => {
-    console.log("Store: Setting up Realtime subscriptions...");
     // Use the client creation function you defined
     const supabase = createSupabaseBrowserClient();
     const {
@@ -201,6 +134,7 @@ export const useTaskStore = create((set, get) => ({
         console.log("Store: No-op unsubscribe (no user).");
       }; // Return no-op unsubscribe
     }
+
     console.log(`Store: Subscribing for user ${user.id}`);
 
     // Get references to the handler functions FROM THE CURRENT STORE INSTANCE
@@ -227,7 +161,6 @@ export const useTaskStore = create((set, get) => ({
         supabase.removeChannel(channel);
       }
     });
-    // Alternative: supabase.removeAllChannels(); // Use if appropriate for your app structure
 
     // Define channel names uniquely (e.g., include user ID if needed, but filter usually handles this)
     const taskChannelName = `public:tasks:${user.id}`; // Example unique name per user
@@ -319,7 +252,6 @@ export const useTaskStore = create((set, get) => ({
       let updatedTasks = [...state.tasks];
       switch (payload.eventType) {
         case "INSERT":
-          console.log("Fllooop");
           // Avoid adding duplicates if optimistic update already happened
           if (!updatedTasks.some((t) => t.id === payload.new?.id)) {
             updatedTasks.push(payload.new);
@@ -331,8 +263,6 @@ export const useTaskStore = create((set, get) => ({
           );
           break;
         case "DELETE":
-          console.log(" IN DELETE");
-          console.log({ updatedTasks, payload });
           updatedTasks = updatedTasks.filter((t) => t.id !== payload.old?.id);
           // If the deleted task definition matches the selected instance's parent, clear selection
           if (state.selectedInstance?.task_id === payload.old?.id) {
@@ -345,7 +275,6 @@ export const useTaskStore = create((set, get) => ({
         default:
           return state;
       }
-      // updatedTasks.sort((a, b) => dayjs(b.created_at).diff(dayjs(a.created_at)));
       return { tasks: updatedTasks };
     });
   },
@@ -438,7 +367,6 @@ export const useTaskStore = create((set, get) => ({
    * Opens the Task Form to create a new task definition.
    * @param {Date | string} [initialDate] - Optional date to pre-fill.
    */
-  // openTaskForm: (initialDate) => {
   openTaskForm: (initialDate) => {
     console.log("Store: Opening Task Form for New Task");
     console.log("Store: task form initial date", initialDate);
@@ -465,9 +393,8 @@ export const useTaskStore = create((set, get) => ({
     });
   },
 
-  // ****** CHANGE: Consolidated action to open form for ANY edit ******
   /**
-   * Opens the Task Form pre-filled for editing, using an instance for context.
+   * Opens the Task Form pre-filled for editing, for editing rule or definition, using an instance for context.
    * The user will choose the edit scope (single/future/all) AFTER submitting changes.
    * Requires RRULE parsing to populate recurrence fields from the parent task.
    * @param {object} instanceContext - The calculated instance object that was interacted with.
@@ -570,208 +497,6 @@ export const useTaskStore = create((set, get) => ({
   },
 
   /**
-   * Opens the Task Form to edit an existing task definition (the rule),
-   * using a specific instance for context (especially its original time).
-   * Parses the existing RRULE to pre-fill recurrence fields.
-   * @param {object} instanceContext - The calculated instance object that triggered the edit rule action.
-   */
-  // openTaskFormForEditRule: (taskId) => {
-  openTaskFormForEditRule: (instanceContext) => {
-    console.warn(
-      `Store: Opening Task Form to Edit Rule for instanceContext: ${instanceContext} (RRULE parsing not implemented)`
-    );
-
-    if (
-      !instanceContext ||
-      !instanceContext.task_id ||
-      !instanceContext.original_occurrence_time_utc
-    ) {
-      console.log("Cannot edit rule: Context instance details missing.");
-      // toast.error("Cannot edit rule: Context instance details missing.");
-      return;
-    }
-
-    const taskId = instanceContext.task_id;
-    console.log(
-      `Store: Opening Task Form to Edit Rule for Task ID: ${taskId}, using instance at ${instanceContext.original_occurrence_time_utc} for context.`
-    );
-
-    const taskDefinition = get().tasks.find((t) => t.id === taskId);
-    if (!taskDefinition) {
-      toast.error("Cannot find task definition to edit.");
-      return;
-    }
-
-    // --- Default recurrence values ---
-    let frequency = "once";
-    let interval = 1;
-    let end_type = "never";
-    let occurrences = undefined; // Use undefined for optional number fields
-    let end_date = undefined; // Use undefined for optional date fields
-
-    if (taskDefinition.rrule) {
-      try {
-        // Use rrulestr to parse the rule string.
-        // Pass dtstart for context if the RRULE string itself doesn't contain it
-        // (though rrule.js often handles DTSTART within the string correctly).
-        const rule = rrulestr(taskDefinition.rrule, {
-          dtstart: dayjs.utc(taskDefinition.dtstart).toDate(),
-        });
-        const options = rule.options; // Get the parsed options
-
-        console.log("Parsed RRULE options:", options);
-
-        // Map RRule frequency back to form value
-        const freqMapReverse = {
-          [RRule.DAILY]: "daily",
-          [RRule.WEEKLY]: "weekly",
-          [RRule.MONTHLY]: "monthly",
-          [RRule.YEARLY]: "yearly", // Add if you support yearly
-        };
-        frequency = freqMapReverse[options.freq] || "once"; // Default to 'once' if unknown
-
-        interval = options.interval || 1;
-
-        // Determine end_type based on parsed options
-        if (options.count) {
-          end_type = "after";
-          occurrences = options.count;
-        } else if (options.until) {
-          end_type = "on";
-          // Convert UTC 'until' date back to the task's original timezone for the date picker
-          end_date = dayjs
-            .utc(options.until)
-            .tz(taskDefinition.timezone)
-            .toDate();
-        } else {
-          end_type = "never";
-        }
-      } catch (e) {
-        console.error(
-          "Store Error: Failed to parse existing RRULE string:",
-          taskDefinition.rrule,
-          e
-        );
-        toast.error(
-          "Could not parse existing recurrence rule. Please set again."
-        );
-        // Keep defaults if parsing fails
-        frequency = "once";
-        interval = 1;
-        end_type = "never";
-        occurrences = undefined;
-        end_date = undefined;
-      }
-    } else {
-      // If no rrule exists, it's a 'once' task
-      frequency = "once";
-    }
-
-    // --- Prepare Form Values ---
-    const formValues = {
-      // id is not a form field, but useful context maybe
-      // id: taskDefinition.id,
-      title: taskDefinition.title,
-      // Convert dtstart (TIMESTAMPTZ) back to local date and HH:mm time for form
-      start_date: dayjs
-        .utc(taskDefinition.dtstart)
-        .tz(taskDefinition.timezone)
-        .toDate(),
-      start_time: dayjs
-        .utc(taskDefinition.dtstart)
-        .tz(taskDefinition.timezone)
-        .format("HH:mm"),
-      duration_minutes: taskDefinition.duration_minutes,
-      // --- Parsed recurrence values ---
-      frequency: frequency,
-      interval: interval,
-      end_type: end_type,
-      occurrences: occurrences,
-      end_date: end_date,
-      // --- Hidden fields ---
-      _isExceptionEdit: false, // Explicitly false when editing the rule
-      _taskId: taskDefinition.id, // The ID of the task being edited
-      // ****** IMPORTANT: Store original time from the instance that triggered the edit ******
-      _originalOccurrenceTimeUTC: instanceContext.original_occurrence_time_utc,
-      _exceptionId: undefined, // Not directly editing an exception record
-      // _originalOccurrenceTimeUTC: taskDefinition.dtstart, // Use original dtstart as context maybe? Or null? Depends on update logic. Let's omit for rule edit.
-      // _exceptionId: undefined, // Not editing an exception
-      // Store original data for potential comparison or complex update logic if needed
-      // _originalRrule: taskDefinition.rrule,
-      // _originalTimezone: taskDefinition.timezone,
-      // _originalDtstart: taskDefinition.dtstart,
-    };
-
-    if (frequency === "once") {
-      console.log("Editing a non-recurring task.");
-      // toast.info("Editing a non-recurring task.");
-    } else if (taskDefinition.rrule && frequency === "once") {
-      // This case happens if RRULE parsing failed
-      toast.warn("Failed to read recurrence rule. Please reset if needed.");
-    }
-
-    // Set the store state
-    set({
-      isTaskFormOpen: true,
-      isEditingTask: true, // General editing flag
-      taskFormValues: formValues, // Set the calculated initial values
-      selectedInstance: null, // Not selecting a specific instance
-    });
-  },
-
-  /**
-   * Opens the Task Form to modify a *single occurrence* (creates/updates an exception).
-   * @param {object} instance - The calculated instance object that was interacted with.
-   */
-  openTaskFormForException: (instance) => {
-    console.log(
-      "Store: Opening Task Form to Create/Edit Exception for:",
-      instance
-    );
-    if (
-      !instance ||
-      !instance.task_id ||
-      !instance.original_occurrence_time_utc
-    ) {
-      toast.error("Invalid instance data provided for editing.");
-      return;
-    }
-
-    const formValues = {
-      // We don't need the parent task ID *in the form data itself* typically,
-      // but we store it below (_taskId) to know which exception to create/update.
-      title: instance.title, // Use current title (might be overridden)
-      start_date: dayjs
-        .utc(instance.scheduled_time_utc)
-        .tz(instance.timezone)
-        .toDate(),
-      start_time: dayjs
-        .utc(instance.scheduled_time_utc)
-        .tz(instance.timezone)
-        .format("HH:mm"), // Use actual scheduled time
-      duration_minutes: instance.duration_minutes, // Use current duration
-      // Recurrence fields are locked to 'once' when editing an instance
-      frequency: "once",
-      interval: 1,
-      end_type: "never",
-      // Hidden fields to track the context for the submit handler
-      _isExceptionEdit: true, // Flag to tell onSubmit it's modifying an occurrence
-      _taskId: instance.task_id,
-      _originalOccurrenceTimeUTC: instance.original_occurrence_time_utc,
-      // Include existing exception ID if we are editing one that already exists
-      _exceptionId: instance.id.startsWith(instance.task_id + "-")
-        ? null
-        : instance.id,
-    };
-    set({
-      isTaskFormOpen: true,
-      isEditingTask: true,
-      taskFormValues: formValues,
-      selectedInstance: instance,
-    });
-  },
-
-  /**
    * Opens the Task Action Menu for a specific calculated instance.
    * Stores the selected calculated instance context.
    * @param {object} instance - The calculated instance object (should conform to CalculatedInstance structure).
@@ -795,9 +520,4 @@ export const useTaskStore = create((set, get) => ({
       isTaskMenuOpen: true,
     });
   },
-
-  // ****** NEEDS IMPLEMENTATION ******
-  // - Actions to create/update exceptions
-  // - Action to update task definitions (rules)
-  // - Actions to delete tasks/exceptions based on new structure
 }));

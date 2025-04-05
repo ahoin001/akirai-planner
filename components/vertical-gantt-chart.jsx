@@ -11,7 +11,7 @@
 import { format } from "date-fns";
 import useCalendarStore from "@/app/stores/useCalendarStore";
 import { useTaskStore } from "@/app/stores/useTaskStore";
-import { useRef, useState, useCallback, memo } from "react";
+import { useRef, useState, useCallback, memo, useMemo } from "react";
 
 import { BottomNavigation } from "@/components/bottom-navigation";
 import TaskActionMenu from "@/components/task-action-menu";
@@ -56,7 +56,7 @@ const VerticalGanttChart = () => {
   const containerRef = useRef(null);
   const drawerRef = useRef(null);
 
-  const weekDays = getWeekDays();
+  const weekDays = useMemo(() => getWeekDays(), [getWeekDays]);
 
   const handleHeaderClick = useCallback((date) => {
     setDatePickerFor(date);
