@@ -10,8 +10,11 @@ const defaultUrl = process.env.VERCEL_URL
 
 export const metadata = {
   metadataBase: new URL(defaultUrl),
-  title: "Next.js and Supabase Starter Kit",
-  description: "The fastest way to build apps with Next.js and Supabase",
+  // title: "Next.js and Supabase Starter Kit",
+  // description: "The fastest way to build apps with Next.js and Supabase",
+  title: "My App",
+  description: "My PWA-enabled Next.js App",
+  themeColor: "#000000", // <- For PWA theming
 };
 
 const geistSans = Geist({
@@ -26,6 +29,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={geistSans.className} suppressHydrationWarning>
+      <head>
+        {/* PWA tags  */}
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#000000" />
+        <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="Super Planner" />
+      </head>
       <body className="bg-background text-foreground">
         <ThemeProvider
           attribute="class"

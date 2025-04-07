@@ -14,24 +14,6 @@ import useCalendarStore from "@/app/stores/useCalendarStore";
 import { useTaskStore } from "@/app/stores/useTaskStore";
 
 /**
- * Gets the appropriate icon for a task type
- * @param {string} type - The task type ('alarm', 'workout', or 'night')
- * @returns {JSX.Element} The icon component
- */
-const getTaskIcon = (type) => {
-  switch (type) {
-    case "alarm":
-      return <AlarmClock className="w-5 h-5" />;
-    case "workout":
-      return <Dumbbell className="w-5 h-5" />;
-    case "night":
-      return <Moon className="w-5 h-5" />;
-    default:
-      return null;
-  }
-};
-
-/**
  * TaskItem component
  *
  * @param {Object} props - Component props
@@ -42,22 +24,24 @@ const getTaskIcon = (type) => {
  * @param {boolean} props.isNext - Whether this task is in the next week view
  * @returns {JSX.Element} Rendered component
  */
-export default function TaskItem({ task, date, top, height, isNext = false }) {
+export default function TaskItem({
+  instance: task,
+  date,
+  top,
+  height,
+  isNext = false,
+}) {
   const { currentTime, getTaskProgress, selectDay } = useCalendarStore();
 
-  const { setSelectedTaskId } = useTaskStore();
+  const { setSelectedInstance } = useTaskStore();
 
-  // Calculate task progress and determine visual states
-  const progress = getTaskProgress(task);
+  const progress = getTaskProgress(task, currentTime);
   const isActive = progress > 0 && progress < 100;
   const isGrayed = isAfter(date, currentTime) || isNext;
 
-  /**
-   * Handle task click - select the day and the task
-   */
   const handleTaskClick = () => {
     selectDay(date);
-    setSelectedTaskId(task.id);
+    setSelectedInstance(task);
   };
 
   return (
@@ -75,7 +59,7 @@ export default function TaskItem({ task, date, top, height, isNext = false }) {
         className={`absolute inset-0 ${
           isGrayed
             ? "bg-gray-700"
-            : task.color === "pink"
+            : task?.color === "pink"
               ? "bg-pink-500"
               : "bg-blue-500"
         }`}
@@ -86,7 +70,7 @@ export default function TaskItem({ task, date, top, height, isNext = false }) {
         className={`absolute inset-0 bg-gradient-to-t ${
           isGrayed
             ? "from-gray-700 to-transparent"
-            : task.color === "pink"
+            : task?.color === "pink"
               ? "from-pink-500 to-transparent"
               : "from-blue-500 to-transparent"
         } transition-all duration-1000`}

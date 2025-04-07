@@ -4,7 +4,6 @@
  * This store manages all state related to the calendar, including:
  * - Current time and date tracking
  * - Week navigation and transitions
- * - Task management and filtering
  * - UI state (drawer, animations, etc.)
  *
  * The store provides actions for interacting with the calendar and computed
@@ -13,82 +12,7 @@
 import dayjs from "dayjs";
 
 import { create } from "zustand";
-import {
-  format,
-  parseISO,
-  differenceInMinutes,
-  isBefore,
-  isAfter,
-  isSameDay,
-  addDays,
-  startOfWeek,
-  addWeeks,
-  getWeek,
-  setHours,
-  setMinutes,
-  getDay,
-} from "date-fns";
-
-/**
- * Generates tasks for a given week
- *
- * @param {Date} baseDate - The start date of the week
- * @returns {Array} Array of task objects
- */
-const generateTasks = (baseDate) => {
-  const weekNumber = getWeek(baseDate);
-  const isEvenWeek = weekNumber % 2 === 0;
-
-  return [
-    // Morning tasks
-    ...Array.from({ length: isEvenWeek ? 3 : 4 }, (_, i) => {
-      const taskDate = addDays(baseDate, i);
-      return {
-        id: weekNumber * 100 + i,
-        title: "Rise and Shine",
-        start_date: format(taskDate, "yyyy-MM-dd"),
-        start_time: "08:00",
-        duration_minutes: 30, // 30 minutes
-        type: "alarm",
-        color: "pink",
-        is_complete: false,
-      };
-    }),
-    // Workout tasks
-    ...Array.from({ length: isEvenWeek ? 4 : 3 }, (_, i) => {
-      const taskDate = addDays(baseDate, i + 2);
-      return {
-        id: weekNumber * 100 + 10 + i,
-        title: "Daily Workout",
-        start_date: format(taskDate, "yyyy-MM-dd"),
-        start_time: "16:00",
-        duration_minutes: 60, // 60 minutes
-        type: "workout",
-        color: "pink",
-        is_complete: false,
-      };
-    }),
-    // Add some random tasks with varying durations
-    ...Array.from({ length: 3 }, (_, i) => {
-      const dayOffset = Math.floor(Math.random() * 7);
-      const taskDate = addDays(baseDate, dayOffset);
-      const hour = 10 + Math.floor(Math.random() * 6); // Random hour between 10 AM and 3 PM
-      const minutes = Math.floor(Math.random() * 4) * 15; // Random minutes: 0, 15, 30, or 45
-      const duration = 10 + Math.floor(Math.random() * 12) * 10; // Random duration between 10 and 120 minutes
-
-      return {
-        id: weekNumber * 100 + 20 + i,
-        title: `Task ${i + 1}`,
-        start_date: format(taskDate, "yyyy-MM-dd"),
-        start_time: `${hour.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}`,
-        duration_minutes: duration,
-        type: i % 2 === 0 ? "alarm" : "workout",
-        color: "pink",
-        is_complete: false,
-      };
-    }),
-  ];
-};
+import { isSameDay, addDays, startOfWeek, addWeeks, getDay } from "date-fns";
 
 /**
  * Calendar store with Zustand
@@ -98,32 +22,21 @@ const useCalendarStore = create((set, get) => ({
   // Time and date state
   currentTime: new Date(),
   currentWeekStart: startOfWeek(new Date()),
-  nextWeekStart: null,
-
-  // Tasks state
-  currentTasks: [],
-  nextTasks: [],
-  selectedTaskId: null,
-  taskInstances: [],
 
   // UI state
   drawerOpen: false,
   isLoading: false,
-  isTransitioning: false,
-  isTaskMenuOpen: false,
   selectedDay: new Date(),
   slideDirection: null,
-
-  // Task form state
-  isTaskFormOpen: false,
-  isEditingTask: false,
-  taskFormValues: {},
 
   /**
    * Updates the current time (called every second)
    */
   updateCurrentTime: () => set({ currentTime: new Date() }),
 
+  // ******************
+  // * SETTERS
+  // ******************
   /**
    * Selects a day and sets the selected task ID to null
    * @param {Date} day - The day to select
@@ -134,29 +47,7 @@ const useCalendarStore = create((set, get) => ({
       selectedTaskId: null,
     }),
 
-  /**
-   * Sets the selected task ID
-   * @param {number} taskId - The ID of the selected task
-   */
-  setSelectedTaskId: (taskId) =>
-    set({
-      selectedTaskId: taskId,
-      isTaskMenuOpen: true,
-    }),
-
   setIsLoading: (isLoading) => set({ isLoading }),
-
-  setTaskInstances: (tasks) => set({ taskInstances: tasks }),
-
-  /**
-   * Opens the task action menu
-   */
-  openTaskMenu: () => set({ isTaskMenuOpen: true }),
-
-  /**
-   * Closes the task action menu
-   */
-  closeTaskMenu: () => set({ isTaskMenuOpen: false }),
 
   /**
    * Toggles the drawer open/closed state
@@ -166,14 +57,16 @@ const useCalendarStore = create((set, get) => ({
       drawerOpen: !state.drawerOpen,
     })),
 
+  // ******************
+  // * HELPERS
+  // ******************
+
   /**
    * Changes the current week
    * @param {string} direction - Direction to change ('prev' or 'next')
    */
   changeWeek: (direction) => {
-    const { currentWeekStart, isTransitioning, selectedDay } = get();
-
-    if (isTransitioning) return;
+    const { currentWeekStart, selectedDay } = get();
 
     // Get the day of week of the currently selected day (0 = Sunday, 6 = Saturday)
     const selectedDayOfWeek = getDay(selectedDay);
@@ -187,24 +80,15 @@ const useCalendarStore = create((set, get) => ({
     // Calculate the same day of week in the new week
     const newSelectedDay = addDays(newWeekStart, selectedDayOfWeek);
 
-    const newTasks = generateTasks(newWeekStart);
-
     set({
-      nextWeekStart: newWeekStart,
-      nextTasks: newTasks,
       slideDirection: direction === "prev" ? "right" : "left",
-      isTransitioning: true,
     });
 
     // Complete the transition after animation
     setTimeout(() => {
       set({
         currentWeekStart: newWeekStart,
-        currentTasks: newTasks,
-        nextWeekStart: null,
-        nextTasks: [],
         slideDirection: null,
-        isTransitioning: false,
         selectedDay: newSelectedDay, // Set the same day of week in the new week
       });
     }, 300);
@@ -215,9 +99,7 @@ const useCalendarStore = create((set, get) => ({
    * @param {Date} date - The date to navigate to
    */
   navigateToDate: (date) => {
-    const { currentWeekStart, isTransitioning } = get();
-
-    if (isTransitioning) return;
+    const { currentWeekStart } = get();
 
     // Get the start of the week containing the selected date
     const targetWeekStart = startOfWeek(date);
@@ -230,13 +112,9 @@ const useCalendarStore = create((set, get) => ({
 
     // Determine if we're going forward or backward
     const isForward = targetWeekStart > currentWeekStart;
-    const newTasks = generateTasks(targetWeekStart);
 
     set({
-      nextWeekStart: targetWeekStart,
-      nextTasks: newTasks,
       slideDirection: isForward ? "left" : "right",
-      isTransitioning: true,
       selectedDay: date,
     });
 
@@ -244,36 +122,10 @@ const useCalendarStore = create((set, get) => ({
     setTimeout(() => {
       set({
         currentWeekStart: targetWeekStart,
-        currentTasks: newTasks,
-        nextWeekStart: null,
         nextTasks: [],
         slideDirection: null,
-        isTransitioning: false,
       });
     }, 300);
-  },
-
-  /**
-   * Marks a task as complete
-   * @param {number} taskId - The ID of the task to complete
-   */
-  completeTask: (taskId) => {
-    set((state) => ({
-      currentTasks: state.currentTasks.map((task) =>
-        task.id === taskId ? { ...task, is_complete: true } : task
-      ),
-    }));
-  },
-
-  /**
-   * Deletes a task
-   * @param {number} taskId - The ID of the task to delete
-   */
-  deleteTask: (taskId) => {
-    set((state) => ({
-      currentTasks: state.currentTasks.filter((task) => task.id !== taskId),
-      selectedTaskId: null,
-    }));
   },
 
   /**
@@ -285,178 +137,71 @@ const useCalendarStore = create((set, get) => ({
     return Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i));
   },
 
+  // TODO Verify is working and used
   /**
-   * Gets the days of the next week (during transition)
-   * @returns {Array} Array of Date objects for each day of the next week
+   * Calculates the progress percentage of a specific task occurrence (instance).
+   * @param {CalculatedInstance} instance - The calculated task instance object.
+   * @param {Date} currentTime - The current time (as a Date object or compatible).
+   * @returns {number} Progress percentage (0-100), clamped. Returns 0 if instance data is invalid.
    */
-  getNextWeekDays: () => {
-    const { nextWeekStart } = get();
-    if (!nextWeekStart) return [];
-    return Array.from({ length: 7 }, (_, i) => addDays(nextWeekStart, i));
-  },
-
-  /**
-   * Gets tasks for a specific day
-   * @param {Date} date - The day to get tasks for
-   * @returns {Array} Array of tasks for the specified day
-   */
-  // getTasksForDay: (date) => {
-  //   const { currentTasks } = get();
-  //   return currentTasks.filter((task) => {
-  //     const taskDate = parseISO(`${task.start_date}T${task.start_time}`);
-  //     return isSameDay(taskDate, date);
-  //   });
-  // },
-
-  /**
-   * Compares dates in MM-DD-YYYY format to return tasks for the specific day
-   * @param {Date | string} date - The date to compare against
-   * @returns {Array} Filtered tasks for the given day
-   */
-  getTasksForFormattedDay: (date) => {
-    const { taskInstances } = get();
-
-    // Format the passed-in date to MM-DD-YYYY
-    const formattedDate = dayjs(date).format("MM-DD-YYYY");
-
-    // Filter tasks based on scheduled_date, comparing formatted dates
-    return taskInstances.filter((task) => {
-      const formattedTaskDate = dayjs(task.scheduled_date).format("MM-DD-YYYY");
-      return formattedTaskDate === formattedDate;
-    });
-  },
-
-  /**
-   * Calculates the progress percentage of a task
-   * @param {Object} task - The task object
-   * @returns {number} Progress percentage (0-100)
-   */
-  getTaskProgress: (task) => {
-    const { currentTime } = get();
-    const startTime = parseISO(`${task.start_date}T${task.start_time}`);
-    const endTime = new Date(
-      startTime.getTime() + task.duration_minutes * 60 * 1000
-    );
-
-    if (isBefore(currentTime, startTime)) return 0;
-    if (isAfter(currentTime, endTime)) return 100;
-
-    const totalDuration = differenceInMinutes(endTime, startTime);
-    const elapsedDuration = differenceInMinutes(currentTime, startTime);
-    return (elapsedDuration / totalDuration) * 100;
-  },
-
-  /**
-   * Calculates the day progress percentage for timeline visualization
-   * @param {Date} date - The day to calculate progress for
-   * @returns {number} Progress percentage (0-100)
-   */
-  getDayProgress: (date) => {
-    const { currentTime } = get();
-
-    // For past days, return 100%
-    if (isBefore(date, currentTime) && !isSameDay(date, currentTime))
-      return 100;
-
-    // For future days, return 0%
-    if (!isSameDay(date, currentTime)) return 0;
-
-    // For current day, calculate percentage through the day
-    const dayStart = setHours(setMinutes(new Date(date), 0), 8); // 8 AM
-    const dayEnd = setHours(setMinutes(new Date(date), 0), 23); // 11 PM
-
-    const totalDayDuration = dayEnd.getTime() - dayStart.getTime();
-    const elapsedTime = currentTime.getTime() - dayStart.getTime();
-
-    return Math.max(0, Math.min(100, (elapsedTime / totalDayDuration) * 100));
-  },
-
-  /**
-   * Opens the task form for creating a new task
-   */
-  openTaskForm: () =>
-    set({
-      isTaskFormOpen: true,
-      isEditingTask: false,
-      taskFormValues: {},
-    }),
-
-  /**
-   * Opens the task form for editing an existing task
-   * @param {number} taskId - The ID of the task to edit
-   */
-  editTask: (taskId) => {
-    const { currentTasks } = get();
-    const task = currentTasks.find((task) => task.id === taskId);
-
-    if (task) {
-      set({
-        isTaskFormOpen: true,
-        isEditingTask: true,
-        taskFormValues: { ...task },
-        isTaskMenuOpen: false, // Close the task menu
-      });
-    } else {
-      // If task not found, still open the form but with empty values
-      set({
-        isTaskFormOpen: true,
-        isEditingTask: false,
-        taskFormValues: {},
-        isTaskMenuOpen: false,
-      });
+  getTaskProgress: (instance, currentTime) => {
+    // Validate input
+    if (
+      !instance ||
+      !instance.scheduled_time_utc ||
+      !instance.duration_minutes ||
+      !currentTime
+    ) {
+      console.warn(
+        "getTaskProgress: Invalid instance or currentTime provided",
+        { instance, currentTime }
+      );
+      return 0; // Cannot calculate progress without valid data
     }
-  },
 
-  /**
-   * Closes the task form
-   */
-  handleCloseTaskForm: () =>
-    set({
-      isTaskFormOpen: false,
-    }),
+    // Use dayjs with UTC plugin for accurate time manipulation
+    const now = dayjs.utc(currentTime); // Ensure current time is treated as UTC for comparison
+    const startTime = dayjs.utc(instance.scheduled_time_utc); // Start time is already UTC
 
-  /**
-   * Creates a new task
-   * @param {Object} taskData - The task data
-   */
-  createTask: (taskData) => {
-    const { currentTasks } = get();
-    const newId = Math.max(0, ...currentTasks.map((task) => task.id)) + 1;
+    // Check if start time is valid
+    if (!startTime.isValid()) {
+      console.warn(
+        "getTaskProgress: Invalid scheduled_time_utc for instance:",
+        instance.id,
+        instance.scheduled_time_utc
+      );
+      return 0;
+    }
 
-    const newTask = {
-      id: newId,
-      ...taskData,
-    };
+    // Calculate end time by adding duration to the UTC start time
+    const endTime = startTime.add(instance.duration_minutes, "minute");
 
-    set({
-      currentTasks: [...currentTasks, newTask],
-      selectedTaskId: newId,
-    });
-  },
+    // --- Determine Progress ---
 
-  /**
-   * Updates an existing task
-   * @param {number} taskId - The ID of the task to update
-   * @param {Object} updates - The updates to apply
-   */
-  updateTask: (taskId, updates) => {
-    const { currentTasks } = get();
+    // 1. If current time is before the instance starts: Progress is 0%
+    if (now.isBefore(startTime)) {
+      return 0;
+    }
 
-    const updatedTasks = currentTasks.map((task) =>
-      task.id === taskId ? { ...task, ...updates } : task
-    );
+    // 2. If current time is after the instance ends: Progress is 100%
+    if (now.isSameOrAfter(endTime)) {
+      // Use isSameOrAfter to include the exact end time as 100%
+      return 100;
+    }
 
-    set({ currentTasks: updatedTasks });
-  },
+    // 3. If current time is during the instance: Calculate percentage
+    const totalDuration = endTime.diff(startTime, "minute"); // Total duration in minutes
+    // Ensure totalDuration is not zero to avoid division by zero
+    if (totalDuration <= 0) {
+      return 100; // If duration is 0 or negative, consider it instantly complete if current time is >= start time
+    }
 
-  /***********
-   *
-   * UI HANDLERS
-   *
-   ************/
-  handleOpenTaskForm: () => {
-    const { openTaskForm } = get();
-    openTaskForm();
+    const elapsedDuration = now.diff(startTime, "minute"); // Elapsed duration in minutes
+
+    const progress = (elapsedDuration / totalDuration) * 100;
+
+    // Clamp the result between 0 and 100 just in case of floating point issues
+    return Math.min(100, Math.max(0, progress));
   },
 }));
 

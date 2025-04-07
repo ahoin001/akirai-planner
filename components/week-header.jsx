@@ -80,7 +80,7 @@ const WeekHeader = ({ weekDays, isNext = false }) => {
   const handleDateSelect = useCallback(
     (date) => {
       // Navigate to the week containing the selected date
-      navigateToDate(date);
+      // navigateToDate(date);
       setDatePickerOpen(false);
     },
     [navigateToDate]

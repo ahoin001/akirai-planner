@@ -16,16 +16,7 @@ import {
   deleteTask,
   getTasksFromWeekWithInstances,
 } from "@/lib/supabase-client";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+
 import {
   Dialog,
   DialogContent,
@@ -34,7 +25,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 
 export function TaskActionMenu() {
   const {
@@ -77,7 +67,6 @@ export function TaskActionMenu() {
     }
   }, [selectedTaskId]);
 
-  // Close the menu
   const closeMenu = () => {
     setIsMounted(false);
     setTimeout(() => {
@@ -86,7 +75,6 @@ export function TaskActionMenu() {
     }, 500);
   };
 
-  // Handle delete action with fade-out animation
   const handleDelete = () => {
     if (isRecurring) {
       setRecurringAction("delete");
@@ -96,7 +84,6 @@ export function TaskActionMenu() {
     }
   };
 
-  // Confirm task deletion (single instance)
   const confirmDeleteSingle = async () => {
     if (!selectedTaskId) return;
 
@@ -270,7 +257,6 @@ export function TaskActionMenu() {
         }`}
         onClick={closeMenu}
       />
-
       {/* Task Menu */}
       <div
         className={`fixed bottom-0 left-1/2 transform -translate-x-1/2 z-50 transition-all duration-500 ease-in-out ${
@@ -336,7 +322,6 @@ export function TaskActionMenu() {
                 </div>
                 <span className="text-xl">Delete</span>
               </button>
-
               {/* Complete button */}
               <button
                 onClick={handleComplete}
@@ -347,8 +332,6 @@ export function TaskActionMenu() {
                 </div>
                 <span className="text-xl">Complete</span>
               </button>
-
-              {/* Edit button */}
               <button
                 className="flex flex-col items-center justify-center bg-zinc-800 p-4 rounded-xl hover:bg-zinc-700 transition-colors"
                 onClick={handleEdit}
@@ -364,29 +347,31 @@ export function TaskActionMenu() {
       </div>
 
       {/* Confirmation Modal for Delete */}
-      <AlertDialog
-        open={isDeleteDialogOpen}
-        onOpenChange={setIsDeleteDialogOpen}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Task</AlertDialogTitle>
-            <AlertDialogDescription>
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Task</DialogTitle>
+            <DialogDescription>
               Are you sure you want to delete this task? This action cannot be
               undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsDeleteDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
               onClick={confirmDeleteSingle}
               className="bg-red-500 hover:bg-red-600"
             >
               Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Recurring Task Options Dialog */}
       <Dialog

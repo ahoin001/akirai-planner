@@ -1,244 +1,269 @@
 "use client";
 
-import { isAfter, isSameDay } from "date-fns";
+import React, { useRef, useEffect, useState, memo, useMemo } from "react";
+import { useTaskStore } from "@/app/stores/useTaskStore";
 
+import { calculateInstancesForRange } from "@/lib/taskCalculator";
+
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+import timezone from "dayjs/plugin/timezone";
+import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
+import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
+
+// ****** OPTIONAL: Import icons from lucide-react ******
 import {
   ChevronUp,
   ChevronDown,
   AlarmClock,
   Moon,
   Dumbbell,
+  Clock,
+  Check,
 } from "lucide-react";
 
-import dayjs from "dayjs";
 import useCalendarStore from "@/app/stores/useCalendarStore";
-import React, { useRef, useEffect, useState, memo } from "react";
-import { useTaskStore } from "@/app/stores/useTaskStore";
 
-/**
- * Gets the appropriate icon for a task type
- * @param {string} type - The task type ('alarm', 'workout', or 'night')
- * @returns {JSX.Element} The icon component
- */
-const getTaskIcon = (type) => {
+// Extend Dayjs with necessary plugins (Best practice: centralize this)
+dayjs.extend(utc);
+dayjs.extend(timezone);
+dayjs.extend(isSameOrBefore);
+dayjs.extend(isSameOrAfter);
+
+// ****** CHANGE: Task Icon based on *parent* task type if available ******
+const getTaskIcon = (instance) => {
+  // TODO: Need access to parent task type. This might require modifying
+  // calculateInstancesForRange to include the parent task's type/color,
+  // or fetching the parent task definition based on instance.task_id.
+  // For now, using a placeholder or assuming 'type' is added to CalculatedInstance.
+  const type = instance?.type || "default"; // Assuming 'type' might be on the instance
+  const sizeClass = "w-5 h-5"; // Consistent size
+
   switch (type) {
     case "alarm":
-      return <AlarmClock className="w-5 h-5" />;
+      return <AlarmClock className={sizeClass} />;
     case "workout":
-      return <Dumbbell className="w-5 h-5" />;
+      return <Dumbbell className={sizeClass} />;
     case "night":
-      return <Moon className="w-5 h-5" />;
+      return <Moon className={sizeClass} />;
     default:
-      return null;
+      return <Clock className={sizeClass} />; // Default icon
   }
 };
 
-/**
- * Individual task item in the drawer
- * Memoized to prevent unnecessary rerenders
- */
-const DrawerTaskItem = memo(
-  ({ taskInstance, isSelected, isInFuture, onClick }) => {
-    const isCompleted = taskInstance.is_complete;
+// instance is now a CalculatedInstance object
+const DrawerTaskItem = memo(({ instance, isSelected, onClick }) => {
+  const formatTimeRange = useTaskStore((state) => state.formatTimeRange);
 
-    const formatTimeRange = (taskInstance) => {
-      const startTime = dayjs(`2000-01-01T${taskInstance.start_time}`);
-      const endTime = startTime.add(taskInstance.duration_minutes, "minute");
+  const isCompleted = instance.is_complete;
 
-      return `${startTime.format("h:mm A")} – ${endTime.format("h:mm A")}`;
-    };
+  // ****** Determine if instance start is in the future ******
+  // Compare scheduled_time_utc with the current time (also in UTC)
+  // Assume `currentTime` from useCalendarStore is a Date object or similar
+  const currentTime = useCalendarStore((state) => state.currentTime); // Get current time
+  const isInFuture = dayjs
+    .utc(instance.scheduled_time_utc)
+    .isAfter(dayjs(currentTime));
 
-    return (
+  // TODO: Need access to parent task color, similar to 'type'.
+  // Assuming 'color' might be added to CalculatedInstance.
+  const bgColor = isCompleted
+    ? "bg-green-600/30" // Muted green for completed
+    : isInFuture
+      ? "bg-gray-700/50" // Gray for future
+      : instance?.color === "pink"
+        ? "bg-pink-500/80"
+        : "bg-blue-500/80"; // Use instance color or default
+
+  return (
+    <div
+      className={`flex items-start space-x-3 sm:space-x-4 cursor-pointer hover:bg-zinc-700/50 p-2 rounded-lg transition-colors duration-150 ${
+        isSelected ? "bg-indigo-600/30 ring-1 ring-indigo-500" : "" // Highlight selection
+      }`}
+      onClick={onClick}
+      id={`taskInstance-${instance.id}`} // Use the unique calculated instance ID
+    >
+      {/* Task icon container */}
       <div
-        className={`flex items-center space-x-4 cursor-pointer hover:bg-zinc-800 p-2 rounded-lg transition-colors
-      ${isSelected ? "bg-gray-700" : ""}`}
-        onClick={onClick}
-        id={`taskInstance-${taskInstance.id}`} // Add id for easier reference
+        className={`w-9 h-9 sm:w-10 sm:h-10 rounded-lg ${bgColor} flex items-center justify-center text-white flex-shrink-0 mt-0.5`}
       >
-        {/* Task icon */}
-        <div
-          className={`w-10 h-10 rounded-full ${
-            isCompleted
-              ? "bg-green-500"
-              : isInFuture
-                ? "bg-gray-700"
-                : taskInstance.color === "pink"
-                  ? "bg-pink-500"
-                  : "bg-blue-500"
-          } flex items-center justify-center`}
-        >
-          {getTaskIcon(taskInstance.type)}
-        </div>
+        {getTaskIcon(instance)}
+      </div>
 
-        {/* Task details */}
-        <div className={isCompleted ? "opacity-60" : ""}>
-          <div className="font-medium flex items-center">
-            {taskInstance.override_title ?? taskInstance.tasks.title}
-            {isCompleted && (
-              <span className="ml-2 text-xs bg-green-500 text-white px-2 py-0.5 rounded-full">
-                Completed
-              </span>
-            )}
-          </div>
-          <div className="text-sm text-gray-400">
-            {formatTimeRange(taskInstance)}
-          </div>
+      {/* Task details */}
+      <div className={`flex-grow min-w-0 ${isCompleted ? "opacity-60" : ""}`}>
+        <div className="font-medium text-sm sm:text-base text-gray-100 flex items-center">
+          {/* Use title from calculated instance (could be overridden) */}
+          <span className="truncate pr-2">{instance.title}</span>
+          {/* Use isCompleted from instance */}
+          {isCompleted && (
+            <span className="ml-auto text-xs bg-green-500/80 text-white px-1.5 py-0.5 rounded-full flex-shrink-0">
+              Done
+            </span>
+          )}
+        </div>
+        <div className="text-xs sm:text-sm text-gray-400 mt-0.5">
+          {formatTimeRange(instance)}
         </div>
       </div>
-    );
-  }
-);
-
-DrawerTaskItem.displayName = "DrawerTaskItem";
+    </div>
+  );
+});
+DrawerTaskItem.displayName = "DrawerTaskItem"; // Keep display name
 
 /**
- * TaskDrawer component
- *
- * Displays tasks for the selected day in a drawer at the bottom of the screen.
- * The drawer can be expanded or collapsed.
- *
- * @param {Object} props - Component props
- * @param {React.RefObject} props.drawerRef - Ref for the drawer element
- * @returns {JSX.Element} Rendered component
+ * TaskDrawer component (Refactored for new store/schema)
  */
 const TaskDrawer = ({ drawerRef }) => {
-  const { currentTime, drawerOpen, selectedDay, toggleDrawer } =
-    useCalendarStore();
+  const { drawerOpen, selectedDay, toggleDrawer } = useCalendarStore();
 
-  const { handleTaskSelect, selectedTaskId, taskInstances } = useTaskStore();
+  const tasks = useTaskStore((state) => state.tasks);
+  const exceptions = useTaskStore((state) => state.exceptions);
+  const selectedInstance = useTaskStore((state) => state.selectedInstance);
+  const openTaskMenu = useTaskStore((state) => state.openTaskMenu);
+  const isLoading = useTaskStore((state) => state.isLoading);
 
   const [isAnimating, setIsAnimating] = useState(false);
   const [prevDay, setPrevDay] = useState(null);
+  const taskListRef = useRef(null); // Keep ref for scrolling
 
-  // Ref for task list
-  const taskListRef = useRef(null);
+  // ****** Might move to store: Calculate instances for the selected day ******
+  const tasksForSelectedDay = useMemo(() => {
+    if (!selectedDay || !tasks) return [];
+    const dayStart = dayjs(selectedDay).startOf("day").toISOString();
+    const dayEnd = dayjs(selectedDay).endOf("day").toISOString();
+    try {
+      return calculateInstancesForRange(tasks, exceptions, dayStart, dayEnd);
+    } catch (error) {
+      console.error("TaskDrawer: Error calculating instances:", error);
+      return [];
+    }
+  }, [selectedDay, tasks, exceptions]); // Dependencies
 
-  const tasksForSelectedDay = React.useMemo(() => {
-    if (!selectedDay) return [];
+  // Determine drawer height (keep original logic, maybe adjust numbers)
+  const minDrawerHeight = tasksForSelectedDay.length > 0 ? 270 : 160; // Slightly smaller min height?
+  const bottomNavHeight = 64; // Assuming h-16 is bottom nav height in px
+  const expandedDrawerHeight = `calc(75vh - ${bottomNavHeight}px)`; // Use vh for expanded height
 
-    const formattedProvidedDate = dayjs(selectedDay).format("YYYY-MM-DD");
-
-    return taskInstances.filter(
-      (item) => item.scheduled_date === formattedProvidedDate
-    );
-  }, [selectedDay, taskInstances]);
-
-  // Determine drawer height to show at least one task of space
-  const minDrawerHeight = tasksForSelectedDay.length > 0 ? 220 : 200;
-
-  // Account for bottom nav height (h-16 = 64px)
-  const bottomNavHeight = 1;
-
-  // Calculate expanded drawer height (account for bottom nav)
-  const expandedDrawerHeight = `calc(66.67% - ${bottomNavHeight}px)`;
-
-  // Scroll to selected task when it changes
+  // ****** CHANGE: Scroll logic needs update ******
   useEffect(() => {
-    if (selectedTaskId && taskListRef.current) {
-      // Use setTimeout to ensure DOM is updated
+    // Scroll to the *selectedInstance* when the drawer opens or instance changes
+    if (selectedInstance && drawerOpen && taskListRef.current) {
+      // ID is now potentially taskId-timestamp or exceptionId
+      const targetElementId = `taskInstance-${selectedInstance.id}`;
+      // Use setTimeout to allow DOM updates after selection/open
       setTimeout(() => {
-        const taskElement = document.getElementById(`task-${selectedTaskId}`);
-
+        const taskElement = document.getElementById(targetElementId);
         if (taskElement && taskListRef.current) {
-          // Scroll the task into view with padding
-          taskElement.scrollIntoView({
-            behavior: "smooth",
-            block: "nearest",
-          });
-
-          // Add additional offset if needed
-          const currentScroll = taskListRef.current.scrollTop;
-          const elementPosition = taskElement.offsetTop;
-          const scrollPosition = elementPosition - 105; // Add some padding
+          // Calculate desired scroll position (element top - some offset)
+          const listTop = taskListRef.current.offsetTop; // Or bounding rect top
+          const elementTop = taskElement.offsetTop;
+          const desiredScrollTop = elementTop - listTop - 10; // Adjust offset as needed
 
           taskListRef.current.scrollTo({
-            top: scrollPosition,
+            top: Math.max(0, desiredScrollTop), // Ensure not scrolling negative
             behavior: "smooth",
           });
+          console.log(
+            `Scrolling to ${targetElementId} at top: ${desiredScrollTop}`
+          );
+        } else {
+          console.log(`Scroll target not found: #${targetElementId}`);
         }
-      }, 100);
+      }, 150); // Delay allows rendering and state updates
     }
-  }, [selectedTaskId, drawerOpen]);
+    // Note: Scrolling based on day *change* animation might conflict.
+    // Consider if scrolling is needed on day change or only on selection.
+  }, [selectedInstance, drawerOpen]); // Trigger scroll on selection or drawer opening
 
-  // Handle day change animation
+  // Handle day change animation (keep original logic)
   useEffect(() => {
-    if (prevDay && selectedDay && !isSameDay(prevDay, selectedDay)) {
+    if (prevDay && selectedDay && !dayjs(prevDay).isSame(selectedDay, "day")) {
       setIsAnimating(true);
       const timer = setTimeout(() => {
         setIsAnimating(false);
-      }, 300);
+      }, 300); // Animation duration
       return () => clearTimeout(timer);
     }
     setPrevDay(selectedDay);
-  }, [selectedDay]);
+  }, [selectedDay, prevDay]); // Keep prevDay dependency
 
   return (
     <div
       ref={drawerRef}
-      className="fixed left-1/2 transform -translate-x-1/2 bottom-5 bg-drawer rounded-t-3xl shadow-lg transition-all duration-300 ease-in-out"
+      // ****** CHANGE: Simpler positioning, relies on parent context potentially ******
+      // If this is directly in body, fixed positioning is fine. Adjust if nested.
+      className="fixed bottom-0 left-0 right-0 w-[90%] mx-auto md:right-4 z-30 bg-zinc-900 border border-gray-700/50 rounded-t-2xl md:rounded-xl shadow-2xl transition-all duration-300 ease-out" // Responsive width/rounding
       style={{
-        width: "85vw",
+        // Use max-height and dynamic height
         height: drawerOpen ? expandedDrawerHeight : `${minDrawerHeight}px`,
-        maxHeight: `calc(100vh - ${bottomNavHeight}px)`,
+        // Max height prevents overlap with potential top nav
+        maxHeight: `calc(90vh - ${bottomNavHeight}px)`,
+        // Apply transform for animation if needed, but height transition might suffice
+        // transform: drawerOpen ? 'translateY(0)' : `translateY(calc(100% - ${minDrawerHeight}px - ${bottomNavHeight}px))`, // Alternative animation
       }}
     >
-      <div className="flex flex-col h-full rounded-t-xl">
-        {/* Drawer header with title and toggle button */}
-        <div className="p-4 flex justify-between items-center sticky top-0 bg-drawer rounded-[80px]  z-10">
-          <h2 className="text-lg font-semibold">
-            {selectedDay ? dayjs(selectedDay).format("dddd, MMMM D") : "Tasks"}
+      <div className="flex flex-col h-full rounded-t-xl md:rounded-xl overflow-hidden">
+        {/* Ensure overflow hidden */}
+        {/* Drawer header */}
+        <div className="p-3 sm:p-4 flex justify-between items-center flex-shrink-0 border-b border-gray-700/50 bg-zinc-900/80 backdrop-blur-sm">
+          {" "}
+          {/* Sticky header style */}
+          <h2 className="text-base sm:text-lg font-semibold text-gray-100">
+            {selectedDay ? dayjs(selectedDay).format("ddd, MMM D") : "Tasks"}
           </h2>
           <button
             onClick={toggleDrawer}
-            className="p-2 hover:bg-zinc-800 rounded-full transition-colors duration-200 cursor-pointer"
+            className="p-1.5 hover:bg-zinc-700/60 rounded-full transition-colors text-gray-400 hover:text-white"
             aria-label={drawerOpen ? "Collapse drawer" : "Expand drawer"}
           >
             {drawerOpen ? (
-              <ChevronDown className="w-6 h-6" />
+              <ChevronDown className="w-5 h-5 sm:w-6 sm:h-6" />
             ) : (
-              <ChevronUp className="w-6 h-6" />
+              <ChevronUp className="w-5 h-5 sm:w-6 sm:h-6" />
             )}
           </button>
         </div>
 
-        {/* Task list with animation */}
+        {/* Task list */}
         {selectedDay && (
+          //  className={`overflow-y-auto flex-grow transition-opacity duration-300 ${
+          //   isAnimating ? "opacity-0" : "opacity-100"
+          // }`}
           <div
             ref={taskListRef}
-            className={`px-4 space-y-4 overflow-y-auto transition-opacity duration-300 flex-grow ${
-              isAnimating ? "opacity-0" : "opacity-100"
-            }`}
-            style={{
-              overflowY: "auto",
-              WebkitOverflowScrolling: "touch", // Better scrolling on iOS
-              paddingBottom: "20px", // Add extra padding at bottom
-            }}
+            className={`overflow-y-auto flex-grow`}
+            // Add padding inside the scrollable area
+            style={{ padding: "8px 16px 16px 16px" }} // p-4 equivalent but avoids header padding
           >
-            {tasksForSelectedDay.length === 0 ? (
-              <div className="text-gray-400 text-center py-4">
+            {/* Display loading state */}
+            {isLoading && tasksForSelectedDay.length === 0 && (
+              <div className="text-gray-500 text-center py-6 text-sm">
+                Loading tasks...
+              </div>
+            )}
+            {/* Display no tasks message */}
+            {!isLoading && tasksForSelectedDay.length === 0 && (
+              <div className="text-gray-500 text-center py-6 text-sm">
                 No tasks scheduled for this day.
               </div>
-            ) : (
-              tasksForSelectedDay.map((task) => {
-                const startTime = dayjs(
-                  `${task.start_date}T${task.start_time}`
-                );
-                const isInFuture = isAfter(startTime.toDate(), currentTime);
-                const isSelected = task.id === selectedTaskId;
-
-                return (
-                  <DrawerTaskItem
-                    key={task.id}
-                    taskInstance={task}
-                    isSelected={isSelected}
-                    isInFuture={isInFuture}
-                    onClick={() => handleTaskSelect(task)}
-                  />
-                );
-              })
             )}
-
-            {/* Add extra space at bottom for better scrolling */}
+            {/* Render Task Items */}
+            {tasksForSelectedDay.length > 0 && (
+              <div className="space-y-2 sm:space-y-3">
+                {" "}
+                {/* Add spacing between items */}
+                {tasksForSelectedDay.map((instance) => (
+                  <DrawerTaskItem
+                    key={instance.id} // Use calculated instance unique ID
+                    instance={instance} // Pass the calculated instance
+                    isSelected={selectedInstance?.id === instance.id} // Compare selected instance ID
+                    onClick={() => openTaskMenu(instance)} // Pass calculated instance
+                  />
+                ))}
+              </div>
+            )}
+            {/* Extra space at bottom for scroll */}
             <div className="h-8"></div>
           </div>
         )}
