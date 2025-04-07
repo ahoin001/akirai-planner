@@ -10,6 +10,7 @@ import timezone from "dayjs/plugin/timezone";
 
 import { RRule, RRuleSet, rrulestr } from "rrule";
 import { revalidatePath } from "next/cache"; // For refreshing UI data
+import { count } from "console";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -129,6 +130,8 @@ export const createTaskAction = async (taskData) => {
 
       // Base RRULE options
       const ruleOptions = {
+        count: null,
+        until: null,
         freq: freqMap[frequency],
         interval: Math.max(1, parseInt(interval, 10) || 1),
         // dtstart is implicitly handled by the context or can be explicitly set
