@@ -10,7 +10,7 @@ import {
   TaskDefinition,
   TaskException,
   CalculatedInstance,
-} from "@/types/taskTypes";
+} from "@/types/tasks";
 
 // Ensure Dayjs plugins are loaded
 dayjs.extend(utc);
@@ -207,9 +207,6 @@ export const calculateInstancesForRange = (
     dayjs(a.scheduled_time_utc).diff(dayjs(b.scheduled_time_utc))
   );
 
-  // console.log(
-  //   `taskCalculator: Calculated ${finalInstances.length} instances for range ${rangeStartISO} to ${rangeEndISO}`
-  // );
   return finalInstances;
 };
 

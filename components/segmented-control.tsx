@@ -120,7 +120,9 @@ export const SegmentedControl = React.forwardRef<
       {data.map((item, index) => (
         <Button
           key={item.value}
-          ref={(el) => (buttonRefs.current[index] = el)}
+          ref={(el) => {
+            buttonRefs.current[index] = el;
+          }}
           type="button"
           variant="ghost"
           size="sm"
