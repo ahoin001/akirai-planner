@@ -702,10 +702,10 @@ export function TaskForm({ selectedDate }) {
                     data={frequencyOptions}
                     value={field.value ?? "once"}
                     onChange={field.onChange}
-                    disabled={isExceptionEditMode}
                     fullWidth
                     fillSelected
                   />
+                  // disabled={isExceptionEditMode}
                 )}
               />
               {errors.frequency && (
