@@ -49,25 +49,37 @@ export default function TaskActionMenu() {
   }, [selectedTask]);
 
   // Animation/Visibility Effect
+  // Animation/Visibility Effect
   useEffect(() => {
-    const animationDuration = 500;
-    let mountTimer;
-    let visibilityTimer;
+    const animationDuration = 500; // Your desired transition duration in ms
+    let mountTimerId = null; // Timer for mounting animation
+    let visibilityTimerId = null; // Timer for unmounting visibility
 
     if (isTaskMenuOpen) {
+      // 1. Make the component part of the layout immediately
       setIsVisible(true);
-      mountTimer = setTimeout(() => setIsMounted(true), 10); // Render then animate
+
+      // 2. Use a minimal setTimeout to trigger the 'mounted' state AFTER
+      //    the browser has had a chance to render the 'visible' state.
+      //    This ensures the 'translate-y-full' class is applied first.
+      mountTimerId = setTimeout(() => {
+        setIsMounted(true); // Now apply the 'translate-y-0' class to trigger animation
+      }, 10); // Small delay (10ms is often enough, adjust if needed)
     } else {
-      setIsMounted(false); // Animate out
-      visibilityTimer = setTimeout(
-        () => setIsVisible(false),
-        animationDuration
-      ); // Hide after animation
+      // 1. Start the closing animation by setting isMounted to false
+      setIsMounted(false); // Apply 'translate-y-full'
+
+      // 2. AFTER the animation duration, hide the component completely
+      visibilityTimerId = setTimeout(() => {
+        setIsVisible(false); // Remove from layout
+      }, animationDuration); // Match CSS transition duration
     }
 
+    // Cleanup function: Clear any pending timers if the state changes
+    // or the component unmounts before the timers complete.
     return () => {
-      clearTimeout(mountTimer);
-      clearTimeout(visibilityTimer);
+      if (mountTimerId) clearTimeout(mountTimerId);
+      if (visibilityTimerId) clearTimeout(visibilityTimerId);
     };
   }, [isTaskMenuOpen]);
 
@@ -224,38 +236,34 @@ export default function TaskActionMenu() {
   return (
     <>
       <div
-        className={`fixed inset-0 bg-black/50 z-40 transition-opacity duration-300 ease-in-out ${
-          isMounted ? "opacity-100" : "opacity-0" // Fade based on mount
-        }`}
+        className={`fixed inset-0 bg-black/50 z-40 transition-opacity duration-300 ease-in-out `}
         onClick={handleBackdropClick}
         aria-hidden="true"
       />
 
       {/* Positioning Container: Centers the menu */}
       <div
-        className="fixed inset-x-0 bottom-0 z-50 flex justify-center pointer-events-none"
+        className="fixed inset-x-0 bottom-20 z-50 flex justify-center pointer-events-none transition-all duration-500 ease-in-out"
         aria-live="assertive"
       >
         {/* Visual Panel: Width, background, shape, animation */}
         <div
           // Apply animation class directly
           className={`
-            bg-zinc-900 text-white                   # Original background/text
-            w-[90%]                                  # Original mobile width preference
-            max-w-md                                 # Original max-width
-            rounded-3xl                              # Original rounding
+            bg-zinc-900 text-white                   
+            w-[90%]                                  
+            max-w-md                                 
+            rounded-3xl                              
             shadow-lg overflow-hidden pointer-events-auto
-            transition-transform duration-500 ease-in-out # Original duration/easing
-            ${isMounted ? "translate-y-0" : "translate-y-full"} # Changed animation target to 0
+            transition-transform duration-500 ease-in-out 
+            ${isMounted ? "translate-y-0" : "translate-y-full"} 
           `}
           onClick={(e) => e.stopPropagation()}
           role="dialog"
           aria-modal="true"
           aria-labelledby="task-action-menu-title"
         >
-          {/* Inner Content Padding: Make slightly responsive */}
           <div className="relative p-4 sm:p-6">
-            {" "}
             {/* Use relative for close button positioning */}
             {/* Close Button: Positioned top-right relative to padding */}
             <button
@@ -263,10 +271,9 @@ export default function TaskActionMenu() {
               className="absolute top-3 right-3 sm:top-4 sm:right-4 text-gray-400 hover:text-white p-1 rounded-full hover:bg-gray-700/60 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-900 focus-visible:ring-blue-500"
               aria-label="Close menu"
             >
-              <X size={24} />{" "}
+              <X size={24} />
             </button>
             <div className="flex items-start gap-3 sm:gap-4 mb-4 pt-6 sm:pt-4">
-              {" "}
               <TaskIcon />
               <div className="min-w-0">
                 <p className="mb-1 sm:mb-2 text-gray-400 text-sm">
@@ -276,7 +283,6 @@ export default function TaskActionMenu() {
                   id="task-action-menu-title"
                   className="text-2xl font-bold truncate"
                 >
-                  {" "}
                   {/* Added truncate */}
                   {selectedTask?.override_title ??
                     selectedTask?.title ??

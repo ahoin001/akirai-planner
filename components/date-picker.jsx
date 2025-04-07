@@ -39,19 +39,22 @@ export default function DatePicker({
   onSelect,
   selectedDate,
 }) {
-  // State to track the currently displayed month
-  // const [currentMonth, setCurrentMonth] = useState(selectedDate || new Date());
-
-  // Update the currentMonth state initialization
   const [currentMonth, setCurrentMonth] = useState(
-    selectedDate instanceof Date && !isNaN(selectedDate)
-      ? selectedDate
-      : new Date()
+    selectedDate ? new Date(selectedDate) : new Date() // Parse ISO strings
   );
 
   const pickerRef = useRef(null);
 
-  // Close when clicking outside
+  // Add validation to ensure it's a valid Date
+  useEffect(() => {
+    if (selectedDate) {
+      const parsedDate = new Date(selectedDate);
+      if (!isNaN(parsedDate.getTime())) {
+        setCurrentMonth(parsedDate);
+      }
+    }
+  }, [selectedDate]);
+
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (pickerRef.current && !pickerRef.current.contains(event.target)) {

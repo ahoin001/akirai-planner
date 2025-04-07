@@ -7,12 +7,10 @@ import { redirect } from "next/navigation";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
-import { SupabaseClient } from "@supabase/supabase-js";
 
 import { RRule, RRuleSet, rrulestr } from "rrule";
 import { revalidatePath } from "next/cache"; // For refreshing UI data
 
-// Extend Day.js with required plugins
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
@@ -23,7 +21,7 @@ export const createTaskAction = async (taskData) => {
   console.log("SERVER ACTION (createTaskAction): Received Data:", taskData);
 
   try {
-    const supabase = await createClient(); // Get server client
+    const supabase = await createClient();
     const {
       data: { user },
       error: authError,
@@ -36,6 +34,7 @@ export const createTaskAction = async (taskData) => {
     // --- 1. Validate Core Fields ---
     if (!taskData.title?.trim()) throw new Error("Task title is required.");
     if (!taskData.start_date) throw new Error("Start date is required.");
+
     // ****** VALIDATE: Ensure start_time is HH:mm ******
     if (
       !taskData.start_time ||
@@ -79,9 +78,9 @@ export const createTaskAction = async (taskData) => {
     }
 
     // --- 3. Determine Timezone & Calculate `dtstart` (TIMESTAMPTZ) ---
-    const timeZone = taskData.timezone || dayjs.tz.guess() || "UTC"; // Guess timezone if not provided
+    const timeZone = taskData.timezone || dayjs.tz.guess() || "UTC";
     const localStartDateTime = dayjs.tz(
-      `${taskData.start_date} ${taskData.start_time}`, // Combine date and HH:mm time
+      `${taskData.start_date} ${taskData.start_time}`,
       "YYYY-MM-DD HH:mm", // Specify format for parsing
       timeZone // Specify the timezone of the input
     );
@@ -99,6 +98,7 @@ export const createTaskAction = async (taskData) => {
         "Invalid start date/time combination. Please use YYYY-MM-DD and HH:mm."
       );
     }
+
     // Convert the local time to an ISO 8601 string. Supabase TIMESTAMPTZ handles this correctly.
     const dtstartISO = localStartDateTime.toISOString();
     console.log(
@@ -232,7 +232,7 @@ export const createTaskAction = async (taskData) => {
     revalidatePath("/protected"); // Example path
     // Add any other specific paths where tasks are displayed
 
-    return insertedTask; // Return the created task definition
+    return insertedTask;
   } catch (error) {
     // Log the detailed error on the server
     console.error("SERVER ACTION Error: Task creation failed.", error);

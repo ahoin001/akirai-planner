@@ -58,11 +58,6 @@ const VerticalGanttChart = () => {
 
   const weekDays = useMemo(() => getWeekDays(), [getWeekDays]);
 
-  const handleHeaderClick = useCallback((date) => {
-    setDatePickerFor(date);
-    setDatePickerOpen(true);
-  }, []);
-
   const handleCloseDatePicker = useCallback(() => {
     setDatePickerOpen(false);
   }, []);
@@ -74,6 +69,15 @@ const VerticalGanttChart = () => {
     },
     [navigateToDate]
   );
+
+  const handleHeaderClick = useCallback((date) => {
+    setDatePickerFor(date);
+    setDatePickerOpen(true);
+  }, []);
+
+  const handleOpenTaskForm = useCallback(() => {
+    openTaskForm(selectedDay);
+  }, [selectedDay, openTaskForm]);
 
   return (
     <div className="w-full flex flex-col h-screen bg-background text-white p-4">
@@ -94,6 +98,7 @@ const VerticalGanttChart = () => {
           <WeekHeader weekDays={weekDays} />
         </div>
       </div>
+
       {/* Scrollable timeline container */}
       <div ref={containerRef} className="flex-grow overflow-hidden pb-[260px]">
         <div
@@ -136,7 +141,7 @@ const VerticalGanttChart = () => {
         selectedDate={selectedDay}
       />
 
-      <FloatingActionButton onClick={openTaskForm} />
+      <FloatingActionButton onClick={handleOpenTaskForm} />
 
       <DatePicker
         isOpen={datePickerOpen}

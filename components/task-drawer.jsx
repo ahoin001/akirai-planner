@@ -1,31 +1,27 @@
 "use client";
 
-import React, { useRef, useEffect, useState, memo, useMemo } from "react"; // Added useMemo
-import { useTaskStore } from "@/app/stores/useTaskStore"; // Use the *new* store
+import React, { useRef, useEffect, useState, memo, useMemo } from "react";
+import { useTaskStore } from "@/app/stores/useTaskStore";
 
-import { calculateInstancesForRange } from "@/lib/taskCalculator"; // Adjust path
+import { calculateInstancesForRange } from "@/lib/taskCalculator";
 
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
-import isSameOrBefore from "dayjs/plugin/isSameOrBefore"; // For isInFuture check
-import isSameOrAfter from "dayjs/plugin/isSameOrAfter"; // For isInFuture check (or just use isAfter if preferred)
-
-import { shallow } from "zustand/shallow";
+import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
+import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
 
 // ****** OPTIONAL: Import icons from lucide-react ******
 import {
   ChevronUp,
   ChevronDown,
-  AlarmClock, // Assuming Clock might be used as default later
+  AlarmClock,
   Moon,
   Dumbbell,
-  Clock, // Default icon maybe?
-  Check, // For completed status visually?
+  Clock,
+  Check,
 } from "lucide-react";
 
-// ****** CHANGE: Assumed useCalendarStore provides these ******
-// You might want to consolidate date/time state into useTaskStore eventually
 import useCalendarStore from "@/app/stores/useCalendarStore";
 
 // Extend Dayjs with necessary plugins (Best practice: centralize this)
@@ -35,7 +31,6 @@ dayjs.extend(isSameOrBefore);
 dayjs.extend(isSameOrAfter);
 
 // ****** CHANGE: Task Icon based on *parent* task type if available ******
-// This function might need adjustment based on where 'type' is stored (parent task vs. exception)
 const getTaskIcon = (instance) => {
   // TODO: Need access to parent task type. This might require modifying
   // calculateInstancesForRange to include the parent task's type/color,
@@ -56,11 +51,8 @@ const getTaskIcon = (instance) => {
   }
 };
 
-// ****** CHANGE: Refactored DrawerTaskItem for CalculatedInstance ******
+// instance is now a CalculatedInstance object
 const DrawerTaskItem = memo(({ instance, isSelected, onClick }) => {
-  // instance is now a CalculatedInstance object
-
-  // Check completion status directly from the calculated instance
   const isCompleted = instance.is_complete;
 
   // ****** CHANGE: Format time range using scheduled_time_utc and duration ******
@@ -84,7 +76,7 @@ const DrawerTaskItem = memo(({ instance, isSelected, onClick }) => {
     return `${startTimeLocal.format("h:mm A")} – ${endTimeLocal.format("h:mm A")}`;
   };
 
-  // ****** CHANGE: Determine if instance start is in the future ******
+  // ****** Determine if instance start is in the future ******
   // Compare scheduled_time_utc with the current time (also in UTC)
   // Assume `currentTime` from useCalendarStore is a Date object or similar
   const currentTime = useCalendarStore((state) => state.currentTime); // Get current time
@@ -92,7 +84,6 @@ const DrawerTaskItem = memo(({ instance, isSelected, onClick }) => {
     .utc(instance.scheduled_time_utc)
     .isAfter(dayjs(currentTime));
 
-  // ****** CHANGE: Determine background color ******
   // TODO: Need access to parent task color, similar to 'type'.
   // Assuming 'color' might be added to CalculatedInstance.
   const bgColor = isCompleted
@@ -143,23 +134,19 @@ DrawerTaskItem.displayName = "DrawerTaskItem"; // Keep display name
  * TaskDrawer component (Refactored for new store/schema)
  */
 const TaskDrawer = ({ drawerRef }) => {
-  // Get UI state from Calendar store (assuming it still manages these)
-  const { currentTime, drawerOpen, selectedDay, toggleDrawer } =
-    useCalendarStore();
+  const { drawerOpen, selectedDay, toggleDrawer } = useCalendarStore();
 
   const tasks = useTaskStore((state) => state.tasks);
   const exceptions = useTaskStore((state) => state.exceptions);
-  const selectedDate = useTaskStore((state) => state.selectedDate);
   const selectedInstance = useTaskStore((state) => state.selectedInstance);
   const openTaskMenu = useTaskStore((state) => state.openTaskMenu);
   const isLoading = useTaskStore((state) => state.isLoading);
-  // ****** REMOVED: selectedTaskId, taskInstances ******
 
   const [isAnimating, setIsAnimating] = useState(false);
   const [prevDay, setPrevDay] = useState(null);
   const taskListRef = useRef(null); // Keep ref for scrolling
 
-  // ****** CHANGE: Calculate instances for the selected day ******
+  // ****** Might move to store: Calculate instances for the selected day ******
   const tasksForSelectedDay = useMemo(() => {
     if (!selectedDay || !tasks) return [];
     const dayStart = dayjs(selectedDay).startOf("day").toISOString();
@@ -173,7 +160,7 @@ const TaskDrawer = ({ drawerRef }) => {
   }, [selectedDay, tasks, exceptions]); // Dependencies
 
   // Determine drawer height (keep original logic, maybe adjust numbers)
-  const minDrawerHeight = tasksForSelectedDay.length > 0 ? 180 : 160; // Slightly smaller min height?
+  const minDrawerHeight = tasksForSelectedDay.length > 0 ? 270 : 160; // Slightly smaller min height?
   const bottomNavHeight = 64; // Assuming h-16 is bottom nav height in px
   const expandedDrawerHeight = `calc(75vh - ${bottomNavHeight}px)`; // Use vh for expanded height
 
@@ -225,8 +212,7 @@ const TaskDrawer = ({ drawerRef }) => {
       ref={drawerRef}
       // ****** CHANGE: Simpler positioning, relies on parent context potentially ******
       // If this is directly in body, fixed positioning is fine. Adjust if nested.
-      // Using Tailwind for positioning and sizing.
-      className="fixed bottom-0 left-0 right-0 w-full md:left-auto md:right-4 z-30 bg-zinc-900 border border-gray-700/50 rounded-t-2xl md:rounded-xl shadow-2xl transition-all duration-300 ease-out" // Responsive width/rounding
+      className="fixed bottom-0 left-0 right-0 w-[90%] mx-auto md:right-4 z-30 bg-zinc-900 border border-gray-700/50 rounded-t-2xl md:rounded-xl shadow-2xl transition-all duration-300 ease-out" // Responsive width/rounding
       style={{
         // Use max-height and dynamic height
         height: drawerOpen ? expandedDrawerHeight : `${minDrawerHeight}px`,
@@ -237,7 +223,6 @@ const TaskDrawer = ({ drawerRef }) => {
       }}
     >
       <div className="flex flex-col h-full rounded-t-xl md:rounded-xl overflow-hidden">
-        {" "}
         {/* Ensure overflow hidden */}
         {/* Drawer header */}
         <div className="p-3 sm:p-4 flex justify-between items-center flex-shrink-0 border-b border-gray-700/50 bg-zinc-900/80 backdrop-blur-sm">
@@ -258,6 +243,7 @@ const TaskDrawer = ({ drawerRef }) => {
             )}
           </button>
         </div>
+
         {/* Task list */}
         {selectedDay && (
           //  className={`overflow-y-auto flex-grow transition-opacity duration-300 ${
@@ -301,11 +287,8 @@ const TaskDrawer = ({ drawerRef }) => {
           </div>
         )}
       </div>
-      {/* Action Menu is likely triggered elsewhere now, or positioned differently */}
-      {/* <TaskActionMenu /> */}
     </div>
   );
 };
 
-// Use memo if performance requires it, but ensure props are stable
 export default memo(TaskDrawer);

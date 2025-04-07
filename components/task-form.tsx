@@ -138,13 +138,7 @@ const frequencyOptions = [
 ];
 // ---
 
-// No props interface needed for JSX, props accessed directly
-export function TaskForm({
-  // Props that might still be passed (like default date context)
-  selectedDate,
-  // Props controlling the sheet are now handled via store state
-}) {
-  // ****** CHANGE: Select needed state and actions from the store ******
+export function TaskForm({ selectedDate }) {
   const {
     isTaskFormOpen: isOpen,
     isEditingTask: isEditing,
@@ -154,14 +148,14 @@ export function TaskForm({
   } = useTaskStore();
 
   const [formError, setFormError] = useState(null);
-  const [isStartDatePickerOpen, setIsStartDatePickerOpen] = useState(false);
   const [isEndDatePickerOpen, setIsEndDatePickerOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showRecurrenceOptions, setShowRecurrenceOptions] = useState(false);
   const [isScopeModalOpen, setIsScopeModalOpen] = useState(false); // Unified visibility state
+  const [isStartDatePickerOpen, setIsStartDatePickerOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [pendingPayload, setPendingPayload] = useState(null);
   const [scopeActionType, setScopeActionType] = useState(null); // 'modify' or 'delete' (for modal text context)
   const [selectedScopeOption, setSelectedScopeOption] = useState(null); // 'single', 'future', 'all' (set by modal clicks)
-  const [pendingPayload, setPendingPayload] = useState(null);
+  const [showRecurrenceOptions, setShowRecurrenceOptions] = useState(false);
 
   // --- React Hook Form Setup ---
   const {
@@ -217,6 +211,7 @@ export function TaskForm({
       const defaultStartDate = selectedDate
         ? dayjs(selectedDate).toDate()
         : new Date();
+
       const baseDefaults = {
         title: "",
         start_date: defaultStartDate,
@@ -279,9 +274,8 @@ export function TaskForm({
       setScopeActionType(null);
       setSelectedScopeOption(null);
     }
-  }, [isOpen, initialValues, isEditing, reset, selectedDate]); // Added store's isEditing
+  }, [isOpen, initialValues, isEditing, reset, selectedDate]);
 
-  // --- Submission Logic ---
   const onSubmit = async (data) => {
     setFormError(null);
 
@@ -355,7 +349,7 @@ export function TaskForm({
         await executeSubmit(updateTaskDefinitionAction, updatePayload, "all");
       }
     } else {
-      // --- CREATING NEW TASK ---
+      // * --- CREATING NEW TASK ---
       const createPayload = {
         ...basePayload, // Title, start date/time, duration, timezone
         // Pass recurrence details object for action to parse
@@ -514,6 +508,7 @@ export function TaskForm({
     setValue("start_date", date, { shouldValidate: true });
     setIsStartDatePickerOpen(false);
   };
+
   const handleEndDateSelect = (date) => {
     setValue("end_date", date, { shouldValidate: true });
     setIsEndDatePickerOpen(false);
@@ -619,40 +614,50 @@ export function TaskForm({
                 )}
               />
               {/* Start Date Picker */}
-              <div className="flex flex-col items-center mt-4 sm:mt-6">
-                <button
-                  type="button"
-                  onClick={() => setIsStartDatePickerOpen((prev) => !prev)}
-                  className="flex items-center gap-2 text-indigo-400 px-4 py-2 rounded-lg hover:bg-gray-800/60 transition-colors text-sm sm:text-base"
-                >
-                  <CalendarIcon className="w-4 h-4 sm:w-5 sm:h-5" />
-                  <span>
-                    {formStartDate
-                      ? dayjs(formStartDate).format("MMMM D, YYYY")
-                      : "Select Start Date"}
-                  </span>
-                  {isStartDatePickerOpen ? (
-                    <ChevronUp className="w-4 h-4" />
-                  ) : (
-                    <ChevronDown className="w-4 h-4" />
-                  )}
-                </button>
-                {isStartDatePickerOpen && (
-                  <div className="w-full max-w-xs mx-auto mt-4 z-10 relative">
-                    <DatePicker
-                      isOpen={isStartDatePickerOpen}
-                      onSelect={handleStartDateSelect}
-                      selectedDate={formStartDate}
-                      onClose={() => setIsStartDatePickerOpen(false)}
-                    />
-                  </div>
+              <Controller
+                name="start_date"
+                control={control}
+                render={({ field }) => (
+                  <>
+                    <div className="flex flex-col items-center mt-4 sm:mt-6">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setIsStartDatePickerOpen((prev) => !prev)
+                        }
+                        className="flex items-center gap-2 text-indigo-400 px-4 py-2 rounded-lg hover:bg-gray-800/60 transition-colors text-sm sm:text-base"
+                      >
+                        <CalendarIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+                        <span>
+                          {field.value
+                            ? dayjs(field.value).format("MMMM D, YYYY")
+                            : "Select Start Date"}
+                        </span>
+                        {isStartDatePickerOpen ? (
+                          <ChevronUp className="w-4 h-4" />
+                        ) : (
+                          <ChevronDown className="w-4 h-4" />
+                        )}
+                      </button>
+                      {isStartDatePickerOpen && (
+                        <div className="w-full max-w-xs mx-auto mt-4 z-10 relative">
+                          <DatePicker
+                            isOpen={isStartDatePickerOpen}
+                            onSelect={handleStartDateSelect}
+                            selectedDate={field.value}
+                            onClose={() => setIsStartDatePickerOpen(false)}
+                          />
+                        </div>
+                      )}
+                      {errors.start_date && (
+                        <p className="text-red-400 text-xs mt-1">
+                          {errors.start_date.message}
+                        </p>
+                      )}
+                    </div>
+                  </>
                 )}
-                {errors.start_date && (
-                  <p className="text-red-400 text-xs mt-1">
-                    {errors.start_date.message}
-                  </p>
-                )}
-              </div>
+              />
             </div>
             {/* Duration Picker */}
             <div>
@@ -915,21 +920,18 @@ export function TaskForm({
           </div>
         </form>
 
-        {/* ****** CHANGE: Use RecurrenceActionModal for Edit Scope ****** */}
-        {/* ****** Use RecurrenceActionModal for Edit Scope Confirmation ****** */}
         <RecurrenceActionModal
-          actionType={"modify"} // Pass 'modify' context
+          actionType={"modify"}
           isOpen={isScopeModalOpen}
           onClose={() => {
-            // Cleanup state on close
             setIsScopeModalOpen(false);
             setPendingPayload(null);
             setScopeActionType(null);
             setSelectedScopeOption(null);
           }}
-          onConfirm={handleScopeConfirm} // Calls the handler which then calls executeSubmit
+          onConfirm={handleScopeConfirm}
           selectedOption={selectedScopeOption} // State to display selection
-          setSelectedOption={setSelectedScopeOption} // Function for modal to update state
+          setSelectedOption={setSelectedScopeOption}
         />
       </SheetContent>
     </Sheet>
