@@ -1,6 +1,7 @@
 // stores/useAuthStore.ts
 import { create } from "zustand";
 import { createClient as createSupabaseClient } from "@/utils/supabase/client";
+import type { User } from "@supabase/supabase-js";
 
 type AuthState = {
   user: User | null;
