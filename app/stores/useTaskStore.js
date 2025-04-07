@@ -400,7 +400,6 @@ export const useTaskStore = create((set, get) => ({
    * @param {object} instanceContext - The calculated instance object that was interacted with.
    */
   openTaskFormForEdit: (instanceContext) => {
-    console.log("shabang");
     if (
       !instanceContext ||
       !instanceContext.task_id ||
@@ -519,5 +518,33 @@ export const useTaskStore = create((set, get) => ({
       selectedInstance: instance,
       isTaskMenuOpen: true,
     });
+  },
+
+  // **********************************************************
+  // HELPERS
+  // **********************************************************
+  /**
+   * Returns time slot of task in format 9:00 AM – 9:30 AM for example
+   * @param {*} inst
+   * @returns
+   */
+  formatTimeRange: (inst) => {
+    if (
+      !inst?.scheduled_time_utc ||
+      !inst?.duration_minutes ||
+      !inst?.timezone
+    ) {
+      return "Time N/A"; // Handle missing data
+    }
+    // Convert UTC scheduled time to the task's original timezone for display
+    const startTimeLocal = dayjs.utc(inst.scheduled_time_utc).tz(inst.timezone);
+    const endTimeLocal = startTimeLocal.add(inst.duration_minutes, "minute");
+
+    // Check if conversion was successful
+    if (!startTimeLocal.isValid() || !endTimeLocal.isValid()) {
+      return "Invalid Time";
+    }
+
+    return `${startTimeLocal.format("h:mm A")} – ${endTimeLocal.format("h:mm A")}`;
   },
 }));

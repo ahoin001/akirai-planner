@@ -21,6 +21,7 @@ import { RecurrenceActionModal } from "@/components/modals/recurrence-action-mod
 export default function TaskActionMenu() {
   const {
     closeTaskMenu,
+    formatTimeRange,
     isTaskMenuOpen,
     openTaskFormForEdit,
     selectedInstance: selectedTask,
@@ -48,7 +49,6 @@ export default function TaskActionMenu() {
     setIsRecurring(selectedTask?.tasks?.is_recurring || false);
   }, [selectedTask]);
 
-  // Animation/Visibility Effect
   // Animation/Visibility Effect
   useEffect(() => {
     const animationDuration = 500; // Your desired transition duration in ms
@@ -189,7 +189,6 @@ export default function TaskActionMenu() {
   };
 
   // --- EDIT FLOW ---
-  // Step 1 (Edit): User clicks main edit button - ALWAYS opens the form
   const handleEditRequest = () => {
     if (!selectedTask) return;
 
@@ -277,7 +276,7 @@ export default function TaskActionMenu() {
               <TaskIcon />
               <div className="min-w-0">
                 <p className="mb-1 sm:mb-2 text-gray-400 text-sm">
-                  {dateFormatted}, {startTimeFormatted} - {endTimeFormatted}
+                  {dateFormatted}, {formatTimeRange(selectedTask)}
                 </p>
                 <h2
                   id="task-action-menu-title"

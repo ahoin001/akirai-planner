@@ -53,28 +53,9 @@ const getTaskIcon = (instance) => {
 
 // instance is now a CalculatedInstance object
 const DrawerTaskItem = memo(({ instance, isSelected, onClick }) => {
+  const formatTimeRange = useTaskStore((state) => state.formatTimeRange);
+
   const isCompleted = instance.is_complete;
-
-  // ****** CHANGE: Format time range using scheduled_time_utc and duration ******
-  const formatTimeRange = (inst) => {
-    if (
-      !inst?.scheduled_time_utc ||
-      !inst?.duration_minutes ||
-      !inst?.timezone
-    ) {
-      return "Time N/A"; // Handle missing data
-    }
-    // Convert UTC scheduled time to the task's original timezone for display
-    const startTimeLocal = dayjs.utc(inst.scheduled_time_utc).tz(inst.timezone);
-    const endTimeLocal = startTimeLocal.add(inst.duration_minutes, "minute");
-
-    // Check if conversion was successful
-    if (!startTimeLocal.isValid() || !endTimeLocal.isValid()) {
-      return "Invalid Time";
-    }
-
-    return `${startTimeLocal.format("h:mm A")} – ${endTimeLocal.format("h:mm A")}`;
-  };
 
   // ****** Determine if instance start is in the future ******
   // Compare scheduled_time_utc with the current time (also in UTC)
