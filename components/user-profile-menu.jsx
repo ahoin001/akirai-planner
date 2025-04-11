@@ -20,8 +20,6 @@ export function UserProfileMenu() {
   const [isOpen, setIsOpen] = useState(false);
   const router = useRouter();
 
-  console.log("UserProfileMenu", user);
-
   if (!user) return null;
 
   // Get user initials or first letter of email
