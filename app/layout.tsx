@@ -47,7 +47,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <main className="min-h-screen flex flex-col items-center px-8">
-            <ThemeSwitcher />
+            {/* <ThemeSwitcher /> */}
             <div className="flex-1 w-full flex flex-col gap-20 items-center">
               {children}
             </div>
