@@ -625,7 +625,7 @@ export function TaskForm({ selectedDate }) {
                         onClick={() =>
                           setIsStartDatePickerOpen((prev) => !prev)
                         }
-                        className="flex items-center gap-2 text-indigo-400 px-4 py-2 rounded-lg hover:bg-gray-800/60 transition-colors text-sm sm:text-base"
+                        className="flex items-center gap-2 text-rose-400 px-4 py-2 rounded-lg hover:bg-gray-800/60 transition-colors text-sm sm:text-base"
                       >
                         <CalendarIcon className="w-4 h-4 sm:w-5 sm:h-5" />
                         <span>
@@ -744,7 +744,7 @@ export function TaskForm({ selectedDate }) {
                             type="number"
                             min="1"
                             step="1"
-                            className="w-20 bg-zinc-800 border-gray-700 focus:border-indigo-500 focus:ring-indigo-500 text-white rounded-md"
+                            className="w-20 bg-zinc-800 border-gray-700 focus:border-rose-500 focus:ring-rose-500 text-white rounded-md"
                             {...field}
                             onChange={(e) => {
                               const val = parseInt(e.target.value, 10);
@@ -818,7 +818,7 @@ export function TaskForm({ selectedDate }) {
                             type="number"
                             min="1"
                             step="1"
-                            className="w-full bg-zinc-800 border-gray-700 focus:border-indigo-500 focus:ring-indigo-500 text-white rounded-md"
+                            className="w-full bg-zinc-800 border-gray-700 focus:border-rose-500 focus:ring-rose-500 text-white rounded-md"
                             {...field}
                             onChange={(e) => {
                               const val = parseInt(e.target.value, 10);
@@ -895,7 +895,7 @@ export function TaskForm({ selectedDate }) {
           </div>
 
           {/* Footer */}
-          <div className="p-4 sm:p-5 border-t border-gray-700/50 flex-shrink-0 bg-zinc-900">
+          <div className="p-4 pb-20  border-t border-gray-700/50 flex-shrink-0 bg-zinc-900">
             {formError && (
               <div className="bg-red-800/30 border border-red-600/50 text-red-300 p-3 rounded-md mb-3 sm:mb-4 text-sm text-center">
                 {formError}
@@ -904,7 +904,7 @@ export function TaskForm({ selectedDate }) {
             <Button
               type="submit"
               disabled={isSubmitting || !isDirty}
-              className="w-full h-12 sm:h-14 text-base sm:text-lg rounded-xl bg-indigo-600 hover:bg-indigo-700 focus-visible:ring-indigo-500 focus-visible:ring-offset-zinc-900 text-white font-semibold transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center"
+              className="w-full h-12 sm:h-14 text-base sm:text-lg rounded-xl bg-rose-600 hover:bg-rose-700 focus-visible:ring-rose-500 focus-visible:ring-offset-zinc-900 text-white font-semibold transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center"
             >
               {isSubmitting ? (
                 <>
