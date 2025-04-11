@@ -13,7 +13,7 @@ const navItems = [
 
 export function BottomNavigation() {
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-[#1a1a1a] border-t border-gray-800 h-16 flex items-center justify-around px-4 z-10">
+    <div className="fixed bottom-0 left-0 right-0 bg-[#1a1a1a] border-t border-gray-800 h-16 flex items-center justify-around px-4 z-[400]">
       {navItems.map((item) => (
         <a
           key={item.label}
@@ -29,7 +29,7 @@ export function BottomNavigation() {
       ))}
 
       {/* User profile menu */}
-      <div className="flex flex-col items-center justify-center">
+      <div className="flex flex-col items-center justify-center py-4">
         <UserProfileMenu />
         <span className="text-xs mt-1 text-gray-400">Profile</span>
       </div>

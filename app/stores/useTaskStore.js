@@ -152,12 +152,15 @@ export const useTaskStore = create((set, get) => ({
     console.log(
       `Store: Found ${existingChannels.length} existing channels. Removing...`
     );
+
     existingChannels.forEach((channel) => {
+      const name = channel?.channelName;
       if (
-        channel.channelName.startsWith("public:tasks") ||
-        channel.channelName.startsWith("public:task_instance_exceptions")
+        typeof name === "string" &&
+        (name.startsWith("public:tasks") ||
+          name.startsWith("public:task_instance_exceptions"))
       ) {
-        console.log(`Store: Removing existing channel: ${channel.channelName}`);
+        console.log(`Store: Removing existing channel: ${name}`);
         supabase.removeChannel(channel);
       }
     });

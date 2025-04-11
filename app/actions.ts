@@ -1084,6 +1084,21 @@ export const forgotPasswordAction = async (formData: FormData) => {
   );
 };
 
+export const signInWithGoogle = async () => {
+  const origin = (await headers()).get("origin");
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: `${origin}/auth/callback`,
+    },
+  });
+
+  if (data.url) {
+    redirect(data.url);
+  }
+};
+
 export const resetPasswordAction = async (formData: FormData) => {
   const supabase = await createClient();
 

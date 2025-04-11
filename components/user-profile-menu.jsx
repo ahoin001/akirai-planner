@@ -20,6 +20,8 @@ export function UserProfileMenu() {
   const [isOpen, setIsOpen] = useState(false);
   const router = useRouter();
 
+  console.log("UserProfileMenu", user);
+
   if (!user) return null;
 
   // Get user initials or first letter of email
@@ -48,12 +50,20 @@ export function UserProfileMenu() {
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          className="relative h-10 w-10 rounded-full bg-rose-400 text-white"
-        >
-          {getInitials()}
-        </Button>
+        {user.user_metadata?.picture ? (
+          <img
+            src={user.user_metadata.picture}
+            alt="Profile"
+            className="h-8 w-8 rounded-full object-cover hover:cursor-pointer"
+          />
+        ) : (
+          <Button
+            variant="ghost"
+            className="relative rounded-full bg-rose-400 text-white"
+          >
+            {getInitials()}
+          </Button>
+        )}
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">

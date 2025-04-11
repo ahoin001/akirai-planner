@@ -14,7 +14,7 @@ export const metadata = {
   // description: "The fastest way to build apps with Next.js and Supabase",
   title: "My App",
   description: "My PWA-enabled Next.js App",
-  themeColor: "#000000", // <- For PWA theming
+  // themeColor: "#000000", // <- For PWA theming
 };
 
 const geistSans = Geist({
