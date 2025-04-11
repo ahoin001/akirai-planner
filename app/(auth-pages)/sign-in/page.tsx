@@ -1,22 +1,26 @@
 import { signInAction, signInWithGoogle } from "@/app/actions";
 import { FormMessage, Message } from "@/components/form-message";
+import GoogleButton from "@/components/googlebutton";
 import { SubmitButton } from "@/components/submit-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
+import { SmtpMessage } from "../smtp-message";
 
 export default async function Login(props: { searchParams: Promise<Message> }) {
   const searchParams = await props.searchParams;
 
   return (
-    <div className="flex flex-col items-center justify-center w-full bg-red-100 px-4 py-8 text-white md:py-12">
+    <div className="flex flex-col items-center justify-center w-full h-screen px-4 py-8 text-white md:py-12">
       <div className="w-full max-w-sm md:max-w-md">
         <div className="space-y-2 mb-6">
-          <h1 className="text-2xl font-medium md:text-3xl">Sign in</h1>
-          <p className="text-sm text-foreground">
+          <h1 className="text-center text-2xl font-medium md:text-3xl">
+            Sign in
+          </h1>
+          <p className="text-sm text-center text-foreground">
             Don't have an account?{" "}
             <Link
-              className="text-foreground font-medium underline"
+              className="text-foreground text-rose-500 font-medium underline"
               href="/sign-up"
             >
               Sign up
@@ -25,7 +29,7 @@ export default async function Login(props: { searchParams: Promise<Message> }) {
         </div>
 
         {/* Email/Password Form */}
-        <form className="flex flex-col space-y-4 mb-8">
+        <form className="flex flex-col space-y-6">
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input
@@ -60,13 +64,15 @@ export default async function Login(props: { searchParams: Promise<Message> }) {
           <SubmitButton
             pendingText="Signing In..."
             formAction={signInAction}
-            className="w-full mt-2 bg-primary hover:bg-primary-dark"
+            className="w-full mt-6"
           >
             Sign in with Email
           </SubmitButton>
-
-          <FormMessage message={searchParams} />
         </form>
+
+        <div className="mt-6">
+          <FormMessage message={searchParams} />
+        </div>
 
         {/* Divider */}
         <div className="flex items-center my-6">
@@ -77,14 +83,20 @@ export default async function Login(props: { searchParams: Promise<Message> }) {
 
         {/* Google Sign-In */}
         <form>
-          <SubmitButton
+          {/* <SubmitButton
             pendingText="Redirecting..."
             formAction={signInWithGoogle}
             className="w-full bg-red-600 hover:bg-red-700 text-white"
           >
             Sign in with Google
-          </SubmitButton>
+          </SubmitButton> */}
+          <div className="w-full flex justify-center mb-6">
+            <GoogleButton onClick={signInWithGoogle} />
+          </div>
         </form>
+      </div>
+      <div className="invisible">
+        <SmtpMessage />
       </div>
     </div>
   );

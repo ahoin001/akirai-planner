@@ -21,7 +21,7 @@ export default async function Signup(props: {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center w-full px-4 py-8 text-white md:py-12">
+    <div className="flex flex-col items-center justify-center w-full h-screen px-4 py-8 text-white md:py-12">
       <div className="w-full max-w-sm md:max-w-md">
         <form className="flex flex-col space-y-6">
           <div className="space-y-2">
@@ -39,42 +39,42 @@ export default async function Signup(props: {
             </p>
           </div>
 
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                name="email"
-                placeholder="you@example.com"
-                required
-                className="w-full"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                name="password"
-                placeholder="Your password"
-                minLength={6}
-                required
-                className="w-full"
-              />
-            </div>
-
-            <SubmitButton
-              formAction={signUpAction}
-              pendingText="Signing up..."
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              name="email"
+              placeholder="you@example.com"
+              required
               className="w-full"
-            >
-              Sign up
-            </SubmitButton>
-
-            <FormMessage message={searchParams} />
+            />
           </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="password">Password</Label>
+            <Input
+              id="password"
+              type="password"
+              name="password"
+              placeholder="Your password"
+              minLength={6}
+              required
+              className="w-full"
+            />
+          </div>
+
+          <SubmitButton
+            formAction={signUpAction}
+            pendingText="Signing up..."
+            className="w-full mt-6"
+          >
+            Sign up
+          </SubmitButton>
         </form>
+
+        <div className="mt-6">
+          <FormMessage message={searchParams} />
+        </div>
 
         {/* Divider */}
         <div className="flex items-center my-6">
