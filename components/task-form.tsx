@@ -904,7 +904,7 @@ export function TaskForm({ selectedDate }) {
             <Button
               type="submit"
               disabled={isSubmitting || !isDirty}
-              className="w-full h-12 sm:h-14 text-base sm:text-lg rounded-xl bg-rose-600 hover:bg-rose-700 focus-visible:ring-rose-500 focus-visible:ring-offset-zinc-900 text-white font-semibold transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center"
+              className="w-full h-12 sm:h-14 text-base sm:text-lg rounded-xl bg-rose-400 hover:bg-rose-700 focus-visible:ring-rose-500 focus-visible:ring-offset-zinc-900 text-white font-semibold transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center"
             >
               {isSubmitting ? (
                 <>
