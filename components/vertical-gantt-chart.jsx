@@ -56,7 +56,8 @@ const VerticalGanttChart = () => {
   const containerRef = useRef(null);
   const drawerRef = useRef(null);
 
-  const weekDays = useMemo(() => getWeekDays(), [getWeekDays]);
+  const weekDays = getWeekDays();
+  // const weekDays = useMemo(() => getWeekDays(), [getWeekDays]);
 
   const handleCloseDatePicker = useCallback(() => {
     setDatePickerOpen(false);
