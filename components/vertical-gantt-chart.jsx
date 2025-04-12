@@ -57,7 +57,6 @@ const VerticalGanttChart = () => {
   const drawerRef = useRef(null);
 
   const weekDays = getWeekDays();
-  // const weekDays = useMemo(() => getWeekDays(), [getWeekDays]);
 
   const handleCloseDatePicker = useCallback(() => {
     setDatePickerOpen(false);
@@ -133,14 +132,7 @@ const VerticalGanttChart = () => {
 
       <BottomNavigation />
 
-      <TaskForm
-        isEditing={isEditingTask}
-        initialValues={taskFormValues}
-        isOpen={isTaskFormOpen}
-        onClose={closeTaskForm}
-        onOpenChange={setTaskForm}
-        selectedDate={selectedDay}
-      />
+      <TaskForm selectedDate={selectedDay} />
 
       <FloatingActionButton onClick={handleOpenTaskForm} />
 

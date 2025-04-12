@@ -166,8 +166,6 @@ export default function TaskActionMenu() {
     setTimeout(closeTaskMenu, 50);
   };
 
-  // if (!isTaskMenuOpen || !selectedTask) return null;
-
   const dateFormatted = selectedTask
     ? dayjs(selectedTask.scheduled_date).format("M/D/YY")
     : "";
@@ -196,6 +194,7 @@ export default function TaskActionMenu() {
         <SheetContent
           side="bottom"
           className="w-full max-w-xl mx-auto mb-20 bg-zinc-900 rounded-3xl shadow-lg overflow-hidden pointer-events-auto"
+          onOpenAutoFocus={(e) => e.preventDefault()}
         >
           {selectedTask && (
             <div className="relative p-4 sm:p-6">

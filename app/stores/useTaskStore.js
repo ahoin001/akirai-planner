@@ -44,12 +44,17 @@ export const useTaskStore = create((set, get) => ({
   // **********************************************************
   closeTaskForm: () =>
     set({ isTaskFormOpen: false, isEditingTask: false, taskFormValues: {} }), // Reset edit state
-  closeTaskMenu: () => set({ isTaskMenuOpen: false, selectedInstance: null }), // Clear selection
+  closeTaskMenu: () =>
+    set({
+      isTaskMenuOpen: false,
+      // selectedInstance: null
+    }),
   setActiveModal: (modal) => set({ activeModal: modal }), // Keeping for potential modal usage
   setSelectedInstance: (instance) => set({ selectedInstance: instance }), // Usually handled by open/close menu
   setLoading: (loading) => set({ isLoading: loading }),
   setError: (error) => set({ error: error }),
   setTaskForm: (bool) => set({ isTaskFormOpen: bool }),
+  setTaskMenu: (bool) => set({ isTaskMenuOpen: bool }),
   setCurrentViewStartDate: (date) => {
     const newStartDate = dayjs(date).startOf("week").toISOString();
     console.log(`Store: Setting current view start date to: ${newStartDate}`);
