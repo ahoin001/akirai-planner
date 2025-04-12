@@ -81,7 +81,7 @@ const VerticalGanttChart = () => {
   }, [selectedDay, openTaskForm]);
 
   return (
-    <div className="w-full flex flex-col h-screen bg-background text-white p-4">
+    <div className="w-full flex flex-col h-screen bg-background text-white py-4">
       <div className="flex-none">
         <span
           className="text-4xl font-bold mb-6 hover:cursor-pointer"
@@ -161,7 +161,7 @@ import DatePicker from "./date-picker";
 
 const FloatingActionButton = memo(({ onClick }) => (
   <button
-    className="fixed right-6 bottom-20 z-50 w-14 h-14 bg-pink-500 rounded-full flex items-center justify-center shadow-lg hover:bg-pink-600 transition-colors"
+    className="fixed right-3 bottom-10 z-[65] w-14 h-14 bg-pink-500 rounded-full flex items-center justify-center shadow-lg hover:bg-pink-600 transition-colors"
     onClick={onClick}
     aria-label="Create new task"
   >
