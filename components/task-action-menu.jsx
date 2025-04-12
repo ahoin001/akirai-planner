@@ -13,7 +13,8 @@ import { CheckCircle, Circle, Edit, Trash2, X, Clock } from "lucide-react";
 import { ConfirmationModal } from "@/components/modals/confirmation-modal";
 import { RecurrenceActionModal } from "@/components/modals/recurrence-action-modal";
 
-import { Sheet, SheetContent } from "@/components/ui/sheet"; // Added shadcn sheet
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 
 /**
  * TaskActionMenu component (JSX Version - Responsive Refactor)
@@ -196,6 +197,9 @@ export default function TaskActionMenu() {
           className={`w-full max-w-xl mx-auto bg-zinc-900 rounded-3xl shadow-lg overflow-hidden pointer-events-auto ${isTaskMenuOpen && "mb-20"}`}
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
+          <VisuallyHidden>
+            <SheetTitle>Task Actions</SheetTitle>
+          </VisuallyHidden>
           {selectedTask && (
             <div className="relative p-4 sm:p-6">
               {/* Close Button */}
