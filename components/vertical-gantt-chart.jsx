@@ -11,15 +11,14 @@
 import { format } from "date-fns";
 import useCalendarStore from "@/app/stores/useCalendarStore";
 import { useTaskStore } from "@/app/stores/useTaskStore";
-import { useRef, useState, useCallback, memo, useMemo } from "react";
+import { useRef, useState, useCallback, memo } from "react";
 
 import { BottomNavigation } from "@/components/bottom-navigation";
 import TaskActionMenu from "@/components/task-action-menu";
 import TaskDrawer from "@/components/task-drawer";
 import { TaskForm } from "@/components/task-form";
-import WeekHeader from "@/components/week-header";
 import WeekNavigation from "@/components/week-navigation";
-import WeekTimeline from "@/components/week-timeline";
+import WeekView from "@/components/week-view";
 
 /**
  * VerticalGanttChart component
@@ -30,7 +29,7 @@ import WeekTimeline from "@/components/week-timeline";
  * @returns {JSX.Element} Rendered component
  */
 const VerticalGanttChart = () => {
-  const { openTaskForm, taskInstances } = useTaskStore();
+  const { openTaskForm } = useTaskStore();
 
   const {
     currentWeekStart,
@@ -44,11 +43,7 @@ const VerticalGanttChart = () => {
   const [datePickerFor, setDatePickerFor] = useState(null);
 
   // Refs for DOM elements
-  const timelineRef = useRef(null);
-  const containerRef = useRef(null);
   const drawerRef = useRef(null);
-
-  const weekDays = getWeekDays();
 
   const handleCloseDatePicker = useCallback(() => {
     setDatePickerOpen(false);
@@ -85,36 +80,19 @@ const VerticalGanttChart = () => {
         </span>
 
         <WeekNavigation />
-
-        <div className="relative overflow-hidden">
-          <WeekHeader weekDays={weekDays} />
-        </div>
       </div>
 
-      {/* Scrollable timeline container */}
-      <div ref={containerRef} className="flex-grow overflow-hidden pb-[260px]">
+      <div className="relative flex-1 overflow-hidden">
         <div
-          ref={timelineRef}
-          className="h-full overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent"
+          className={`transition-transform duration-300 ease-in-out ${
+            slideDirection === "left"
+              ? "-translate-x-full"
+              : slideDirection === "right"
+                ? "translate-x-full"
+                : ""
+          }`}
         >
-          <div className="relative">
-            {/* Current week timeline */}
-            <div
-              className={`transition-transform duration-300 ease-in-out transform ${
-                slideDirection === "left"
-                  ? "-translate-x-full"
-                  : slideDirection === "right"
-                    ? "translate-x-full"
-                    : ""
-              }`}
-            >
-              <WeekTimeline
-                weekStart={currentWeekStart}
-                tasks={taskInstances}
-                days={weekDays}
-              />
-            </div>
-          </div>
+          <WeekView key={currentWeekStart.toISOString()} />
         </div>
       </div>
 

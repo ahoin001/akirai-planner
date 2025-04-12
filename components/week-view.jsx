@@ -41,12 +41,6 @@ const WeekView = () => {
             {/* Phantom element to maintain grid structure */}
             <div /> {/* Empty cell for time label column */}
             {weekDays.map((date, i) => (
-              //   <DayHeader
-              //     key={date.toISOString()}
-              //     date={date}
-              //     isSelected={isSameDay(date, selectedDay)}
-              //     isToday={isSameDay(date, currentTime)}
-              //   />
               <DayHeader
                 key={i}
                 date={date}
@@ -110,23 +104,5 @@ const DayHeader = memo(({ date, isSelected, isToday, onSelect }) => {
 });
 
 DayHeader.displayName = "DayHeader";
-
-// DayHeader component with sticky positioning
-// const DayHeader = memo(({ date, isSelected, isToday }) => (
-//   <div className="sticky top-0 z-20 bg-background py-2">
-//     <div className="text-center">
-//       <div className="text-gray-400 text-sm mb-1">{format(date, "EEE")}</div>
-//       <div
-//         className={`text-lg w-8 h-8 rounded-full flex items-center justify-center mx-auto
-//           ${isSelected ? "bg-pink-500 text-white" : ""}
-//           ${isToday ? "ring-2 ring-pink-500" : "text-gray-300"}`}
-//       >
-//         {format(date, "d")}
-//       </div>
-//     </div>
-//   </div>
-// ));
-
-// DayHeader.displayName = "DayHeader";
 
 export default memo(WeekView);
