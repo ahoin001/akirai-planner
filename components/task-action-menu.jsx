@@ -13,6 +13,8 @@ import { CheckCircle, Circle, Edit, Trash2, X, Clock } from "lucide-react";
 import { ConfirmationModal } from "@/components/modals/confirmation-modal";
 import { RecurrenceActionModal } from "@/components/modals/recurrence-action-modal";
 
+import { Sheet, SheetContent } from "@/components/ui/sheet"; // Added shadcn sheet
+
 /**
  * TaskActionMenu component (JSX Version - Responsive Refactor)
  * Displays a responsive slide-up menu with actions for a selected task.
@@ -30,10 +32,8 @@ export default function TaskActionMenu() {
 
   // State for scope modal (now only used for DELETE)
   const [isConfirmationModalOpen, setIsConfirmationModalOpen] = useState(false);
-  const [isMounted, setIsMounted] = useState(false);
   const [isRecurring, setIsRecurring] = useState(null);
   const [isRecurrenceModalOpen, setIsRecurrenceModalOpen] = useState(false);
-  const [isVisible, setIsVisible] = useState(false);
   const [scopeActionType, setScopeActionType] = useState(null);
 
   // Find the parent task definition from the store's tasks array
@@ -48,42 +48,6 @@ export default function TaskActionMenu() {
   useEffect(() => {
     setIsRecurring(selectedTask?.tasks?.is_recurring || false);
   }, [selectedTask]);
-
-  // Animation/Visibility Effect
-  useEffect(() => {
-    const animationDuration = 500; // Your desired transition duration in ms
-    let mountTimerId = null; // Timer for mounting animation
-    let visibilityTimerId = null; // Timer for unmounting visibility
-
-    if (isTaskMenuOpen) {
-      // 1. Make the component part of the layout immediately
-      setIsVisible(true);
-
-      // 2. Use a minimal setTimeout to trigger the 'mounted' state AFTER
-      //    the browser has had a chance to render the 'visible' state.
-      //    This ensures the 'translate-y-full' class is applied first.
-      mountTimerId = setTimeout(() => {
-        setIsMounted(true); // Now apply the 'translate-y-0' class to trigger animation
-      }, 10); // Small delay (10ms is often enough, adjust if needed)
-    } else {
-      // 1. Start the closing animation by setting isMounted to false
-      setIsMounted(false); // Apply 'translate-y-full'
-
-      // 2. AFTER the animation duration, hide the component completely
-      visibilityTimerId = setTimeout(() => {
-        setIsVisible(false); // Remove from layout
-      }, animationDuration); // Match CSS transition duration
-    }
-
-    // Cleanup function: Clear any pending timers if the state changes
-    // or the component unmounts before the timers complete.
-    return () => {
-      if (mountTimerId) clearTimeout(mountTimerId);
-      if (visibilityTimerId) clearTimeout(visibilityTimerId);
-    };
-  }, [isTaskMenuOpen]);
-
-  const handleBackdropClick = () => closeTaskMenu();
 
   const handleCompleteToggle = async () => {
     if (
@@ -202,17 +166,11 @@ export default function TaskActionMenu() {
     setTimeout(closeTaskMenu, 50);
   };
 
-  if (!isVisible || !selectedTask) return null;
+  // if (!isTaskMenuOpen || !selectedTask) return null;
 
-  const startTimeFormatted = dayjs(
-    `2000-01-01 ${selectedTask.start_time}`
-  ).format("h:mm A");
-
-  const endTimeFormatted = dayjs(`2000-01-01 ${selectedTask.start_time}`)
-    .add(selectedTask.duration_minutes, "minute")
-    .format("h:mm A");
-
-  const dateFormatted = dayjs(selectedTask.scheduled_date).format("M/D/YY");
+  const dateFormatted = selectedTask
+    ? dayjs(selectedTask.scheduled_date).format("M/D/YY")
+    : "";
 
   const TaskIcon = () => {
     return (
@@ -234,109 +192,80 @@ export default function TaskActionMenu() {
 
   return (
     <>
-      <div
-        className={`fixed inset-0 bg-black/50 z-40 transition-opacity duration-300 ease-in-out `}
-        onClick={handleBackdropClick}
-        aria-hidden="true"
-      />
-
-      {/* Positioning Container: Centers the menu */}
-      <div
-        className="fixed inset-x-0 bottom-20 z-50 flex justify-center pointer-events-none transition-all duration-500 ease-in-out"
-        aria-live="assertive"
-      >
-        {/* Visual Panel: Width, background, shape, animation */}
-        <div
-          // Apply animation class directly
-          className={`
-            bg-zinc-900 text-white                   
-            w-[90%]                                  
-            max-w-md                                 
-            rounded-3xl                              
-            shadow-lg overflow-hidden pointer-events-auto
-            transition-transform duration-500 ease-in-out 
-            ${isMounted ? "translate-y-0" : "translate-y-full"} 
-          `}
-          onClick={(e) => e.stopPropagation()}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="task-action-menu-title"
+      <Sheet open={isTaskMenuOpen} onOpenChange={closeTaskMenu}>
+        <SheetContent
+          side="bottom"
+          className="w-full max-w-xl mx-auto mb-20 bg-zinc-900 rounded-3xl shadow-lg overflow-hidden pointer-events-auto transition-all duration-500 ease-in-out"
         >
-          <div className="relative p-4 sm:p-6">
-            {/* Use relative for close button positioning */}
-            {/* Close Button: Positioned top-right relative to padding */}
-            <button
-              onClick={closeTaskMenu}
-              className="absolute top-3 right-3 sm:top-4 sm:right-4 text-gray-400 hover:text-white p-1 rounded-full hover:bg-gray-700/60 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-900 focus-visible:ring-blue-500"
-              aria-label="Close menu"
-            >
-              <X size={24} />
-            </button>
-            <div className="flex items-start gap-3 sm:gap-4 mb-4 pt-6 sm:pt-4">
-              <TaskIcon />
-              <div className="min-w-0">
-                <p className="mb-1 sm:mb-2 text-gray-400 text-sm">
-                  {dateFormatted}, {formatTimeRange(selectedTask)}
-                </p>
-                <h2
-                  id="task-action-menu-title"
-                  className="text-2xl font-bold truncate"
+          {selectedTask && (
+            <div className="relative p-4 sm:p-6">
+              {/* Close Button */}
+              <button
+                onClick={closeTaskMenu}
+                className="absolute top-3 right-3 sm:top-4 sm:right-4 text-gray-400 hover:text-white p-1 rounded-full hover:bg-gray-700/60 transition-colors focus:outline-none"
+                aria-label="Close menu"
+              >
+                <X size={24} />
+              </button>
+
+              {/* Content - Same as before */}
+              <div className="flex items-start gap-3 sm:gap-4 mb-4 pt-6 sm:pt-4">
+                <TaskIcon />
+                <div className="min-w-0">
+                  <p className="mb-1 sm:mb-2 text-gray-400 text-sm">
+                    {dateFormatted}, {formatTimeRange(selectedTask)}
+                  </p>
+                  <h2 className="text-2xl font-bold truncate">
+                    {selectedTask?.override_title ??
+                      selectedTask?.title ??
+                      "Task"}
+                  </h2>
+                </div>
+              </div>
+
+              <div className="w-full my-4 sm:my-6 border-t border-gray-700" />
+
+              <div className="grid grid-cols-3 gap-3 sm:gap-4">
+                {/* Delete Button */}
+                <button
+                  onClick={handleDeleteRequest}
+                  className="flex flex-col items-center justify-center bg-zinc-800 p-3 sm:p-4 rounded-xl hover:bg-zinc-700/80 transition-colors"
                 >
-                  {/* Added truncate */}
-                  {selectedTask?.override_title ??
-                    selectedTask?.title ??
-                    "Task"}
-                </h2>
+                  <Trash2 size={28} className="text-pink-500 mb-1 sm:mb-2" />
+                  <span className="text-xl">Delete</span>
+                </button>
+
+                {/* Complete Button */}
+                <button
+                  onClick={handleCompleteToggle}
+                  className="flex flex-col items-center justify-center bg-zinc-800 p-3 sm:p-4 rounded-xl hover:bg-zinc-700/80 transition-colors"
+                >
+                  {selectedTask?.is_complete ? (
+                    <Circle size={28} className="text-gray-400 mb-1 sm:mb-2" />
+                  ) : (
+                    <CheckCircle
+                      size={28}
+                      className="text-green-500 mb-1 sm:mb-2"
+                    />
+                  )}
+                  <span className="text-xl">
+                    {selectedTask?.is_complete ? "Uncheck" : "Complete"}
+                  </span>
+                </button>
+
+                {/* Edit Button */}
+                <button
+                  onClick={handleEditRequest}
+                  className="flex flex-col items-center justify-center bg-zinc-800 p-3 sm:p-4 rounded-xl hover:bg-zinc-700/80 transition-colors"
+                >
+                  <Edit size={28} className="text-blue-500 mb-1 sm:mb-2" />
+                  <span className="text-xl">Edit</span>
+                </button>
               </div>
             </div>
-            {/* Divider*/}
-            <div className="w-full my-4 sm:my-6 border-t border-gray-700" />
-            <div className="grid grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6">
-              {/* Delete Button */}
-              <button
-                onClick={handleDeleteRequest}
-                className="flex flex-col items-center justify-center bg-zinc-800 p-3 sm:p-4 rounded-xl hover:bg-zinc-700/80 active:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-900 focus-visible:ring-blue-500" // Added hover/focus, responsive padding
-              >
-                <div className="text-pink-500 mb-1 sm:mb-2">
-                  <Trash2 size={28} />
-                </div>
-                <span className="text-xl">Delete</span>
-              </button>
-
-              {/* Complete/Uncheck Button */}
-              <button
-                onClick={handleCompleteToggle}
-                className="flex flex-col items-center justify-center bg-zinc-800 p-3 sm:p-4 rounded-xl hover:bg-zinc-700/80 active:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-900 focus-visible:ring-blue-500" // Added hover/focus, responsive padding
-              >
-                <div className="mb-1 sm:mb-2">
-                  {selectedTask?.is_complete ? (
-                    <Circle size={28} className="text-gray-400" />
-                  ) : (
-                    <CheckCircle size={28} className="text-green-500" />
-                  )}
-                </div>
-                <span className="text-xl">
-                  {selectedTask?.is_complete ? "Uncheck" : "Complete"}
-                </span>
-              </button>
-
-              {/* Edit Button */}
-              <button
-                onClick={handleEditRequest}
-                className="flex flex-col items-center justify-center bg-zinc-800 p-3 sm:p-4 rounded-xl hover:bg-zinc-700/80 active:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-900 focus-visible:ring-blue-500" // Added hover/focus, responsive padding
-              >
-                {/* Keep original icon styling */}
-                <div className="text-blue-500 mb-1 sm:mb-2">
-                  <Edit size={28} />
-                </div>
-                <span className="text-xl">Edit</span>
-              </button>
-            </div>
-            {/* Bottom Padding for Safe Area */}
-            <div className="h-2 sm:h-4"></div>
-          </div>
-        </div>
-      </div>
+          )}
+        </SheetContent>
+      </Sheet>
 
       <RecurrenceActionModal
         actionType="delete"
