@@ -33,7 +33,7 @@ const VerticalGanttChart = () => {
 
   const {
     currentWeekStart,
-    getWeekDays,
+    drawerOpen,
     selectedDay,
     slideDirection,
     navigateToDate,
@@ -82,7 +82,12 @@ const VerticalGanttChart = () => {
         <WeekNavigation />
       </div>
 
-      <div className="relative flex-1 overflow-hidden">
+      <div
+        className="flex-1 flex-1 overflow-y-auto relative "
+        style={{
+          paddingBottom: drawerOpen ? "calc(75vh - 64px)" : "270px",
+        }}
+      >
         <div
           className={`transition-transform duration-300 ease-in-out ${
             slideDirection === "left"
