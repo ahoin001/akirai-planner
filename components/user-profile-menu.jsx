@@ -15,6 +15,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+import Image from "next/image";
+
 export function UserProfileMenu() {
   const { user, signOut } = useAuthStore();
   const [isOpen, setIsOpen] = useState(false);
@@ -48,10 +50,12 @@ export function UserProfileMenu() {
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenuTrigger asChild>
-        {user.user_metadata?.picture ? (
-          <img
-            src={user.user_metadata.picture}
-            alt="Profile"
+        {user?.id ? (
+          <Image
+            src={user?.user_metadata?.picture}
+            width={32}
+            height={32}
+            alt="Profile Picture"
             className="h-8 w-8 rounded-full object-cover hover:cursor-pointer"
           />
         ) : (
@@ -63,6 +67,7 @@ export function UserProfileMenu() {
           </Button>
         )}
       </DropdownMenuTrigger>
+
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">

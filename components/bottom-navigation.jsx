@@ -8,7 +8,7 @@ const navItems = [
   //   { icon: Inbox, label: "Inbox", href: "#inbox" },
   { icon: Calendar, label: "Planner", href: "#Planner", active: true },
   //   { icon: Sparkles, label: "AI", href: "#ai" },
-  { icon: Settings, label: "Settings", href: "#settings" },
+  // { icon: Settings, label: "Settings", href: "#settings" },
 ];
 
 export function BottomNavigation() {
