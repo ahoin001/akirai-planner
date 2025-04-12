@@ -194,36 +194,37 @@ export default function TaskActionMenu() {
       <Sheet open={isTaskMenuOpen} onOpenChange={closeTaskMenu}>
         <SheetContent
           side="bottom"
-          className={`w-full max-w-xl mx-auto bg-zinc-900 rounded-3xl shadow-lg overflow-hidden pointer-events-auto ${isTaskMenuOpen && "mb-20"}`}
+          className="p-0 border-0 bg-transparent"
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
           <VisuallyHidden>
             <SheetTitle>Task Actions</SheetTitle>
           </VisuallyHidden>
           {selectedTask && (
-            <div className="relative p-4 sm:p-6">
-              {/* Close Button */}
-              <button
-                onClick={closeTaskMenu}
-                className="absolute top-3 right-3 sm:top-4 sm:right-4 text-gray-400 hover:text-white p-1 rounded-full hover:bg-gray-700/60 transition-colors focus:outline-none"
-                aria-label="Close menu"
-              >
-                <X size={24} />
-              </button>
-
+            <div className="p-8 mx-auto w-full max-w-md mb-16 overflow-hidden rounded-3xl bg-zinc-900 text-white shadow-xl">
               {/* Content - Same as before */}
-              <div className="flex items-start gap-3 sm:gap-4 mb-4 pt-6 sm:pt-4">
-                <TaskIcon />
-                <div className="min-w-0">
-                  <p className="mb-1 sm:mb-2 text-gray-400 text-sm">
-                    {dateFormatted}, {formatTimeRange(selectedTask)}
-                  </p>
-                  <h2 className="text-2xl font-bold truncate">
-                    {selectedTask?.override_title ??
-                      selectedTask?.title ??
-                      "Task"}
-                  </h2>
+              <div className="flex items-start justify-between ">
+                <div className="flex items-start gap-3 sm:gap-4 mb-4 pt-6 sm:pt-4">
+                  <TaskIcon />
+                  <div className="min-w-0">
+                    <p className="mb-1 sm:mb-2 text-gray-400 text-sm">
+                      {dateFormatted}, {formatTimeRange(selectedTask)}
+                    </p>
+                    <h2 className="text-2xl font-bold truncate">
+                      {selectedTask?.override_title ??
+                        selectedTask?.title ??
+                        "Task"}
+                    </h2>
+                  </div>
                 </div>
+
+                <button
+                  onClick={closeTaskMenu}
+                  aria-label="Close menu"
+                  className="h-8 w-8 rounded-full bg-gray-600 flex items-center justify-center"
+                >
+                  <X className="h-5 w-5" />
+                </button>
               </div>
 
               <div className="w-full my-4 sm:my-6 border-t border-gray-700" />

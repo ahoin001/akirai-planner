@@ -19,9 +19,10 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import DatePicker from "@/components/date-picker";
+import { IconPicker } from "@/components/icon-picker";
 import { SegmentedControl } from "@/components/segmented-control";
 import { WheelPicker } from "@/components/wheel-picker";
-import DatePicker from "@/components/date-picker";
 
 import {
   createTaskAction,
@@ -38,11 +39,11 @@ import { RecurrenceActionModal } from "./modals/recurrence-action-modal";
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
-// --- Zod Schema (Refined for JSX and New Logic) ---
 const formSchema = z
   .object({
     // Core Fields
     title: z.string().min(1, "Title is required"),
+    // icon: z.enum(["education", "fitness", "busy", "rest"]),
     start_date: z.date({ required_error: "Start date is required" }),
     start_time: z
       .string()
@@ -130,6 +131,7 @@ const durationOptions = [
   { label: "1.5h", value: "90" },
   { label: "2h", value: "120" },
 ];
+
 const frequencyOptions = [
   { label: "Once", value: "once" },
   { label: "Daily", value: "daily" },
