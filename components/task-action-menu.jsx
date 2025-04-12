@@ -194,7 +194,7 @@ export default function TaskActionMenu() {
       <Sheet open={isTaskMenuOpen} onOpenChange={closeTaskMenu}>
         <SheetContent
           side="bottom"
-          className="p-0 border-0 bg-transparent"
+          className="w-full max-w-md p-0  mx-auto border-0 bg-transparent"
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
           <VisuallyHidden>
