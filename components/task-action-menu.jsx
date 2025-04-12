@@ -195,7 +195,7 @@ export default function TaskActionMenu() {
       <Sheet open={isTaskMenuOpen} onOpenChange={closeTaskMenu}>
         <SheetContent
           side="bottom"
-          className="w-full max-w-xl mx-auto mb-20 bg-zinc-900 rounded-3xl shadow-lg overflow-hidden pointer-events-auto transition-all duration-500 ease-in-out"
+          className="w-full max-w-xl mx-auto mb-20 bg-zinc-900 rounded-3xl shadow-lg overflow-hidden pointer-events-auto"
         >
           {selectedTask && (
             <div className="relative p-4 sm:p-6">
