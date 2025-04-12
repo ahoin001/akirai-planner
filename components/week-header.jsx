@@ -116,7 +116,8 @@ const WeekHeader = ({ weekDays, isNext = false }) => {
                 : "",
         }}
       >
-        <div className="text-center"></div> {/* Empty cell for alignment */}
+        {/* Empty first cell for alignment with time */}
+        <div className="text-center"></div>
         {weekDays.map((date, i) => (
           <DayHeader
             key={i}
