@@ -3,6 +3,7 @@
 import { useAuthStore } from "@/app/stores/useAuthStore";
 import { useEffect, useState } from "react";
 import { useTaskStore } from "@/app/stores/useTaskStore";
+import PushSubscriptionManager from "@/components/push-subscription-manager";
 import { Loader2 } from "lucide-react";
 
 export default function AppLayout({ children }) {
@@ -59,5 +60,10 @@ export default function AppLayout({ children }) {
     );
   }
 
-  return <div className="w-full">{children}</div>;
+  return (
+    <div className="w-full">
+      <PushSubscriptionManager />
+      {children}
+    </div>
+  );
 }
