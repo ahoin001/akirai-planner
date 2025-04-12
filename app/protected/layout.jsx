@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useTaskStore } from "@/app/stores/useTaskStore";
 import PushSubscriptionManager from "@/components/push-subscription-manager";
 import { Loader2 } from "lucide-react";
+import { Toaster } from "sonner";
 
 export default function AppLayout({ children }) {
   const { fetchUser } = useAuthStore();
@@ -63,6 +64,7 @@ export default function AppLayout({ children }) {
   return (
     <div className="w-full">
       <PushSubscriptionManager />
+      <Toaster richColors position="top-right" />
       {children}
     </div>
   );

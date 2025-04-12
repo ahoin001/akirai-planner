@@ -30,15 +30,7 @@ import WeekTimeline from "@/components/week-timeline";
  * @returns {JSX.Element} Rendered component
  */
 const VerticalGanttChart = () => {
-  const {
-    closeTaskForm,
-    isEditingTask,
-    isTaskFormOpen,
-    openTaskForm,
-    setTaskForm,
-    taskFormValues,
-    taskInstances,
-  } = useTaskStore();
+  const { openTaskForm, taskInstances } = useTaskStore();
 
   const {
     currentWeekStart,
