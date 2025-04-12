@@ -193,7 +193,7 @@ export default function TaskActionMenu() {
       <Sheet open={isTaskMenuOpen} onOpenChange={closeTaskMenu}>
         <SheetContent
           side="bottom"
-          className="w-full max-w-xl mx-auto mb-20 bg-zinc-900 rounded-3xl shadow-lg overflow-hidden pointer-events-auto"
+          className={`w-full max-w-xl mx-auto bg-zinc-900 rounded-3xl shadow-lg overflow-hidden pointer-events-auto ${isTaskMenuOpen && "mb-20"}`}
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
           {selectedTask && (
