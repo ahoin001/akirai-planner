@@ -1,7 +1,7 @@
 "use client";
 
 import dayjs from "dayjs";
-import { useMemo, memo } from "react";
+import { useMemo, memo, useState, useCallback } from "react";
 import useCalendarStore from "@/app/stores/useCalendarStore";
 import { useTaskStore } from "@/app/stores/useTaskStore";
 import { calculateInstancesForRange } from "@/lib/taskCalculator";
@@ -12,11 +12,48 @@ import { format, isSameDay } from "date-fns";
 dayjs.extend(require("dayjs/plugin/isSameOrAfter"));
 dayjs.extend(require("dayjs/plugin/isSameOrBefore"));
 
+// Mobile actions
+const useSwipe = (changeWeek) => {
+  const [touchStart, setTouchStart] = useState(null);
+  const [touchEnd, setTouchEnd] = useState(null);
+
+  // Minimum swipe distance required (50px)
+  const minSwipeDistance = 50;
+
+  const onTouchStart = useCallback((e) => {
+    setTouchStart(e.targetTouches[0].clientX);
+    setTouchEnd(null);
+  }, []);
+
+  const onTouchMove = useCallback((e) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  }, []);
+
+  const onTouchEnd = useCallback(() => {
+    if (!touchStart || !touchEnd) return;
+
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+
+    if (isLeftSwipe) {
+      changeWeek("next");
+    } else if (isRightSwipe) {
+      changeWeek("prev");
+    }
+  }, [touchStart, touchEnd, changeWeek]);
+
+  return { onTouchStart, onTouchMove, onTouchEnd };
+};
+
 const WeekView = () => {
-  const { currentTime, selectDay, selectedDay, getWeekDays } =
+  const { changeWeek, currentTime, selectDay, selectedDay, getWeekDays } =
     useCalendarStore();
   const { tasks, exceptions } = useTaskStore();
   const weekDays = getWeekDays();
+
+  // Add swipe handlers
+  const swipeHandlers = useSwipe(changeWeek);
 
   const weekInstances = useMemo(() => {
     if (!weekDays?.length || !tasks) return [];
@@ -31,7 +68,10 @@ const WeekView = () => {
   }, [tasks, exceptions, weekDays]);
 
   return (
-    <div className="flex flex-col w-full h-full overflow-hidden">
+    <div
+      className="flex flex-col w-full h-full overflow-hidden"
+      {...swipeHandlers}
+    >
       <div className="flex-1 overflow-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
         {/* Single grid container for headers and timeline */}
         <div className="grid grid-rows-[auto,1fr] grid-cols-[60px_repeat(7,1fr)] gap-y-2">
