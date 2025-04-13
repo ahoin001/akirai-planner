@@ -25,22 +25,11 @@ export const ConfirmationModal = ({
 }) => {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md bg-zinc-900 border-zinc-800 z-[900]">
-        <div className="absolute right-4 top-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onClose}
-            className="text-zinc-400 hover:bg-zinc-800"
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
-
+      <DialogContent className="max-w-md bg-zinc-900 border-zinc-800 rounded-lg z-[900]">
         <DialogHeader>
           <DialogTitle className="text-zinc-100">{title}</DialogTitle>
           {typeof message === "string" ? (
-            <DialogDescription className="text-zinc-300">
+            <DialogDescription className="max-w-sm text-zinc-300">
               {message}
             </DialogDescription>
           ) : (
