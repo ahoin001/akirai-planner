@@ -20,7 +20,7 @@ export default function TimeLabels() {
       {Array.from({ length: dayEnd - dayStart }, (_, i) => (
         <div
           key={i}
-          className="absolute text-xs text-gray-400 text-right pr-2 w-full"
+          className="absolute text-xs text-gray-400 text-right w-full"
           style={{ top: `${i * hourHeight}px` }}
         >
           {format(setHours(new Date(), dayStart + i), "ha")}

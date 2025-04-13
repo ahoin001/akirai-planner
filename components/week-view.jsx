@@ -17,8 +17,8 @@ const useSwipe = (changeWeek) => {
   const [touchStart, setTouchStart] = useState(null);
   const [touchEnd, setTouchEnd] = useState(null);
 
-  // Minimum swipe distance required (50px)
-  const minSwipeDistance = 50;
+  // Minimum swipe distance required for switching weeks
+  const minSwipeDistance = 70;
 
   const onTouchStart = useCallback((e) => {
     setTouchStart(e.targetTouches[0].clientX);
@@ -52,7 +52,6 @@ const WeekView = () => {
   const { tasks, exceptions } = useTaskStore();
   const weekDays = getWeekDays();
 
-  // Add swipe handlers
   const swipeHandlers = useSwipe(changeWeek);
 
   const weekInstances = useMemo(() => {
@@ -74,7 +73,7 @@ const WeekView = () => {
     >
       <div className="flex-1 overflow-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
         {/* Single grid container for headers and timeline */}
-        <div className="grid grid-rows-[auto,1fr] grid-cols-[60px_repeat(7,1fr)] gap-y-2">
+        <div className="grid grid-rows-[auto,1fr] grid-cols-[10px_repeat(7,1fr)] gap-y-2">
           {/* Day headers row */}
           <div className="contents">
             {" "}
