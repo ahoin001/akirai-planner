@@ -53,6 +53,7 @@ export const useTaskStore = create((set, get) => ({
   setSelectedInstance: (instance) => set({ selectedInstance: instance }), // Usually handled by open/close menu
   setLoading: (loading) => set({ isLoading: loading }),
   setError: (error) => set({ error: error }),
+  setisLoading: (isLoading) => set({ isLoading: isLoading }),
   setTaskForm: (bool) => set({ isTaskFormOpen: bool }),
   setTaskMenu: (bool) => set({ isTaskMenuOpen: bool }),
   setCurrentViewStartDate: (date) => {
