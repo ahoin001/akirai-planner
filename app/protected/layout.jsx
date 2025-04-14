@@ -47,8 +47,7 @@ export default function AppLayout({ children }) {
       // ****** CHANGE: Call the unsubscribe function returned by loadInitialData ******
       unsubscribeRealtime();
     };
-    // ****** CHANGE: Dependency array includes the new function ******
-  }, [fetchUser, loadInitialTaskData]); // Add loadInitialTaskData as dependency
+  }, [fetchUser, loadInitialTaskData]);
 
   if (isLoading) {
     return (
@@ -63,7 +62,7 @@ export default function AppLayout({ children }) {
 
   return (
     <div className="w-full">
-      <PushSubscriptionManager />
+      {/* <PushSubscriptionManager /> */}
       <Toaster richColors position="top-right" />
       {children}
     </div>
