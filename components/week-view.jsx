@@ -73,7 +73,7 @@ const WeekView = () => {
     >
       <div className="flex-1 overflow-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
         {/* Single grid container for headers and timeline */}
-        <div className="grid grid-rows-[auto,1fr] grid-cols-[12px_repeat(7,1fr)] gap-x-4 gap-y-2">
+        <div className="grid grid-rows-[auto,1fr] grid-cols-[12px_repeat(7,1fr)] gap-x-2 gap-y-2">
           {/* Day headers row */}
           <div className="contents">
             {" "}

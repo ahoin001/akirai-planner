@@ -46,7 +46,7 @@ export default function TaskItem({
 
   return (
     <div
-      className={`absolute left-1/2 transform -translate-x-1/2 w-10 rounded-full overflow-hidden transition-all duration-300 cursor-pointer
+      className={`absolute left-1/2 transform -translate-x-1/2 w-8 rounded-full overflow-hidden transition-all duration-300 cursor-pointer
         ${isActive ? "ring-2 ring-white" : ""}`}
       style={{
         top: `${top}px`,
