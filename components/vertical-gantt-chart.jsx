@@ -74,7 +74,7 @@ const VerticalGanttChart = () => {
           onClick={handleHeaderClick}
         >
           {format(currentWeekStart, "MMMM")}{" "}
-          <span className="text-pink-500">
+          <span className="text-primary">
             {format(currentWeekStart, "yyyy")}
           </span>
         </span>
@@ -128,7 +128,7 @@ import DatePicker from "./date-picker";
 
 const FloatingActionButton = memo(({ onClick }) => (
   <button
-    className="fixed right-3 bottom-10 z-[65] w-14 h-14 bg-pink-500 rounded-full flex items-center justify-center shadow-lg hover:bg-pink-600 transition-colors"
+    className="fixed right-3 bottom-10 z-[65] w-14 h-14 bg-primary rounded-full flex items-center justify-center shadow-lg hover:bg-primary/80 transition-colors"
     onClick={onClick}
     aria-label="Create new task"
   >

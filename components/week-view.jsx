@@ -129,9 +129,9 @@ const DayHeader = memo(({ date, isSelected, isToday, onSelect }) => {
         className={`text-xl font-medium w-10 h-10 rounded-full flex items-center justify-center mx-auto cursor-pointer
             ${
               isSelected
-                ? "bg-pink-500 text-white"
+                ? "bg-primary dark:bg-pink-500 text-white"
                 : isToday
-                  ? "ring-2 ring-pink-500 text-white"
+                  ? "ring-2 ring-primary text-white"
                   : "text-white"
             }`}
         onClick={() => onSelect(date)}

@@ -537,7 +537,7 @@ export function TaskForm({ selectedDate }) {
     <Sheet open={isOpen} onOpenChange={handleSheetOpenChange}>
       <SheetContent
         side="bottom"
-        className="h-auto max-h-[95vh] sm:max-h-[90vh] flex flex-col rounded-t-3xl bg-zinc-900 border-t border-gray-700 z-[90] p-0" // Use theme bg
+        className="h-auto max-h-[95vh] sm:max-h-[90vh] flex flex-col rounded-t-3xl bg-drawer border-t border-gray-700 z-[90] p-0" // Use theme bg
         onOpenAutoFocus={(e) => e.preventDefault()}
         // Prevent closing on interact outside if it interferes with date pickers
         // onInteractOutside={(e) => e.preventDefault()}
