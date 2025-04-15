@@ -67,7 +67,7 @@ export const RecurrenceActionModal = ({
       onConfirm={() => onConfirm(selectedOption)}
       title={config.title}
       message={
-        <div className="space-y-4">
+        <div className="space-y-4 pt-2">
           {config.actions.map((action) => (
             <Button
               key={action.value}
@@ -75,11 +75,11 @@ export const RecurrenceActionModal = ({
               onClick={() => setSelectedOption(action.value)}
               className={`w-full h-auto p-3 justify-start text-left hover:bg-zinc-800 ${
                 selectedOption === action.value
-                  ? "bg-zinc-800 border border-pink-500"
+                  ? "bg-zinc-800 border border-primary"
                   : "bg-zinc-900"
               }`}
             >
-              <span className="text-pink-500 mr-3">{config.icon}</span>
+              <span className="text-primary mr-3">{config.icon}</span>
               <div className="flex-1">
                 <div className="font-medium text-zinc-100">{action.title}</div>
                 <div className="text-sm text-zinc-400">
