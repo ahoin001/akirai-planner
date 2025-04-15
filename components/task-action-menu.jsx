@@ -194,14 +194,14 @@ export default function TaskActionMenu() {
       <Sheet open={isTaskMenuOpen} onOpenChange={closeTaskMenu}>
         <SheetContent
           side="bottom"
-          className="w-full max-w-sm md:max-w-md p-0  mx-auto border-0 bg-transparent"
+          className="w-full max-w-sm md:max-w-md p-0 mx-auto border-0 bg-transparent"
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
           <VisuallyHidden>
             <SheetTitle>Task Actions</SheetTitle>
           </VisuallyHidden>
           {selectedTask && (
-            <div className="p-8 mx-auto w-full max-w-sm md:max-w-md mb-16 overflow-hidden rounded-3xl bg-zinc-900 text-white shadow-xl">
+            <div className="p-8 mx-auto w-full max-w-sm md:max-w-md mb-12 overflow-hidden rounded-3xl bg-zinc-900 text-white shadow-xl">
               {/* Content - Same as before */}
               <div className="flex items-start justify-between ">
                 <div className="flex items-start gap-3 sm:gap-4 mb-4 pt-6 sm:pt-4">
