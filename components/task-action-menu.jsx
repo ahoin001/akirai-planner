@@ -9,7 +9,37 @@ import {
   deleteTaskSeriesAction,
   toggleTaskOccurrenceCompletionAction,
 } from "@/app/actions";
-import { CheckCircle, Circle, Edit, Trash2, X, Clock } from "lucide-react";
+import {
+  CheckCircle,
+  Circle,
+  Edit,
+  Trash2,
+  Clock,
+  Activity,
+  AlarmClock,
+  Book,
+  CalendarIcon,
+  Check,
+  ChevronUp,
+  ChevronDown,
+  Dumbbell,
+  Flag,
+  Heart,
+  Home,
+  Loader2,
+  Package,
+  Rocket,
+  Settings,
+  ShoppingCart,
+  Star,
+  Target,
+  Timer,
+  Trash,
+  Trophy,
+  Users,
+  X,
+  Zap,
+} from "lucide-react";
 import { ConfirmationModal } from "@/components/modals/confirmation-modal";
 import { RecurrenceActionModal } from "@/components/modals/recurrence-action-modal";
 
@@ -171,20 +201,32 @@ export default function TaskActionMenu() {
     ? dayjs(selectedTask.scheduled_date).format("M/D/YY")
     : "";
 
+  const getTaskIcon = (instance) => {
+    const sizeClass = "w-5 h-5"; // Consistent size
+    switch (instance.icon_name) {
+      case "Activity":
+        return <Activity className={sizeClass} />;
+      case "Heart":
+        return <Heart className={sizeClass} />;
+      case "workout":
+        return <Dumbbell className={sizeClass} />;
+      case "night":
+        return <Moon className={sizeClass} />;
+      default:
+        return <Clock className={sizeClass} />; // Default icon
+    }
+  };
+
   const TaskIcon = () => {
+    console.log("In taskicon : ", selectedTask);
     return (
+      // TODO Revisit when setting up custom colors
       <div
         className={`w-10 h-10 rounded-full ${
           selectedTask?.color === "pink" ? "bg-pink-500" : "bg-blue-500"
         } flex items-center justify-center text-white flex-shrink-0`}
       >
-        {selectedTask?.type === "alarm" && <div className="w-5 h-5">⏰</div>}
-        {selectedTask?.type === "workout" && <div className="w-5 h-5">💪</div>}
-        {selectedTask?.type === "night" && <div className="w-5 h-5">🌙</div>}
-        {/* Add default or handle other types if necessary */}
-        {!["alarm", "workout", "night"].includes(selectedTask?.type) && (
-          <Clock size={20} />
-        )}
+        {getTaskIcon(selectedTask)}
       </div>
     );
   };

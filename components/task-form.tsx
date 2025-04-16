@@ -10,13 +10,35 @@ import { z } from "zod";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import {
-  Dumbbell,
+  Activity,
+  AlarmClock,
+  Book,
   CalendarIcon,
+  Check,
   ChevronUp,
   ChevronDown,
+  Dumbbell,
+  Flag,
+  Heart,
+  Home,
   Loader2,
+  Package,
+  Rocket,
+  Settings,
+  ShoppingCart,
+  Star,
+  Target,
+  Timer,
+  Trash,
+  Trophy,
+  Users,
   X,
+  Zap,
 } from "lucide-react";
+
+// Inside TaskForm.jsx
+import * as LucideIcons from "lucide-react";
+
 import { Input } from "@/components/ui/input";
 import { IconPicker } from "@/components/icon-picker";
 import { SegmentedControl } from "@/components/segmented-control";
@@ -38,9 +60,38 @@ import DatePickerSheet from "@/components/date-picker-sheet";
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
+// Define allowed icons (must match IconPicker component)
+const allowedIcons = {
+  Activity,
+  AlarmClock,
+  Book,
+  Check,
+  Dumbbell,
+  Flag,
+  Heart,
+  Home,
+  Package,
+  Rocket,
+  Settings,
+  ShoppingCart,
+  Star,
+  Target,
+  Timer,
+  Trash,
+  Trophy,
+  Users,
+  Zap,
+};
+
+type IconName = keyof typeof allowedIcons;
+
 const formSchema = z
   .object({
     // Core Fields
+    icon_name: z
+      .enum(Object.keys(allowedIcons) as [IconName, ...IconName[]])
+      .optional()
+      .default("Dumbbell"),
     title: z.string().min(1, "Title is required"),
     // icon: z.enum(["education", "fitness", "busy", "rest"]),
     start_date: z.date({ required_error: "Start date is required" }),
@@ -302,6 +353,7 @@ export function TaskForm({ selectedDate }) {
       start_date: dayjs(data.start_date).format("YYYY-MM-DD"), // Format date
       start_time: data.start_time, // Use validated HH:mm time
       duration_minutes: data.duration_minutes,
+      icon_name: data.icon_name,
       timezone: guessedTimezone, // Pass timezone for server-side dtstart calculation
     };
 
@@ -474,7 +526,6 @@ export function TaskForm({ selectedDate }) {
         // Overwrite payload entirely for modify action
         taskId: taskId,
         originalOccurrenceTimeUTC: originalTime,
-        // userId: "user-id-placeholder", // !!! GET USER ID !!!
         overrideTitle: pendingPayload.title,
         newStartTimeISO: dayjs
           .tz(
@@ -502,11 +553,6 @@ export function TaskForm({ selectedDate }) {
 
     // Close the modal happens inside executeSubmit finally block
     executeSubmit(actionToExecute, payloadForAction, finalScope);
-  };
-
-  const handleEndDateSelect = (date) => {
-    setValue("end_date", date, { shouldValidate: true });
-    setIsEndDatePickerOpen(false);
   };
 
   // --- Close Handler passed to Sheet ---
@@ -557,25 +603,29 @@ export function TaskForm({ selectedDate }) {
 
           {/* Scrollable Content Area */}
           <div className="overflow-y-auto flex-grow p-4 sm:p-6 space-y-6 sm:space-y-8">
-            {/* Task Name */}
-            <div>
+            <div className="flex items-center gap-3 sm:gap-4">
+              <Controller
+                name="icon_name"
+                control={control}
+                render={({ field }) => (
+                  <IconPicker
+                    value={field.value}
+                    onChange={field.onChange}
+                    className="your-custom-classes"
+                  />
+                )}
+              />
               <Controller
                 name="title"
                 control={control}
                 render={({ field }) => (
-                  <div className="flex items-center gap-3 sm:gap-4">
-                    <div className="w-12...">
-                      <Dumbbell className="..." />
-                    </div>
-                    <Input {...field} placeholder="Task name" className="..." />
-                  </div>
+                  <Input
+                    {...field}
+                    placeholder="Task name"
+                    className="text-xl sm:text-2xl flex-grow"
+                  />
                 )}
               />
-              {errors.title && (
-                <p className="text-red-400 text-xs mt-1 pl-16 sm:pl-[76px]">
-                  {errors.title.message}
-                </p>
-              )}
             </div>
             {/* Time Picker & Start Date */}
             <div>

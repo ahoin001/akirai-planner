@@ -189,12 +189,14 @@ export const createTaskAction = async (taskData) => {
     }
 
     // --- 5. Database Insert into 'tasks' table ---
+    console.log("SERVER ACTION: Task Data: ", taskData);
     console.log("SERVER ACTION: Inserting task definition into database...");
     const { data: insertedTask, error: insertError } = await supabase
       .from("tasks")
       .insert({
         user_id: user.id,
         title: taskData.title.trim(),
+        icon_name: taskData.icon_name || "Activity",
         dtstart: dtstartISO, // TIMESTAMPTZ (ISO String)
         duration_minutes: duration,
         rrule: rruleString, // TEXT (RRULE string or null)
@@ -671,6 +673,7 @@ export const updateTaskDefinitionAction = async (taskId, taskData, scope) => {
       title: newTitle,
       // dtstart: newDtstartISO, // Decide: Update start for 'all' or only for new task in 'future'? Let's update only for 'all'.
       duration_minutes: newDuration,
+      icon_name: taskData.icon_name || "Activity",
       rrule: newRruleString, // The new rule based on form input
       timezone: timeZone,
       status: newStatus,
@@ -1085,14 +1088,17 @@ export const forgotPasswordAction = async (formData: FormData) => {
 };
 
 export const signInWithGoogle = async () => {
-  const origin = (await headers()).get("origin");
+  // const origin = (await headers()).get("origin");
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: `${origin}/auth/callback`,
+      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
     },
   });
+
+  console.log("DATA URL: ", data?.url);
+  console.log("Redirect URL: ", process.env.NEXT_PUBLIC_SITE_URL);
 
   if (data.url) {
     redirect(data.url);

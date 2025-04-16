@@ -112,6 +112,8 @@ export const calculateInstancesForRange = (
           continue;
         }
 
+        console.log(exception);
+
         // Construct the instance, applying any exception overrides
         finalInstances.push({
           // Generate a unique ID: use exception ID if it exists, otherwise combine task ID and time
@@ -125,6 +127,7 @@ export const calculateInstancesForRange = (
           duration_minutes:
             exception?.new_duration_minutes ?? task.duration_minutes,
           title: exception?.override_title ?? task.title,
+          icon_name: task?.icon_name ?? "Floop", //"Activity",
           is_complete: exception?.is_complete ?? false,
           completion_time: exception?.completion_time ?? null,
           is_cancelled: false, // If we reached here, it wasn't cancelled
@@ -183,6 +186,7 @@ export const calculateInstancesForRange = (
             duration_minutes:
               exception?.new_duration_minutes ?? task.duration_minutes,
             title: exception?.override_title ?? task.title,
+            icon_name: exception?.icon_name, // Icon name for the task (e.g., "Activity")
             is_complete: exception?.is_complete ?? false,
             completion_time: exception?.completion_time ?? null,
             is_cancelled: false,

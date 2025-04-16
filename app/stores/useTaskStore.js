@@ -391,6 +391,7 @@ export const useTaskStore = create((set, get) => ({
         title: "",
         start_date: defaultStartDate,
         start_time: "09:00", // Use HH:mm
+        icon_name: "Activity",
         duration_minutes: 30,
         frequency: "once",
         interval: 1,
@@ -472,6 +473,7 @@ export const useTaskStore = create((set, get) => ({
     // but use parsed/default recurrence values from the PARENT RULE.
     const formValues = {
       title: instanceContext.title, // Instance title
+      icon_name: instanceContext.icon_name,
       start_date: dayjs
         .utc(instanceContext.scheduled_time_utc)
         .tz(instanceContext.timezone)

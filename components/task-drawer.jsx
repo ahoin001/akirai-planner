@@ -20,6 +20,8 @@ import {
   Dumbbell,
   Clock,
   Check,
+  Activity,
+  Heart,
 } from "lucide-react";
 
 import useCalendarStore from "@/app/stores/useCalendarStore";
@@ -30,24 +32,19 @@ dayjs.extend(timezone);
 dayjs.extend(isSameOrBefore);
 dayjs.extend(isSameOrAfter);
 
-// ****** CHANGE: Task Icon based on *parent* task type if available ******
 const getTaskIcon = (instance) => {
-  // TODO: Need access to parent task type. This might require modifying
-  // calculateInstancesForRange to include the parent task's type/color,
-  // or fetching the parent task definition based on instance.task_id.
-  // For now, using a placeholder or assuming 'type' is added to CalculatedInstance.
-  const type = instance?.type || "default"; // Assuming 'type' might be on the instance
-  const sizeClass = "w-5 h-5"; // Consistent size
-
-  switch (type) {
-    case "alarm":
-      return <AlarmClock className={sizeClass} />;
+  const sizeClass = "w-5 h-5";
+  switch (instance.icon_name) {
+    case "Activity":
+      return <Activity className={sizeClass} />;
+    case "Heart":
+      return <Heart className={sizeClass} />;
     case "workout":
       return <Dumbbell className={sizeClass} />;
     case "night":
       return <Moon className={sizeClass} />;
     default:
-      return <Clock className={sizeClass} />; // Default icon
+      return <Clock className={sizeClass} />;
   }
 };
 
@@ -146,35 +143,61 @@ const TaskDrawer = ({ drawerRef }) => {
   const expandedDrawerHeight = `calc(75vh - ${bottomNavHeight}px)`; // Use vh for expanded height
 
   // ****** CHANGE: Scroll logic needs update ******
+  // Update the scroll useEffect with these changes
   useEffect(() => {
-    // Scroll to the *selectedInstance* when the drawer opens or instance changes
-    if (selectedInstance && drawerOpen && taskListRef.current) {
-      // ID is now potentially taskId-timestamp or exceptionId
-      const targetElementId = `taskInstance-${selectedInstance.id}`;
-      // Use setTimeout to allow DOM updates after selection/open
-      setTimeout(() => {
-        const taskElement = document.getElementById(targetElementId);
-        if (taskElement && taskListRef.current) {
-          // Calculate desired scroll position (element top - some offset)
-          const listTop = taskListRef.current.offsetTop; // Or bounding rect top
-          const elementTop = taskElement.offsetTop;
-          const desiredScrollTop = elementTop - listTop - 10; // Adjust offset as needed
+    const scrollToTask = () => {
+      if (!selectedInstance || !taskListRef.current) {
+        console.log("Aborting scroll - missing instance or container");
+        return;
+      }
 
-          taskListRef.current.scrollTo({
-            top: Math.max(0, desiredScrollTop), // Ensure not scrolling negative
-            behavior: "smooth",
-          });
-          console.log(
-            `Scrolling to ${targetElementId} at top: ${desiredScrollTop}`
-          );
-        } else {
-          console.log(`Scroll target not found: #${targetElementId}`);
+      const taskId = `taskInstance-${selectedInstance.id}`;
+      const taskElement = document.getElementById(taskId);
+
+      if (!taskElement) {
+        console.warn("Scroll target not found:", taskId);
+        return;
+      }
+
+      console.log("Attempting scroll to:", taskId);
+      const container = taskListRef.current;
+      const elementTop = taskElement.offsetTop;
+      const containerHeight = container.clientHeight;
+      const elementHeight = taskElement.offsetHeight;
+
+      // Calculate center position with 20px offset
+      const scrollPosition =
+        elementTop - containerHeight / 2 + elementHeight / 2 - 20;
+
+      container.scrollTo({
+        top: Math.max(0, scrollPosition),
+        behavior: "smooth",
+      });
+    };
+
+    if (drawerOpen && tasksForSelectedDay.length > 0) {
+      console.log("Scheduling scroll...");
+      let retries = 0;
+      const tryScroll = () => {
+        if (retries > 3) {
+          console.warn("Max scroll retries reached");
+          return;
         }
-      }, 150); // Delay allows rendering and state updates
+
+        if (!document.getElementById(`taskInstance-${selectedInstance?.id}`)) {
+          console.log(`Retry ${retries + 1} - element not found`);
+          retries++;
+          setTimeout(tryScroll, 50);
+          return;
+        }
+
+        scrollToTask();
+      };
+
+      // Initial attempt after drawer transition completes
+      setTimeout(tryScroll, 350); // Match drawer transition duration
     }
-    // Note: Scrolling based on day *change* animation might conflict.
-    // Consider if scrolling is needed on day change or only on selection.
-  }, [selectedInstance, drawerOpen]); // Trigger scroll on selection or drawer opening
+  }, [selectedInstance, drawerOpen, tasksForSelectedDay]);
 
   // Handle day change animation (keep original logic)
   useEffect(() => {
@@ -193,7 +216,7 @@ const TaskDrawer = ({ drawerRef }) => {
       ref={drawerRef}
       // ****** CHANGE: Simpler positioning, relies on parent context potentially ******
       // If this is directly in body, fixed positioning is fine. Adjust if nested.
-      className="fixed bottom-0 left-0 right-0 w-[90%] mx-auto md:right-4 z-30 bg-zinc-900 border border-gray-700/50 rounded-t-2xl md:rounded-xl shadow-2xl transition-all duration-300 ease-out" // Responsive width/rounding
+      className="fixed bottom-0 left-0 right-0 w-[90%] mx-auto md:right-4 z-30 bg-drawer border border-gray-700/50 rounded-t-2xl md:rounded-xl shadow-2xl transition-all duration-300 ease-out" // Responsive width/rounding
       style={{
         // Use max-height and dynamic height
         height: drawerOpen ? expandedDrawerHeight : `${minDrawerHeight}px`,
@@ -206,7 +229,7 @@ const TaskDrawer = ({ drawerRef }) => {
       <div className="flex flex-col h-full rounded-t-xl md:rounded-xl overflow-hidden">
         {/* Ensure overflow hidden */}
         {/* Drawer header */}
-        <div className="p-3 sm:p-4 flex justify-between items-center flex-shrink-0 border-b border-gray-700/50 bg-zinc-900/80 backdrop-blur-sm">
+        <div className="p-3 sm:p-4 flex justify-between items-center flex-shrink-0 border-b border-gray-700/50  backdrop-blur-sm">
           {" "}
           {/* Sticky header style */}
           <h2 className="text-base sm:text-lg font-semibold text-gray-100">

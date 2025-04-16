@@ -91,7 +91,7 @@ const WeekView = () => {
           </div>
 
           {/* Timeline content row */}
-          <div className="contents space-x-2">
+          <div className="contents ">
             {" "}
             {/* Phantom element for grid structure */}
             <TimeLabels />
