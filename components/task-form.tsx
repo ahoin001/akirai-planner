@@ -34,6 +34,7 @@ import { useTaskStore } from "@/app/stores/useTaskStore";
 import { toast } from "react-hot-toast";
 
 import { RecurrenceActionModal } from "./modals/recurrence-action-modal";
+import DatePickerSheet from "@/components/date-picker-sheet";
 
 // Extend Dayjs
 dayjs.extend(utc);
@@ -537,7 +538,7 @@ export function TaskForm({ selectedDate }) {
     <Sheet open={isOpen} onOpenChange={handleSheetOpenChange}>
       <SheetContent
         side="bottom"
-        className="h-auto max-h-[95vh] sm:max-h-[90vh] flex flex-col rounded-t-3xl bg-drawer border-t border-gray-700 z-[90] p-0" // Use theme bg
+        className="h-auto max-h-[95vh] sm:max-h-[90vh] flex flex-col rounded-t-3xl bg-drawer border-t border-gray-700 z-[70] p-0" // Use theme bg
         onOpenAutoFocus={(e) => e.preventDefault()}
         // Prevent closing on interact outside if it interferes with date pickers
         // onInteractOutside={(e) => e.preventDefault()}
@@ -642,14 +643,14 @@ export function TaskForm({ selectedDate }) {
                         )}
                       </button>
                       {isStartDatePickerOpen && (
-                        <div className="w-full max-w-xs mx-auto mt-4 z-10 relative">
-                          <DatePicker
-                            isOpen={isStartDatePickerOpen}
-                            onSelect={handleStartDateSelect}
-                            selectedDate={field.value}
-                            onClose={() => setIsStartDatePickerOpen(false)}
-                          />
-                        </div>
+                        <DatePickerSheet
+                          open={isStartDatePickerOpen}
+                          onOpenChange={setIsStartDatePickerOpen}
+                          selectedDate={field.value}
+                          onDateSelect={(date) => {
+                            field.onChange(date); // Update react-hook-form value
+                          }}
+                        />
                       )}
                       {errors.start_date && (
                         <p className="text-red-400 text-xs mt-1">
@@ -897,7 +898,7 @@ export function TaskForm({ selectedDate }) {
           </div>
 
           {/* Footer */}
-          <div className="p-4 pb-20  border-t border-gray-700/50 flex-shrink-0 bg-zinc-900">
+          <div className="p-4 pb-20  border-t border-gray-700/50 flex-shrink-0">
             {formError && (
               <div className="bg-red-800/30 border border-red-600/50 text-red-300 p-3 rounded-md mb-3 sm:mb-4 text-sm text-center">
                 {formError}
