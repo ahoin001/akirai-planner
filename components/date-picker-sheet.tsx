@@ -13,6 +13,7 @@ import { Check, ChevronLeft, ChevronRight, X } from "lucide-react";
 import dayjs from "dayjs";
 
 import { DateWheelPicker } from "./date-wheel-picker";
+import useCalendarStore from "@/app/stores/useCalendarStore";
 
 const months = [
   "January",
@@ -164,6 +165,18 @@ const DatePickerSheet: React.FC<DatePickerSheetProps> = ({
                 </button>
               )}
             </div>
+
+            {/* Add Today button */}
+            <button
+              onClick={() => {
+                const today = dayjs().startOf("day").toDate();
+                useCalendarStore.getState().selectDay(today);
+                setSelectedDateState(today);
+              }}
+              className="px-3 py-1.5 text-sm rounded-full bg-rose-400/20 hover:bg-rose-400/30 text-rose-400 transition-colors"
+            >
+              Today
+            </button>
           </SheetHeader>
 
           <div className="flex-1 overflow-hidden relative">
