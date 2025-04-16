@@ -2,9 +2,10 @@
 
 import { useAuthStore } from "@/app/stores/useAuthStore";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useTheme } from "next-themes";
 
-import { LogOut, User, Settings } from "lucide-react";
+import { LogOut, Moon, Sun, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -16,13 +17,20 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 import Image from "next/image";
+import { ThemeSwitcher } from "./theme-switcher";
 
 export function UserProfileMenu() {
   const { user, signOut } = useAuthStore();
+  const [mounted, setMounted] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const router = useRouter();
+  const { resolvedTheme, setTheme } = useTheme(); // Use resolvedTheme for accurate current theme
 
-  if (!user) return null;
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!user || !mounted) return null;
 
   // Get user initials or first letter of email
   const getInitials = () => {
@@ -84,9 +92,16 @@ export function UserProfileMenu() {
           <User className="mr-2 h-4 w-4" />
           <span>Profile</span>
         </DropdownMenuItem>
-        <DropdownMenuItem>
-          <Settings className="mr-2 h-4 w-4" />
-          <span>Settings</span>
+        {/* Theme Toggle Item */}
+        <DropdownMenuItem
+          onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+        >
+          {resolvedTheme === "dark" ? (
+            <Sun className="mr-2 h-4 w-4" />
+          ) : (
+            <Moon className="mr-2 h-4 w-4" />
+          )}
+          <span>{resolvedTheme === "dark" ? "Light Mode" : "Dark Mode"}</span>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleSignOut}>
