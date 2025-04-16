@@ -16,10 +16,8 @@ import {
   ChevronDown,
   Loader2,
   X,
-  AlertCircle,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import DatePicker from "@/components/date-picker";
 import { IconPicker } from "@/components/icon-picker";
 import { SegmentedControl } from "@/components/segmented-control";
 import { WheelPicker } from "@/components/wheel-picker";
@@ -506,12 +504,6 @@ export function TaskForm({ selectedDate }) {
     executeSubmit(actionToExecute, payloadForAction, finalScope);
   };
 
-  // --- Date Selection Handlers ---
-  const handleStartDateSelect = (date) => {
-    setValue("start_date", date, { shouldValidate: true });
-    setIsStartDatePickerOpen(false);
-  };
-
   const handleEndDateSelect = (date) => {
     setValue("end_date", date, { shouldValidate: true });
     setIsEndDatePickerOpen(false);
@@ -540,8 +532,6 @@ export function TaskForm({ selectedDate }) {
         side="bottom"
         className="h-auto max-h-[95vh] sm:max-h-[90vh] flex flex-col rounded-t-3xl bg-drawer border-t border-gray-700 z-[70] p-0" // Use theme bg
         onOpenAutoFocus={(e) => e.preventDefault()}
-        // Prevent closing on interact outside if it interferes with date pickers
-        // onInteractOutside={(e) => e.preventDefault()}
       >
         <form
           onSubmit={handleSubmit(onSubmit)}
@@ -550,14 +540,12 @@ export function TaskForm({ selectedDate }) {
           {/* Header */}
           <div className="flex items-center justify-between p-4 sm:p-5 border-b border-gray-700/50 flex-shrink-0">
             <SheetTitle className="text-white text-xl sm:text-2xl font-semibold">
-              {/* Use isEditing from store */}
               {isEditing
                 ? isExceptionEditMode
                   ? "Edit Occurrence"
                   : "Edit Task"
                 : "New Task"}
             </SheetTitle>
-            {/* Use store action to close */}
             <button
               type="button"
               onClick={closeForm}
@@ -569,7 +557,6 @@ export function TaskForm({ selectedDate }) {
 
           {/* Scrollable Content Area */}
           <div className="overflow-y-auto flex-grow p-4 sm:p-6 space-y-6 sm:space-y-8">
-            {/* --- Form Fields (Structure remains the same, check Controller usage) --- */}
             {/* Task Name */}
             <div>
               <Controller
@@ -874,11 +861,13 @@ export function TaskForm({ selectedDate }) {
                           </button>
                           {isEndDatePickerOpen && (
                             <div className="absolute top-full left-0 mt-2 w-full max-w-xs z-20 bg-zinc-800 rounded-lg shadow-lg border border-gray-700">
-                              <DatePicker
-                                isOpen={isEndDatePickerOpen}
+                              <DatePickerSheet
+                                open={isEndDatePickerOpen}
                                 selectedDate={field.value}
-                                onSelect={handleEndDateSelect}
-                                onClose={() => setIsEndDatePickerOpen(false)}
+                                onOpenChange={setIsEndDatePickerOpen}
+                                onDateSelect={(date) => {
+                                  field.onChange(date);
+                                }}
                               />
                             </div>
                           )}

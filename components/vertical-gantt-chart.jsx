@@ -104,13 +104,6 @@ const VerticalGanttChart = () => {
 
       <FloatingActionButton onClick={handleOpenTaskForm} />
 
-      {/* <DatePicker
-        isOpen={datePickerOpen}
-        onClose={handleCloseDatePicker}
-        onSelect={handleDateSelect}
-        selectedDate={datePickerFor}
-      /> */}
-
       <DatePickerSheet
         open={datePickerOpen}
         onOpenChange={setDatePickerOpen}
@@ -124,7 +117,6 @@ const VerticalGanttChart = () => {
 export default memo(VerticalGanttChart);
 
 import { Plus } from "lucide-react";
-import DatePicker from "./date-picker";
 import DatePickerSheet from "@/components/date-picker-sheet";
 
 const FloatingActionButton = memo(({ onClick }) => (
