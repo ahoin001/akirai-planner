@@ -54,7 +54,7 @@ export function UserProfileMenu() {
       router.refresh(); // Ensure client cache is cleared
     }
   };
-  console.log("User Profile Menu", user);
+
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenuTrigger asChild>
@@ -69,7 +69,7 @@ export function UserProfileMenu() {
         ) : (
           <Button
             variant="ghost"
-            className="relative rounded-full bg-rose-400 text-white"
+            className="relative rounded-full h-8 w-8  bg-rose-400 text-white"
           >
             {getInitials()}
           </Button>

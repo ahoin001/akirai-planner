@@ -611,7 +611,7 @@ export function TaskForm({ selectedDate }) {
                   <IconPicker
                     value={field.value}
                     onChange={field.onChange}
-                    className="your-custom-classes"
+                    className="border-none border-0"
                   />
                 )}
               />

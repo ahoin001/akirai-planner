@@ -90,7 +90,7 @@ export function IconPicker({ value, onChange, className }) {
             <SelectedIcon className="w-6 h-6 sm:w-7 sm:h-7" />
           </Popover.Button>
 
-          <Popover.Panel className="absolute z-[60] w-80 p-2 bg-zinc-800 border border-gray-700 rounded-lg shadow-xl">
+          <Popover.Panel className="absolute z-[60] w-80 p-2 bg-zinc-800 rounded-lg shadow-xl">
             <div className="overflow-y-auto h-30">
               {" "}
               {/* Native scrolling */}

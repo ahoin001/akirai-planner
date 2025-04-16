@@ -9,9 +9,9 @@
  * @component
  */
 import { isAfter } from "date-fns";
-import { Clock, Activity, Dumbbell, Heart } from "lucide-react";
 import useCalendarStore from "@/app/stores/useCalendarStore";
 import { useTaskStore } from "@/app/stores/useTaskStore";
+import { getTaskIcon } from "@/lib/icons";
 
 /**
  * TaskItem component
@@ -44,22 +44,6 @@ export default function TaskItem({
     setSelectedInstance(task);
   };
 
-  const getTaskIcon = (instance) => {
-    const sizeClass = "w-5 h-5"; // Consistent size
-    switch (instance.icon_name) {
-      case "Activity":
-        return <Activity className={sizeClass} />;
-      case "Heart":
-        return <Heart className={sizeClass} />;
-      case "workout":
-        return <Dumbbell className={sizeClass} />;
-      case "night":
-        return <Moon className={sizeClass} />;
-      default:
-        return <Clock className={sizeClass} />; // Default icon
-    }
-  };
-
   return (
     <div
       className={`absolute left-1/2 transform -translate-x-1/2 w-10 rounded-full overflow-hidden transition-all duration-300 cursor-pointer
@@ -77,7 +61,7 @@ export default function TaskItem({
             ? "bg-gray-700"
             : task?.color === "pink"
               ? "bg-pink-500"
-              : "bg-blue-500"
+              : "bg-primary"
         }`}
       />
 
@@ -88,16 +72,16 @@ export default function TaskItem({
             ? "from-gray-700 to-transparent"
             : task?.color === "pink"
               ? "from-pink-500 to-transparent"
-              : "from-blue-500 to-transparent"
+              : "from-primary to-transparent"
         } transition-all duration-1000`}
         style={{ height: `${progress}%`, top: "auto" }}
       />
 
       {/* Task icon */}
       <div
-        className={`absolute inset-0 flex items-center justify-center ${isGrayed ? "text-gray-500" : "text-white"}`}
+        className={`absolute inset-0 flex items-center justify-center border-2-white ring-white ${isGrayed ? "text-gray-500" : "text-white"}`}
       >
-        {getTaskIcon(task)}
+        {getTaskIcon(task.icon_name)}
       </div>
     </div>
   );
