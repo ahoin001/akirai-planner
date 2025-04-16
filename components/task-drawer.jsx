@@ -96,7 +96,8 @@ const TaskDrawer = ({ drawerRef }) => {
 
   const [isAnimating, setIsAnimating] = useState(false);
   const [prevDay, setPrevDay] = useState(null);
-  const taskListRef = useRef(null); // Keep ref for scrolling
+
+  const taskListRef = useRef(null);
 
   // ****** Might move to store: Calculate instances for the selected day ******
   const tasksForSelectedDay = useMemo(() => {
@@ -112,68 +113,24 @@ const TaskDrawer = ({ drawerRef }) => {
   }, [selectedDay, tasks, exceptions]); // Dependencies
 
   // Determine drawer height (keep original logic, maybe adjust numbers)
-  const minDrawerHeight = tasksForSelectedDay.length > 0 ? 230 : 210; // Slightly smaller min height?
+  const minDrawerHeight = tasksForSelectedDay.length > 0 ? 280 : 210; // Slightly smaller min height?
   const bottomNavHeight = 64; // Assuming h-16 is bottom nav height in px
   const expandedDrawerHeight = `calc(75vh - ${bottomNavHeight}px)`; // Use vh for expanded height
 
-  // ****** CHANGE: Scroll logic needs update ******
-  // Update the scroll useEffect with these changes
   useEffect(() => {
-    const scrollToTask = () => {
-      if (!selectedInstance || !taskListRef.current) {
-        console.log("Aborting scroll - missing instance or container");
-        return;
+    if (selectedInstance && taskListRef.current) {
+      const elementId = `taskInstance-${selectedInstance.id}`;
+      const taskElement = document.getElementById(elementId);
+
+      if (taskElement) {
+        taskElement.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
       }
-
-      const taskId = `taskInstance-${selectedInstance.id}`;
-      const taskElement = document.getElementById(taskId);
-
-      if (!taskElement) {
-        console.warn("Scroll target not found:", taskId);
-        return;
-      }
-
-      console.log("Attempting scroll to:", taskId);
-      const container = taskListRef.current;
-      const elementTop = taskElement.offsetTop;
-      const containerHeight = container.clientHeight;
-      const elementHeight = taskElement.offsetHeight;
-
-      // Calculate center position with 20px offset
-      const scrollPosition =
-        elementTop - containerHeight / 2 + elementHeight / 2 - 20;
-
-      container.scrollTo({
-        top: Math.max(0, scrollPosition),
-        behavior: "smooth",
-      });
-    };
-
-    if (drawerOpen && tasksForSelectedDay.length > 0) {
-      console.log("Scheduling scroll...");
-      let retries = 0;
-      const tryScroll = () => {
-        if (retries > 3) {
-          console.warn("Max scroll retries reached");
-          return;
-        }
-
-        if (!document.getElementById(`taskInstance-${selectedInstance?.id}`)) {
-          console.log(`Retry ${retries + 1} - element not found`);
-          retries++;
-          setTimeout(tryScroll, 50);
-          return;
-        }
-
-        scrollToTask();
-      };
-
-      // Initial attempt after drawer transition completes
-      setTimeout(tryScroll, 350); // Match drawer transition duration
     }
-  }, [selectedInstance, drawerOpen, tasksForSelectedDay]);
+  }, [selectedInstance, tasksForSelectedDay]);
 
-  // Handle day change animation (keep original logic)
   useEffect(() => {
     if (prevDay && selectedDay && !dayjs(prevDay).isSame(selectedDay, "day")) {
       setIsAnimating(true);
@@ -188,22 +145,18 @@ const TaskDrawer = ({ drawerRef }) => {
   return (
     <div
       ref={drawerRef}
-      // ****** CHANGE: Simpler positioning, relies on parent context potentially ******
-      // If this is directly in body, fixed positioning is fine. Adjust if nested.
       className="fixed bottom-0 left-0 right-0 w-[90%] mx-auto md:right-4 z-30 bg-drawer border border-gray-700/50 rounded-t-2xl md:rounded-xl shadow-2xl transition-all duration-300 ease-out" // Responsive width/rounding
       style={{
         // Use max-height and dynamic height
         height: drawerOpen ? expandedDrawerHeight : `${minDrawerHeight}px`,
         // Max height prevents overlap with potential top nav
         maxHeight: `calc(90vh - ${bottomNavHeight}px)`,
-        // Apply transform for animation if needed, but height transition might suffice
-        // transform: drawerOpen ? 'translateY(0)' : `translateY(calc(100% - ${minDrawerHeight}px - ${bottomNavHeight}px))`, // Alternative animation
       }}
     >
       <div className="flex flex-col h-full rounded-t-xl md:rounded-xl overflow-hidden">
         {/* Ensure overflow hidden */}
         {/* Drawer header */}
-        <div className="p-3 sm:p-4 flex justify-between items-center flex-shrink-0 border-b border-gray-700/50  backdrop-blur-sm">
+        <div className="p-3 sm:p-4 flex justify-between items-center flex-shrink-0 border-b border-gray-700/50 ">
           {" "}
           {/* Sticky header style */}
           <h2 className="text-base sm:text-lg font-semibold text-gray-100">
@@ -224,12 +177,10 @@ const TaskDrawer = ({ drawerRef }) => {
 
         {/* Task list */}
         {selectedDay && (
-          //  className={`overflow-y-auto flex-grow transition-opacity duration-300 ${
-          //   isAnimating ? "opacity-0" : "opacity-100"
-          // }`}
+          // ref={taskListRef}
           <div
             ref={taskListRef}
-            className={`overflow-y-auto flex-grow`}
+            className={`overflow-y-auto`}
             // Add padding inside the scrollable area
             style={{ padding: "8px 16px 16px 16px" }} // p-4 equivalent but avoids header padding
           >
@@ -247,16 +198,17 @@ const TaskDrawer = ({ drawerRef }) => {
             )}
             {/* Render Task Items */}
             {tasksForSelectedDay.length > 0 && (
-              <div className="space-y-2 sm:space-y-3">
+              <div className="space-y-2 pb-12 sm:space-y-3">
                 {" "}
-                {/* Add spacing between items */}
                 {tasksForSelectedDay.map((instance) => (
-                  <DrawerTaskItem
-                    key={instance.id} // Use calculated instance unique ID
-                    instance={instance} // Pass the calculated instance
-                    isSelected={selectedInstance?.id === instance.id} // Compare selected instance ID
-                    onClick={() => openTaskMenu(instance)} // Pass calculated instance
-                  />
+                  <div key={instance.id} id={`drawer-item-${instance.id}`}>
+                    <DrawerTaskItem
+                      key={instance.id}
+                      instance={instance}
+                      isSelected={selectedInstance?.id === instance.id}
+                      onClick={() => openTaskMenu(instance)}
+                    />
+                  </div>
                 ))}
               </div>
             )}
