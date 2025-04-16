@@ -112,8 +112,6 @@ export const calculateInstancesForRange = (
           continue;
         }
 
-        console.log(exception);
-
         // Construct the instance, applying any exception overrides
         finalInstances.push({
           // Generate a unique ID: use exception ID if it exists, otherwise combine task ID and time

@@ -15,6 +15,7 @@ export interface CalculatedInstance {
   is_complete: boolean; // Completion status from exception or false
   completion_time?: string | null; // Completion time from exception or null
   is_cancelled: boolean; // ONLY true if an exception exists and has is_cancelled = true
+  icon_name: string; // Icon name for the task (e.g., "Activity")
   timezone: string; // Parent task's original timezone for context
   // Include other relevant data needed for display, potentially merged from parent/exception
   // color?: string;
@@ -54,6 +55,7 @@ export interface TaskDefinition {
   dtstart: string; // ISO 8601 string (TIMESTAMPTZ from DB)
   duration_minutes: number;
   rrule?: string | null; // RRULE string or null/undefined
+  icon_name: string; // Icon name for the task (e.g., "Activity")
   timezone: string; // IANA timezone name (e.g., 'America/New_York')
   status: "active" | "paused" | "completed" | "archived"; // Task series status
   created_at: string; // ISO 8601 string
@@ -75,6 +77,7 @@ export interface TaskException {
   new_start_time?: string | null; // ISO 8601 string (TIMESTAMPTZ) - Overridden start time
   new_duration_minutes?: number | null;
   override_title?: string | null;
+  icon_name?: string; // Icon name for the task (e.g., "Activity")
   is_cancelled: boolean;
   is_complete: boolean;
   completion_time?: string | null; // ISO 8601 string (TIMESTAMPTZ)
