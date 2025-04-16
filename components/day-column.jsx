@@ -161,11 +161,7 @@ export default function DayColumn({ date, tasks = [], isNext = false }) {
           <div
             className={`absolute left-0 right-0 top-0 ${
               // Use more distinct colors based on state
-              isPast
-                ? "bg-gray-500"
-                : isToday
-                  ? "bg-indigo-500"
-                  : "bg-transparent"
+              isPast ? "bg-primary" : isToday ? "bg-primary" : "bg-transparent"
             } rounded-full transition-all duration-1000 ease-linear`} // Smooth progress animation
             style={{ height: `${progress}%` }}
           />
