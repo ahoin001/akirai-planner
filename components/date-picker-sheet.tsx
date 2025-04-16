@@ -65,7 +65,7 @@ const DatePickerSheet: React.FC<DatePickerSheetProps> = ({
         side="bottom"
         className="w-full max-w-[80vw] p-0 mx-auto border-0 bg-transparent"
       >
-        <div className="w-full p-8 mx-auto mb-12  max-w-[90vw] overflow-hidden rounded-xl bg-drawer text-white shadow-xl">
+        <div className="w-full p-8 mx-auto mb-12 max-w-[90vw] overflow-hidden rounded-xl bg-drawer text-white shadow-xl transition-all duration-300">
           <SheetHeader className="px-4 pt-4 pb-2 flex justify-between items-center">
             <div className="flex items-center">
               <SheetTitle className="text-2xl font-semibold text-white">
@@ -81,14 +81,14 @@ const DatePickerSheet: React.FC<DatePickerSheetProps> = ({
           </SheetHeader>
 
           <div className="flex-1 overflow-hidden relative">
-            <AnimatePresence initial={false}>
+            <div className="relative">
               {isWheelOpen ? (
                 <WheelPicker
                   currentMonth={currentMonth}
                   onMonthChange={setCurrentMonth}
                 />
               ) : (
-                <div className="h-full flex flex-col">
+                <div className="h-full flex flex-col animate-fade-in">
                   <div className="flex-1 flex overflow-hidden">
                     <div className="flex-1 flex flex-col">
                       <div className="p-4 flex justify-between items-center">
@@ -146,7 +146,7 @@ const DatePickerSheet: React.FC<DatePickerSheetProps> = ({
                   </div>
                 </div>
               )}
-            </AnimatePresence>
+            </div>
           </div>
         </div>
       </SheetContent>
@@ -198,22 +198,21 @@ const MonthCalendar: React.FC<MonthCalendarProps> = ({
                 className="flex justify-center items-center"
               >
                 {isCurrentMonth ? (
-                  <motion.button
-                    initial={false}
-                    animate={{
-                      scale: isSelected ? 1.1 : 1,
-                      backgroundColor: isSelected ? "#fb7185" : "transparent",
-                    }}
-                    transition={{ type: "spring", stiffness: 300 }}
+                  <button
                     onClick={() => onDateSelect(day)}
-                    className={`w-10 h-10 rounded-full flex items-center justify-center text-lg ${
-                      isToday && !isSelected
-                        ? "font-bold text-rose-400"
-                        : "text-white"
-                    } ${isSelected ? "bg-rose-400" : "bg-transparent"}`} // Add this line
+                    style={{
+                      transform: isSelected ? "scale(1.1)" : "scale(1)",
+                    }}
+                    className={`
+                   w-10 h-10 rounded-full flex items-center justify-center text-lg 
+                   transition-all duration-200 ease-out
+                   ${isSelected ? "bg-rose-400 text-white font-medium" : ""}
+                   ${isToday && !isSelected ? "font-bold text-rose-400" : "text-white"}
+                   hover:scale-105 hover:bg-rose-400/20
+                 `}
                   >
                     {day.getDate()}
-                  </motion.button>
+                  </button>
                 ) : (
                   <span className="w-10 h-10 flex items-center justify-center text-gray-600 text-lg">
                     {day.getDate()}
@@ -321,3 +320,35 @@ function getCalendarDays(month: Date): Date[][] {
 }
 
 export default DatePickerSheet;
+
+<style jsx global>{`
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes slide-up {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-fade-in {
+    animation: fade-in 0.3s ease-out;
+  }
+
+  .animate-slide-up {
+    animation: slide-up 0.25s ease-out;
+  }
+`}</style>;
