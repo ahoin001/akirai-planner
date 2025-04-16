@@ -54,11 +54,11 @@ export function UserProfileMenu() {
       router.refresh(); // Ensure client cache is cleared
     }
   };
-
+  console.log("User Profile Menu", user);
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenuTrigger asChild>
-        {user?.id ? (
+        {user?.user_metadata?.picture ? (
           <Image
             src={user?.user_metadata?.picture}
             width={32}
