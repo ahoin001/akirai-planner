@@ -9,37 +9,11 @@ import {
   deleteTaskSeriesAction,
   toggleTaskOccurrenceCompletionAction,
 } from "@/app/actions";
-import {
-  CheckCircle,
-  Circle,
-  Edit,
-  Trash2,
-  Clock,
-  Activity,
-  AlarmClock,
-  Book,
-  CalendarIcon,
-  Check,
-  ChevronUp,
-  ChevronDown,
-  Dumbbell,
-  Flag,
-  Heart,
-  Home,
-  Loader2,
-  Package,
-  Rocket,
-  Settings,
-  ShoppingCart,
-  Star,
-  Target,
-  Timer,
-  Trash,
-  Trophy,
-  Users,
-  X,
-  Zap,
-} from "lucide-react";
+
+import { CheckCircle, Circle, Edit, Trash2, X } from "lucide-react";
+
+import { getTaskIcon } from "@/lib/icons";
+
 import { ConfirmationModal } from "@/components/modals/confirmation-modal";
 import { RecurrenceActionModal } from "@/components/modals/recurrence-action-modal";
 
@@ -201,22 +175,6 @@ export default function TaskActionMenu() {
     ? dayjs(selectedTask.scheduled_date).format("M/D/YY")
     : "";
 
-  const getTaskIcon = (instance) => {
-    const sizeClass = "w-5 h-5"; // Consistent size
-    switch (instance.icon_name) {
-      case "Activity":
-        return <Activity className={sizeClass} />;
-      case "Heart":
-        return <Heart className={sizeClass} />;
-      case "workout":
-        return <Dumbbell className={sizeClass} />;
-      case "night":
-        return <Moon className={sizeClass} />;
-      default:
-        return <Clock className={sizeClass} />; // Default icon
-    }
-  };
-
   const TaskIcon = () => {
     console.log("In taskicon : ", selectedTask);
     return (
@@ -226,7 +184,7 @@ export default function TaskActionMenu() {
           selectedTask?.color === "pink" ? "bg-pink-500" : "bg-blue-500"
         } flex items-center justify-center text-white flex-shrink-0`}
       >
-        {getTaskIcon(selectedTask)}
+        {getTaskIcon(selectedTask.icon_name)}
       </div>
     );
   };

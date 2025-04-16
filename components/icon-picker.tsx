@@ -2,13 +2,16 @@
 
 import { Popover } from "@headlessui/react";
 import {
+  CheckCircle,
+  Circle,
+  Edit,
+  Trash2,
+  Clock,
   Activity,
   AlarmClock,
   Book,
   CalendarIcon,
   Check,
-  ChevronUp,
-  ChevronDown,
   Dumbbell,
   Flag,
   Heart,
@@ -24,20 +27,23 @@ import {
   Trash,
   Trophy,
   Users,
-  X,
   Zap,
+  Moon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const allowedIcons = {
+  CheckCircle,
+  Circle,
+  Edit,
+  Trash2,
+  Clock,
   Activity,
   AlarmClock,
   Book,
   CalendarIcon,
   Check,
-  // ChevronUp,
-  // ChevronDown,
   Dumbbell,
   Flag,
   Heart,
@@ -53,8 +59,8 @@ const allowedIcons = {
   Trash,
   Trophy,
   Users,
-  // X,
   Zap,
+  Moon,
 };
 
 type IconName = keyof typeof allowedIcons;

@@ -9,7 +9,7 @@
  * @component
  */
 import { isAfter } from "date-fns";
-import { AlarmClock, Moon, Dumbbell } from "lucide-react";
+import { Clock, Activity, Dumbbell, Heart } from "lucide-react";
 import useCalendarStore from "@/app/stores/useCalendarStore";
 import { useTaskStore } from "@/app/stores/useTaskStore";
 
@@ -42,6 +42,22 @@ export default function TaskItem({
   const handleTaskClick = () => {
     selectDay(date);
     setSelectedInstance(task);
+  };
+
+  const getTaskIcon = (instance) => {
+    const sizeClass = "w-5 h-5"; // Consistent size
+    switch (instance.icon_name) {
+      case "Activity":
+        return <Activity className={sizeClass} />;
+      case "Heart":
+        return <Heart className={sizeClass} />;
+      case "workout":
+        return <Dumbbell className={sizeClass} />;
+      case "night":
+        return <Moon className={sizeClass} />;
+      default:
+        return <Clock className={sizeClass} />; // Default icon
+    }
   };
 
   return (
@@ -81,7 +97,7 @@ export default function TaskItem({
       <div
         className={`absolute inset-0 flex items-center justify-center ${isGrayed ? "text-gray-500" : "text-white"}`}
       >
-        <Dumbbell className="w-5 h-5" />;{/* {getTaskIcon(task.type)} */}
+        {getTaskIcon(task)}
       </div>
     </div>
   );

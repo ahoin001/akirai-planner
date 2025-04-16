@@ -11,42 +11,16 @@ import timezone from "dayjs/plugin/timezone";
 import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
 import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
 
-// ****** OPTIONAL: Import icons from lucide-react ******
-import {
-  ChevronUp,
-  ChevronDown,
-  AlarmClock,
-  Moon,
-  Dumbbell,
-  Clock,
-  Check,
-  Activity,
-  Heart,
-} from "lucide-react";
+import { ChevronUp, ChevronDown } from "lucide-react";
 
 import useCalendarStore from "@/app/stores/useCalendarStore";
+import { getTaskIcon } from "@/lib/icons";
 
 // Extend Dayjs with necessary plugins (Best practice: centralize this)
 dayjs.extend(utc);
 dayjs.extend(timezone);
 dayjs.extend(isSameOrBefore);
 dayjs.extend(isSameOrAfter);
-
-const getTaskIcon = (instance) => {
-  const sizeClass = "w-5 h-5";
-  switch (instance.icon_name) {
-    case "Activity":
-      return <Activity className={sizeClass} />;
-    case "Heart":
-      return <Heart className={sizeClass} />;
-    case "workout":
-      return <Dumbbell className={sizeClass} />;
-    case "night":
-      return <Moon className={sizeClass} />;
-    default:
-      return <Clock className={sizeClass} />;
-  }
-};
 
 // instance is now a CalculatedInstance object
 const DrawerTaskItem = memo(({ instance, isSelected, onClick }) => {
@@ -84,7 +58,7 @@ const DrawerTaskItem = memo(({ instance, isSelected, onClick }) => {
       <div
         className={`w-9 h-9 sm:w-10 sm:h-10 rounded-lg ${bgColor} flex items-center justify-center text-white flex-shrink-0 mt-0.5`}
       >
-        {getTaskIcon(instance)}
+        {getTaskIcon(instance.icon_name)}
       </div>
 
       {/* Task details */}
