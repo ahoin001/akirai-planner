@@ -5,7 +5,7 @@ import type React from "react";
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { cn } from "@/lib/utils";
 
-interface WheelPickerProps {
+interface DateWheelPickerProps {
   options: string[];
   onChange: (value: string, index: number) => void;
   itemHeight?: number;
@@ -14,14 +14,14 @@ interface WheelPickerProps {
   renderOption?: (option: string, isSelected: boolean) => React.ReactNode;
 }
 
-export function WheelPicker({
+export function DateWheelPicker({
   options,
   onChange,
   itemHeight = 50,
   visibleItems = 5,
   defaultIndex = 0,
   renderOption,
-}: WheelPickerProps) {
+}: DateWheelPickerProps) {
   // State
   const [selectedIndex, setSelectedIndex] = useState(defaultIndex);
 
