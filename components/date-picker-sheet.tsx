@@ -2,7 +2,6 @@
 
 import type React from "react";
 import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import {
   Sheet,
   SheetContent,
@@ -49,7 +48,7 @@ const DatePickerSheet: React.FC<DatePickerSheetProps> = ({
   onDateSelect,
 }) => {
   const [currentMonth, setCurrentMonth] = useState(selectedDate ?? new Date());
-  console.log("current month for state: ", currentMonth);
+
   const [selectedDateState, setSelectedDateState] = useState(
     selectedDate ?? new Date()
   );
@@ -129,15 +128,18 @@ const DatePickerSheet: React.FC<DatePickerSheetProps> = ({
         side="bottom"
         className="w-full max-w-[80vw] p-0 mx-auto border-0 bg-transparent z-[999]"
       >
-        <div className="w-full px-8 py-8 mx-auto mb-12 max-w-[90vw] overflow-hidden rounded-xl bg-drawer text-white shadow-xl transition-all duration-300">
+        <div className="w-full px-8 py-8 mx-auto mb-12 max-w-[90vw] overflow-hidden rounded-xl bg-drawer shadow-lg border text-white shadow-xl transition-all duration-300">
           <SheetHeader className="px-4 pt-4 pb-2 flex justify-between items-center">
             <div className="flex items-center">
-              <button
-                onClick={toggleWheelPicker}
-                className="ml-2 p-1 text-rose-400"
-              >
-                {isWheelOpen && <ChevronLeft size={18} />}
-              </button>
+              {isWheelOpen && (
+                <button
+                  onClick={toggleWheelPicker}
+                  className="ml-2 p-1 text-rose-400"
+                >
+                  {isWheelOpen && <ChevronLeft size={18} />}
+                </button>
+              )}
+
               <SheetTitle className="mx-6 text-2xl font-semibold text-white">
                 <span
                   className="hover:cursor-pointer"
@@ -161,12 +163,10 @@ const DatePickerSheet: React.FC<DatePickerSheetProps> = ({
                   className="flex items-center gap-x-1 text-rose-400 hover:text-rose-300 hover:bg-transparent"
                 >
                   <span>Apply</span>
-                  {/* <Check className="h-4 w-4 mr-1" /> */}
                 </button>
               )}
             </div>
 
-            {/* Add Today button */}
             <button
               onClick={() => {
                 const today = dayjs().startOf("day").toDate();
@@ -340,84 +340,6 @@ const MonthCalendar: React.FC<MonthCalendarProps> = ({
     </div>
   );
 };
-
-// interface WheelPickerProps {
-//   currentMonth: Date;
-//   onMonthChange: (date: Date) => void;
-// }
-
-// const WheelPicker: React.FC<WheelPickerProps> = ({
-//   currentMonth,
-//   onMonthChange,
-// }) => {
-//   const months = [
-//     "January",
-//     "February",
-//     "March",
-//     "April",
-//     "May",
-//     "June",
-//     "July",
-//     "August",
-//     "September",
-//     "October",
-//     "November",
-//     "December",
-//   ];
-
-//   const currentYear = dayjs(currentMonth).year();
-//   const selectedMonth = dayjs(currentMonth).month();
-//   const startYear = currentYear - 50;
-//   const years = Array.from({ length: 101 }, (_, i) => startYear + i);
-
-//   const [tempMonth, setTempMonth] = useState(selectedMonth);
-//   const [tempYear, setTempYear] = useState(currentYear);
-
-//   useEffect(() => {
-//     setTempMonth(selectedMonth);
-//     setTempYear(currentYear);
-//   }, [selectedMonth, currentYear]);
-
-//   useEffect(() => {
-//     const newDate = dayjs().year(tempYear).month(tempMonth).date(1).toDate();
-//     onMonthChange(newDate);
-//   }, [tempMonth, tempYear, onMonthChange]);
-
-//   return (
-//     <motion.div
-//       initial={{ opacity: 0, y: 20 }}
-//       animate={{ opacity: 1, y: 0 }}
-//       exit={{ opacity: 0, y: 20 }}
-//       className="p-4 overflow-y-auto"
-//     >
-//       <div className="flex gap-4">
-//         <select
-//           className="bg-black text-white rounded p-2"
-//           value={tempMonth}
-//           onChange={(e) => setTempMonth(parseInt(e.target.value))}
-//         >
-//           {months.map((m, i) => (
-//             <option key={m} value={i}>
-//               {m}
-//             </option>
-//           ))}
-//         </select>
-
-//         <select
-//           className="bg-black text-white rounded p-2"
-//           value={tempYear}
-//           onChange={(e) => setTempYear(parseInt(e.target.value))}
-//         >
-//           {years.map((year) => (
-//             <option key={year} value={year}>
-//               {year}
-//             </option>
-//           ))}
-//         </select>
-//       </div>
-//     </motion.div>
-//   );
-// };
 
 function getCalendarDays(month: Date): Date[][] {
   const start = dayjs(month).startOf("month").startOf("week");
