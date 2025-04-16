@@ -58,6 +58,17 @@ const useCalendarStore = create((set, get) => ({
     })),
 
   // ******************
+  // * HELPERS FOR CALENDAR SHEET
+  // ******************
+
+  selectedDate: new Date(),
+  currentMonth: new Date(),
+  isWheelOpen: false,
+  setSelectedDate: (date) => set({ selectedDate: date }),
+  setCurrentMonth: (date) => set({ currentMonth: date }),
+  setWheelOpen: (open) => set({ isWheelOpen: open }),
+
+  // ******************
   // * HELPERS
   // ******************
 

@@ -67,7 +67,7 @@ const config: Config = {
           "5": "hsl(var(--chart-5))",
         },
         // Custom app colors
-        drawer: "hsl(var(--drawer-bg))",
+        drawer: "hsl(var(--drawer))",
         disabled: "hsl(var(--disabled-color))",
         modal: "hsl(var(--modal-color))",
         navbar: "hsl(var(--navbar-bg))",
