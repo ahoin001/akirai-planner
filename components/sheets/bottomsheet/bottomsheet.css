@@ -1,6 +1,6 @@
 .BottomSheet-view {
   /* SELF-LAYOUT */
-  z-index: 1;
+  z-index: 20;
   /* Adding 60px to make it fully visible below iOS Safari's bottom UI */
   height: calc(var(--silk-100-lvh-dvh-pct) + 60px);
 }
