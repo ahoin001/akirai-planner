@@ -39,7 +39,7 @@ const DrawerTaskItem = memo(({ instance, isSelected, onClick }) => {
   // TODO: Need access to parent task color, similar to 'type'.
   // Assuming 'color' might be added to CalculatedInstance.
   const bgColor = isCompleted
-    ? "bg-green-600/30" // Muted green for completed
+    ? "bg-green-600/80" // Muted green for completed
     : isInFuture
       ? "bg-gray-700/50" // Gray for future
       : instance?.color === "pink"
