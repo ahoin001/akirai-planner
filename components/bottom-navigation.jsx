@@ -20,7 +20,7 @@ export function BottomNavigation() {
           href={item.href}
           className={cn(
             "flex flex-col items-center justify-center",
-            item.active ? "text-rose-400" : "text-gray-400"
+            item.active ? "text-primary" : "text-gray-400"
           )}
         >
           <item.icon className="w-6 h-6" />
