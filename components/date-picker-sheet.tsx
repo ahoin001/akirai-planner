@@ -126,9 +126,9 @@ const DatePickerSheet: React.FC<DatePickerSheetProps> = ({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
-        className="w-full max-w-[80vw] p-0 mx-auto border-0 bg-transparent z-[999]"
+        className="w-full max-w-[100vw] p-0 mx-auto border-0 bg-transparent z-[999]"
       >
-        <div className="w-full px-8 py-8 mx-auto mb-12 max-w-[90vw] overflow-hidden rounded-xl bg-drawer shadow-lg border text-white shadow-xl transition-all duration-300">
+        <div className="w-full px-8 py-8 mx-auto mb-12 max-w-[100vw] overflow-hidden rounded-xl bg-drawer shadow-lg border text-white shadow-xl transition-all duration-300">
           <SheetHeader className="px-4 pt-4 pb-2 flex justify-between items-center">
             <div className="flex items-center">
               {isWheelOpen && (
@@ -287,7 +287,7 @@ const MonthCalendar: React.FC<MonthCalendarProps> = ({
   const today = dayjs().startOf("day");
 
   return (
-    <div className="flex-1 px-4">
+    <div className="flex-1 px-2">
       <div className="grid grid-cols-7 mb-2">
         {daysOfWeek.map((day) => (
           <div
