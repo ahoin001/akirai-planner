@@ -48,9 +48,9 @@ export function UserProfileMenu() {
   };
 
   const handleSignOut = async () => {
+    router.push("/sign-in");
     const { success } = await signOut();
     if (success) {
-      router.push("/sign-in");
       router.refresh(); // Ensure client cache is cleared
     }
   };
@@ -69,7 +69,7 @@ export function UserProfileMenu() {
         ) : (
           <Button
             variant="ghost"
-            className="relative rounded-full h-8 w-8  bg-rose-400 text-white"
+            className="relative rounded-full h-8 w-8  bg-rose-400 text-white hover:text-white"
           >
             {getInitials()}
           </Button>
