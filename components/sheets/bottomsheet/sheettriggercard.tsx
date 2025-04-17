@@ -4,7 +4,7 @@ import React, { useCallback, useMemo, useRef, useState } from "react";
 import { Sheet } from "@silk-hq/components";
 import Image from "next/image";
 
-import "./SheetTriggerCard.css";
+import "./sheettriggercard.css";
 
 const SheetTriggerCard = ({
   children,
