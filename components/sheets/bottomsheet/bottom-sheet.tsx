@@ -10,7 +10,7 @@ interface Props extends React.HTMLAttributes<HTMLDivElement> {
 
 const BottomSheet = ({ presentTrigger, sheetContent, ...restProps }: Props) => {
   return (
-    <Sheet.Root license="commercial" {...restProps}>
+    <Sheet.Root license="non-commercial" {...restProps}>
       {<Sheet.Trigger>{presentTrigger}</Sheet.Trigger>}
       <Sheet.Portal>
         <Sheet.View

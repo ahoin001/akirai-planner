@@ -24,7 +24,7 @@ const DetachedSheet = ({
     : "bottom";
 
   return (
-    <Sheet.Root license="commercial" {...restProps}>
+    <Sheet.Root license="non-commercial" {...restProps}>
       {/* {presentTrigger} */}
       {<Sheet.Trigger>Open detached</Sheet.Trigger>}
       <Sheet.Portal>
