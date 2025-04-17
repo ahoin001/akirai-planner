@@ -2,7 +2,7 @@ import { format, setHours } from "date-fns";
 
 // Constants for timeline configuration
 const dayStart = 8; // 8 AM
-const dayEnd = 23; // 11 PM
+const dayEnd = 24; // 11 PM
 const hourHeight = 60; // Height of one hour in pixels
 
 /**

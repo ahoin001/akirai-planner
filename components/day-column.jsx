@@ -18,7 +18,7 @@ dayjs.extend(isSameOrAfter);
 
 // Constants for timeline configuration
 const dayStartHour = 8; // 8 AM (0-23 range)
-const dayEndHour = 23; // End of 10 PM hour (effectively up to 11 PM)
+const dayEndHour = 24; // End of 11 PM hour (effectively up to 11 PM)
 const hourHeight = 60; // Height of one hour in pixels
 const totalTimelineHeight = (dayEndHour - dayStartHour) * hourHeight;
 
@@ -60,6 +60,7 @@ export default function DayColumn({ date, tasks = [], isNext = false }) {
   const [progress, setProgress] = useState(() =>
     calculateProgress(date, currentTime)
   );
+
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
