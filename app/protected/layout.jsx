@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { useTaskStore } from "@/app/stores/useTaskStore";
 import PushSubscriptionManager from "@/components/push-subscription-manager";
 import { createClient as createSupabaseBrowserClient } from "@/utils/supabase/client";
-import { Loader2 } from "lucide-react";
+import { Loader2, XCircle } from "lucide-react";
 import { Toaster } from "sonner";
 
 import OneSignal from "react-onesignal";
@@ -26,7 +26,7 @@ export default function AppLayout({ children }) {
   const [isInitializing, setIsInitializing] = useState(true);
   const [initError, setInitError] = useState(null);
 
-  const [isLoading, setIsLoading] = useState(true);
+  // const [isLoading, setIsLoading] = useState(true);
 
   // ************************************
   // * Realtime setup
@@ -60,21 +60,121 @@ export default function AppLayout({ children }) {
 
     loadData();
 
-    // Cleanup function: This runs when the component unmounts
     return () => {
       isMounted = false;
       console.log("AppLayout unmounting, calling unsubscribe...");
-      // ****** CHANGE: Call the unsubscribe function returned by loadInitialData ******
       unsubscribeRealtime();
     };
   }, [fetchUser, loadInitialTaskData]);
 
-  if (isLoading) {
+  // ************************************
+  // * OneSignal Initialization Effect
+  // ************************************
+  // useEffect(() => {
+  //   // Ensure this runs only once and only on the client
+  //   if (typeof window !== "undefined" && !oneSignalInitialized) {
+  //     const initializeOneSignal = async () => {
+  //       try {
+  //         console.log("Initializing OneSignal...");
+  //         // Check if already initialized by the service worker perhaps
+  //         // (May not be needed with react-onesignal wrapper)
+  //         // if (window.OneSignal?.initialized) {
+  //         //     console.log("OneSignal already initialized.");
+  //         //     oneSignalInitialized = true;
+  //         //     return;
+  //         // }
+
+  //         await OneSignal.init({
+  //           appId: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID,
+  //           // IMPORTANT: Set allowLocalhostAsSecureOrigin to true for http://localhost testing
+  //           allowLocalhostAsSecureOrigin:
+  //             process.env.NODE_ENV === "development",
+  //           // You can disable the default slide prompt if you want to trigger it manually
+  //           // autoRegister: false, // Set to false to manually call OneSignal.Slidedown.promptPush()
+  //           // notifyButton: { enable: false }, // Disable the bell widget if desired
+  //         });
+  //         console.log("OneSignal Initialized");
+  //         oneSignalInitialized = true; // Mark as initialized
+
+  //         // --- Link User ID after Init (if user is logged in) ---
+  //         // It's crucial to associate the OneSignal device ID with your user ID
+  //         const supabase = createSupabaseBrowserClient(); // Your client util
+  //         const {
+  //           data: { user },
+  //         } = await supabase.auth.getUser();
+  //         if (user) {
+  //           console.log(`Setting OneSignal External User ID: ${user.id}`);
+  //           OneSignal.login(user.id); // Use login (new method) or setExternalUserId (older)
+  //           // OneSignal.setExternalUserId(user.id);
+  //         }
+
+  //         // --- Listen for subscription changes ---
+  //         OneSignal.Notifications.addEventListener(
+  //           "permissionChange",
+  //           (permission) => {
+  //             console.log("OneSignal Permission Changed:", permission);
+  //             // Potentially update UI or local state based on permission
+  //           }
+  //         );
+  //         OneSignal.Notifications.addEventListener(
+  //           "subscriptionChange",
+  //           (isSubscribed) => {
+  //             console.log("OneSignal Subscription Changed:", isSubscribed);
+  //             // Handle cases where user unsubscribes via browser settings
+  //             if (!isSubscribed) {
+  //               // Optional: Tell your backend the user unsubscribed
+  //               // This is complex as you might not have the specific subscription ID here
+  //               console.warn(
+  //                 "User unsubscribed via browser/OneSignal settings."
+  //               );
+  //             }
+  //           }
+  //         );
+  //       } catch (error) {
+  //         console.error("OneSignal initialization failed:", error);
+  //       }
+  //     };
+  //     initializeOneSignal();
+  //   }
+  // }, []);
+
+  // ************************************
+  // * Auth State Change Listener
+  // ************************************
+  // useEffect(() => {
+  //   const supabase = createSupabaseBrowserClient();
+  //   const { data: authListener } = supabase.auth.onAuthStateChange(
+  //     (event, session) => {
+  //       console.log("Auth State Changed:", event);
+  //       if (oneSignalInitialized) {
+  //         // Check if OneSignal is ready
+  //         if (event === "SIGNED_IN") {
+  //           console.log(
+  //             `Setting OneSignal External User ID on SIGN_IN: ${session?.user?.id}`
+  //           );
+  //           if (session?.user?.id) {
+  //             OneSignal.login(session.user.id); // Associate device with logged-in user
+  //           }
+  //         } else if (event === "SIGNED_OUT") {
+  //           console.log("Removing OneSignal External User ID on SIGN_OUT");
+  //           OneSignal.logout(); // Disassociate device from logged-out user
+  //         }
+  //       }
+  //     }
+  //   );
+  //   return () => {
+  //     authListener?.subscription?.unsubscribe();
+  //   };
+  // }, []);
+
+  if (isInitializing) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="flex flex-col items-center">
-          <Loader2 className="text-accent mb-4 h-[10em] w-[10em] animate-spin" />
-          <span className="text-white">Initializing planner...</span>
+      <div className="w-full flex items-center justify-center h-screen bg-background">
+        <div className="flex flex-col items-center text-center p-4">
+          <Loader2 className="text-rose-400 mb-4 h-12 w-12 sm:h-16 sm:w-16 animate-spin" />
+          <span className="text-gray-300 text-lg sm:text-xl font-medium">
+            Initializing planner...
+          </span>
         </div>
       </div>
     );
