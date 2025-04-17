@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { Button } from "@/components/ui/button";
 import { BellRing, BellOff } from "lucide-react";
-import { toast } from "react-hot-toast";
+import { toast } from "sonner";
 
 // Helper function to convert VAPID key
 function urlBase64ToUint8Array(base64String) {
