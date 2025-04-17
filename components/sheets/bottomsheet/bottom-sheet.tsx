@@ -11,7 +11,7 @@ interface Props extends React.HTMLAttributes<HTMLDivElement> {
 const BottomSheet = ({ presentTrigger, sheetContent, ...restProps }: Props) => {
   return (
     <Sheet.Root license="commercial" {...restProps}>
-      {<Sheet.Trigger>Open</Sheet.Trigger>}
+      {<Sheet.Trigger>{presentTrigger}</Sheet.Trigger>}
       <Sheet.Portal>
         <Sheet.View
           className="BottomSheet-view"
