@@ -136,13 +136,6 @@ const VerticalGanttChart = () => {
       <TaskForm selectedDate={selectedDay} />
 
       <FloatingActionButton onClick={handleOpenTaskForm} />
-
-      {/* <DatePickerSheet
-        open={datePickerOpen}
-        onOpenChange={setDatePickerOpen}
-        onDateSelect={handleDateSelect}
-        selectedDate={selectedDay}
-      /> */}
     </div>
   );
 };
