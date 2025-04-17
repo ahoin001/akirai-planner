@@ -3,13 +3,12 @@ import { Sheet } from "@silk-hq/components";
 import { BottomSheet } from "./bottom-sheet";
 import "./examplebottomsheet.css";
 
-import { SheetTriggerCard } from "./sheettriggercard";
-
 const ExampleBottomSheet = () => {
   return (
     <BottomSheet
       presentTrigger={
-        <SheetTriggerCard color="blue">Bottom Sheet</SheetTriggerCard>
+        <p>dummy block</p>
+        // <SheetTriggerCard color="blue">Bottom Sheet</SheetTriggerCard>
       }
       sheetContent={
         <div className={"ExampleBottomSheet-root"}>

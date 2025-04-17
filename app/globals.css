@@ -496,3 +496,8 @@
   background-color: #303030;
   opacity: 8%;
 }
+
+/* SILK CONTROL */
+.BottomSheet-bleedingBackground {
+  background-color: transparent;
+}

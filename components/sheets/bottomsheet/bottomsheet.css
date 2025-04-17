@@ -7,14 +7,20 @@
 
 .BottomSheet-content {
   /* SELF-LAYOUT */
+  width: 90%;
   max-width: 710px;
   height: auto;
   min-height: 200px;
+
+  /* RESPONSIVE */
+  @media (min-width: 768px) {
+    width: 80%;
+  }
 }
 
 .BottomSheet-bleedingBackground {
   /* APPEARANCE */
   border-radius: var(--radius-7);
-  background-color: white;
+  /* background-color: white; */
   box-shadow: var(--shadow-4);
 }
