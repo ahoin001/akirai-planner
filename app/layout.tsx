@@ -1,5 +1,4 @@
 // import HeaderAuth from "@/components/header-auth";
-import { ThemeSwitcher } from "@/components/theme-switcher";
 import { Geist } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import "./globals.css";
@@ -12,7 +11,7 @@ export const metadata = {
   metadataBase: new URL(defaultUrl),
   // title: "Next.js and Supabase Starter Kit",
   // description: "The fastest way to build apps with Next.js and Supabase",
-  title: "My App",
+  title: "Akairi Planner",
   description: "My PWA-enabled Next.js App",
   // themeColor: "#000000", // <- For PWA theming
 };
@@ -47,7 +46,6 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <main className="min-h-screen flex flex-col items-center px-4 md:px-8">
-            <ThemeSwitcher />
             <div className="flex-1 w-full flex flex-col gap-20 items-center">
               {children}
             </div>
