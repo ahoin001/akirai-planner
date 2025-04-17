@@ -15,6 +15,7 @@ import { ChevronUp, ChevronDown } from "lucide-react";
 
 import useCalendarStore from "@/app/stores/useCalendarStore";
 import { getTaskIcon } from "@/lib/icons";
+import TaskActionMenu from "./task-action-menu";
 
 // Extend Dayjs with necessary plugins (Best practice: centralize this)
 dayjs.extend(utc);
@@ -202,12 +203,14 @@ const TaskDrawer = ({ drawerRef }) => {
                 {" "}
                 {tasksForSelectedDay.map((instance) => (
                   <div key={instance.id} id={`drawer-item-${instance.id}`}>
-                    <DrawerTaskItem
-                      key={instance.id}
-                      instance={instance}
-                      isSelected={selectedInstance?.id === instance.id}
-                      onClick={() => openTaskMenu(instance)}
-                    />
+                    <TaskActionMenu>
+                      <DrawerTaskItem
+                        key={instance.id}
+                        instance={instance}
+                        isSelected={selectedInstance?.id === instance.id}
+                        onClick={() => openTaskMenu(instance)}
+                      />{" "}
+                    </TaskActionMenu>
                   </div>
                 ))}
               </div>

@@ -1093,7 +1093,7 @@ export const signInWithGoogle = async () => {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
+      redirectTo: `${process.env.SITE_URL}/auth/callback`,
       // redirectTo:
       //   process.env.NODE_ENV === "development"
       //     ? "http://localhost:3000/auth/callback"
