@@ -4,36 +4,56 @@ import { useAuthStore } from "@/app/stores/useAuthStore";
 import { useEffect, useState } from "react";
 import { useTaskStore } from "@/app/stores/useTaskStore";
 import PushSubscriptionManager from "@/components/push-subscription-manager";
+import { createClient as createSupabaseBrowserClient } from "@/utils/supabase/client";
 import { Loader2 } from "lucide-react";
 import { Toaster } from "sonner";
+
+import OneSignal from "react-onesignal";
+// Store OneSignal initialization status to prevent multiple runs
+let oneSignalInitialized = false;
+
+import {
+  LoadingIndicator,
+  LoadingBanner,
+} from "@/components/loading-indicator";
 
 export default function AppLayout({ children }) {
   const { fetchUser } = useAuthStore();
   const loadInitialTaskData = useTaskStore((state) => state.loadInitialData);
+  const isTaskDataLoading = useTaskStore((state) => state.isLoading);
+  const setIsLoading = useTaskStore((state) => state.setIsLoading);
+  // Local state for initial overall loading (including auth)
+  const [isInitializing, setIsInitializing] = useState(true);
+  const [initError, setInitError] = useState(null);
 
   const [isLoading, setIsLoading] = useState(true);
 
+  // ************************************
+  // * Realtime setup
+  // ************************************
   useEffect(() => {
-    let isMounted = true; // Flag to prevent state updates on unmounted component
-    let unsubscribeRealtime = () => {}; // Initialize unsubscribe function
+    let isMounted = true;
+    let unsubscribeRealtime = () => {};
 
     const loadData = async () => {
+      setInitError(null);
+      setIsInitializing(true); // Start overall initialization indicator
       try {
-        // Ensure fetchUser completes before loading tasks (if task loading depends on user)
-        await fetchUser();
-
-        // It fetches initial tasks/exceptions AND sets up subscriptions
-        // It returns the unsubscribe function
+        await fetchUser(); // Fetch user first
+        // loadInitialTaskData now sets its own isLoading state in the store
         unsubscribeRealtime = await loadInitialTaskData();
-
-        if (isMounted) {
-          setIsLoading(false);
-        }
+        // Initial data load attempt finished (success or handled error)
       } catch (err) {
         console.error("Error during initial data load:", err);
         if (isMounted) {
-          setIsLoading(false); // Stop loading even on error
-          // toast.error(err.message || "Failed to load planner data.");
+          setInitError(err.message || "Failed to initialize application data.");
+          toast.error(err.message || "Failed to load planner data.");
+        }
+      } finally {
+        // Regardless of success/error of loadInitialTaskData,
+        // stop the *initial page* loading indicator
+        if (isMounted) {
+          setIsInitializing(false);
         }
       }
     };
@@ -64,6 +84,8 @@ export default function AppLayout({ children }) {
     <div className="w-full">
       {/* <PushSubscriptionManager /> */}
       <Toaster richColors position="top-right" />
+      {/* Option A: Overlay Spinner */}
+      <LoadingIndicator show={isTaskDataLoading} text="Syncing tasks..." />
       {children}
     </div>
   );
