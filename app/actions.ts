@@ -1097,7 +1097,7 @@ export const signInWithGoogle = async () => {
       redirectTo:
         process.env.NODE_ENV === "development"
           ? "http://localhost:3000/auth/callback"
-          : "https://akirai-planner.vercel.app/",
+          : "https://akirai-planner.vercel.app",
     },
   });
 
