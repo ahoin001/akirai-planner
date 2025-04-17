@@ -145,7 +145,7 @@ const TaskDrawer = ({ drawerRef }) => {
   return (
     <div
       ref={drawerRef}
-      className="fixed bottom-0 left-0 right-0 w-[90%] mx-auto md:right-4 z-30 bg-drawer border border-gray-700/50 rounded-t-2xl md:rounded-xl shadow-2xl transition-all duration-300 ease-out" // Responsive width/rounding
+      className="fixed bottom-0 left-0 right-0 w-[90%] mx-auto md:right-4 z-[1] bg-drawer border border-gray-700/50 rounded-t-2xl md:rounded-xl shadow-2xl transition-all duration-300 ease-out" // Responsive width/rounding
       style={{
         // Use max-height and dynamic height
         height: drawerOpen ? expandedDrawerHeight : `${minDrawerHeight}px`,
