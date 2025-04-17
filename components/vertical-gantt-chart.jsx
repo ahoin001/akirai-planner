@@ -117,7 +117,9 @@ const VerticalGanttChart = () => {
         </div>
       </div>
 
-      <TaskDrawer drawerRef={drawerRef} />
+      <ExampleBottomSheet />
+
+      {/* <TaskDrawer drawerRef={drawerRef} /> */}
 
       <TaskActionMenu />
 
@@ -141,6 +143,7 @@ export default memo(VerticalGanttChart);
 
 import { Plus } from "lucide-react";
 import DatePickerSheet from "@/components/date-picker-sheet";
+import { ExampleBottomSheet } from "./sheets/bottomsheet/example-bottom-sheet";
 
 const FloatingActionButton = memo(({ onClick }) => (
   <button
