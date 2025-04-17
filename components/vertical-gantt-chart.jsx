@@ -67,14 +67,19 @@ const VerticalGanttChart = () => {
   return (
     <div className="w-full flex flex-col h-screen bg-background text-white py-4">
       <div className="flex-none">
-        <span
-          className="text-4xl font-bold mb-6 hover:cursor-pointer"
-          onClick={handleHeaderClick}
-        >
-          {format(currentWeekStart, "MMMM")}{" "}
-          <span className="text-primary">
-            {format(currentWeekStart, "yyyy")}
-          </span>
+        <span className="text-4xl font-bold mb-6 hover:cursor-pointer">
+          {/* onClick={handleHeaderClick} */}
+          <DatePickerSheet
+            open={datePickerOpen}
+            onOpenChange={setDatePickerOpen}
+            onDateSelect={handleDateSelect}
+            selectedDate={selectedDay}
+          >
+            {format(currentWeekStart, "MMMM")}{" "}
+            <span className="text-primary">
+              {format(currentWeekStart, "yyyy")}
+            </span>
+          </DatePickerSheet>
         </span>
 
         <WeekNavigation />
@@ -117,6 +122,8 @@ const VerticalGanttChart = () => {
         </div>
         <div>
           <ExampleBottomSheet />
+
+          <ExampleDetachedSheet />
         </div>
       </div>
 
@@ -130,12 +137,12 @@ const VerticalGanttChart = () => {
 
       <FloatingActionButton onClick={handleOpenTaskForm} />
 
-      <DatePickerSheet
+      {/* <DatePickerSheet
         open={datePickerOpen}
         onOpenChange={setDatePickerOpen}
         onDateSelect={handleDateSelect}
         selectedDate={selectedDay}
-      />
+      /> */}
     </div>
   );
 };
@@ -145,6 +152,7 @@ export default memo(VerticalGanttChart);
 import { Plus } from "lucide-react";
 import DatePickerSheet from "@/components/date-picker-sheet";
 import { ExampleBottomSheet } from "./sheets/bottomsheet/example-bottom-sheet";
+import { ExampleDetachedSheet } from "./sheets/detachedsheet/exampledetachedsheet";
 
 const FloatingActionButton = memo(({ onClick }) => (
   <button

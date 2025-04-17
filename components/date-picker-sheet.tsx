@@ -2,17 +2,19 @@
 
 import type React from "react";
 import { useEffect, useState } from "react";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+// import {
+//   Sheet,
+//   SheetContent,
+//   SheetHeader,
+//   SheetTitle,
+// } from "@/components/ui/sheet";
 import { Check, ChevronLeft, ChevronRight, X } from "lucide-react";
 import dayjs from "dayjs";
 
 import { DateWheelPicker } from "./date-wheel-picker";
 import useCalendarStore from "@/app/stores/useCalendarStore";
+import { BottomSheet } from "./sheets/bottomsheet/bottom-sheet";
+import { Button } from "./ui/button";
 
 const months = [
   "January",
@@ -35,6 +37,7 @@ const years = Array.from({ length: 21 }, (_, i) =>
 );
 
 interface DatePickerSheetProps {
+  children?: any;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   selectedDate?: Date;
@@ -42,6 +45,7 @@ interface DatePickerSheetProps {
 }
 
 const DatePickerSheet: React.FC<DatePickerSheetProps> = ({
+  children,
   open,
   onOpenChange,
   selectedDate,
@@ -101,7 +105,7 @@ const DatePickerSheet: React.FC<DatePickerSheetProps> = ({
     setCurrentMonth(newDate);
 
     // Close the wheel picker
-    setIsWheelOpen(false);
+    // setIsWheelOpen(false);
   };
 
   const handleDateSelect = (date: Date) => {
@@ -123,40 +127,48 @@ const DatePickerSheet: React.FC<DatePickerSheetProps> = ({
   const showTwoMonths = viewportWidth >= 768;
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent
-        side="bottom"
-        className="w-full max-w-[100vw] p-0 mx-auto border-0 bg-transparent z-[999]"
-      >
-        <div className="w-full px-8 py-8 mx-auto mb-12 max-w-[100vw] overflow-hidden rounded-xl bg-drawer shadow-lg border text-white shadow-xl transition-all duration-300">
-          <SheetHeader className="px-4 pt-4 pb-2 flex justify-between items-center">
+    <BottomSheet
+      presentTrigger={children}
+      sheetContent={
+        <div className="w-full px-8 py-8 mx-auto mb-12 max-w-[90vw] overflow-hidden rounded-xl bg-drawer shadow-lg border text-white shadow-xl transition-all duration-300">
+          <h1 className="px-4 pt-4 pb-2 flex justify-between items-center">
             <div className="flex items-center">
-              {isWheelOpen && (
+              {/* {isWheelOpen && (
                 <button
                   onClick={toggleWheelPicker}
                   className="ml-2 p-1 text-rose-400"
                 >
                   {isWheelOpen && <ChevronLeft size={18} />}
                 </button>
-              )}
+              )} */}
 
-              <SheetTitle className="mx-6 text-2xl font-semibold text-white">
-                <span
-                  className="hover:cursor-pointer"
-                  onClick={toggleWheelPicker}
-                >
-                  Select Date
-                </span>
-
-                {!isWheelOpen && (
-                  <button
+              {/** For some unholy reason if i add a chevron and click it breaks things */}
+              <Button
+                className="mx-6 text-2xl font-semibold text-white bg-rose-400/30 hover:bg-rose-400/70"
+                onClick={toggleWheelPicker}
+              >
+                {isWheelOpen ? (
+                  <>
+                    {/* <ChevronLeft className="mr-2" /> */}
+                    Go Back
+                  </>
+                ) : (
+                  <>
+                    Select Date &gt;
+                    {/* <ChevronRight className="ml-2" /> */}
+                  </>
+                )}
+                {/* <ChevronRight className="h-4 w-4 mr-1" /> */}
+                {/* {!isWheelOpen && (
+                  <span
                     onClick={toggleWheelPicker}
                     className="ml-2 text-rose-400 hover:text-rose-300 hover:bg-transparent"
                   >
                     <ChevronRight className="h-4 w-4 mr-1" />
-                  </button>
-                )}
-              </SheetTitle>
+                  </span>
+                )} */}
+              </Button>
+
               {isWheelOpen && (
                 <button
                   onClick={handleApplyMonthYear}
@@ -177,7 +189,7 @@ const DatePickerSheet: React.FC<DatePickerSheetProps> = ({
             >
               Today
             </button>
-          </SheetHeader>
+          </h1>
 
           <div className="flex-1 overflow-hidden relative">
             <div className="relative">
@@ -263,8 +275,151 @@ const DatePickerSheet: React.FC<DatePickerSheetProps> = ({
             </div>
           </div>
         </div>
-      </SheetContent>
-    </Sheet>
+      }
+    />
+
+    // <Sheet open={open} onOpenChange={onOpenChange}>
+    //   <SheetContent
+    //     side="bottom"
+    //     className="w-full max-w-[90vw] p-0 mx-auto border-0 bg-transparent z-[999]"
+    //   >
+    //     <div className="w-full px-8 py-8 mx-auto mb-12 max-w-[90vw] overflow-hidden rounded-xl bg-drawer shadow-lg border text-white shadow-xl transition-all duration-300">
+    //       <SheetHeader className="px-4 pt-4 pb-2 flex justify-between items-center">
+    //         <div className="flex items-center">
+    //           {isWheelOpen && (
+    //             <button
+    //               onClick={toggleWheelPicker}
+    //               className="ml-2 p-1 text-rose-400"
+    //             >
+    //               {isWheelOpen && <ChevronLeft size={18} />}
+    //             </button>
+    //           )}
+
+    //           <SheetTitle className="mx-6 text-2xl font-semibold text-white">
+    //             <span
+    //               className="hover:cursor-pointer"
+    //               onClick={toggleWheelPicker}
+    //             >
+    //               Select Date
+    //             </span>
+
+    //             {!isWheelOpen && (
+    //               <button
+    //                 onClick={toggleWheelPicker}
+    //                 className="ml-2 text-rose-400 hover:text-rose-300 hover:bg-transparent"
+    //               >
+    //                 <ChevronRight className="h-4 w-4 mr-1" />
+    //               </button>
+    //             )}
+    //           </SheetTitle>
+    //           {isWheelOpen && (
+    //             <button
+    //               onClick={handleApplyMonthYear}
+    //               className="flex items-center gap-x-1 text-rose-400 hover:text-rose-300 hover:bg-transparent"
+    //             >
+    //               <span>Apply</span>
+    //             </button>
+    //           )}
+    //         </div>
+
+    //         <button
+    //           onClick={() => {
+    //             const today = dayjs().startOf("day").toDate();
+    //             useCalendarStore.getState().selectDay(today);
+    //             setSelectedDateState(today);
+    //           }}
+    //           className="px-3 py-1.5 text-sm rounded-full bg-rose-400/20 hover:bg-rose-400/30 text-rose-400 transition-colors"
+    //         >
+    //           Today
+    //         </button>
+    //       </SheetHeader>
+
+    //       <div className="flex-1 overflow-hidden relative">
+    //         <div className="relative">
+    //           {isWheelOpen ? (
+    //             <div className="flex space-x-4 h-[250px]">
+    //               {/* Month Picker */}
+    //               <div className="flex-1">
+    //                 <DateWheelPicker
+    //                   options={months}
+    //                   defaultIndex={tempMonth} // Use tempMonth
+    //                   onChange={(_, index) => setTempMonth(index)}
+    //                 />
+    //               </div>
+
+    //               {/* Year Picker */}
+    //               <div className="flex-1">
+    //                 <DateWheelPicker
+    //                   options={years}
+    //                   defaultIndex={tempYear - (currentYear - 10)} // Correct index calculation
+    //                   onChange={(value) => setTempYear(Number.parseInt(value))}
+    //                 />
+    //               </div>
+    //             </div>
+    //           ) : (
+    //             <div className="h-full flex flex-col animate-fade-in">
+    //               <div className="flex-1 flex overflow-hidden">
+    //                 <div className="flex-1 flex flex-col">
+    //                   <div className="p-4 flex justify-between items-center">
+    //                     <button
+    //                       onClick={prevMonth}
+    //                       className="p-2 rounded-full hover:bg-gray-800 text-rose-400"
+    //                     >
+    //                       <ChevronLeft size={20} />
+    //                     </button>
+    //                     <h3 className="text-lg font-medium">
+    //                       {dayjs(currentMonth).format("MMMM YYYY")}
+    //                     </h3>
+    //                     {!showTwoMonths && (
+    //                       <button
+    //                         onClick={nextMonth}
+    //                         className="p-2 rounded-full hover:bg-gray-800 text-rose-400"
+    //                       >
+    //                         <ChevronRight size={20} />
+    //                       </button>
+    //                     )}
+    //                     {showTwoMonths && <p className="invisible">s</p>}
+    //                   </div>
+    //                   <MonthCalendar
+    //                     month={currentMonth}
+    //                     selectedDate={selectedDateState}
+    //                     onDateSelect={handleDateSelect}
+    //                   />
+    //                 </div>
+
+    //                 {showTwoMonths && (
+    //                   <div className="flex-1 flex flex-col">
+    //                     <div className="p-4 flex justify-between items-center">
+    //                       <div className="p-2 opacity-0">
+    //                         <ChevronLeft size={20} />
+    //                       </div>
+    //                       <h3 className="text-lg font-medium">
+    //                         {dayjs(currentMonth)
+    //                           .add(1, "month")
+    //                           .format("MMMM YYYY")}
+    //                       </h3>
+    //                       <button
+    //                         onClick={nextMonth}
+    //                         className="p-2 rounded-full hover:bg-gray-800 text-rose-400"
+    //                       >
+    //                         <ChevronRight size={20} />
+    //                       </button>
+    //                     </div>
+    //                     <MonthCalendar
+    //                       month={dayjs(currentMonth).add(1, "month").toDate()}
+    //                       selectedDate={selectedDateState}
+    //                       onDateSelect={handleDateSelect}
+    //                     />
+    //                   </div>
+    //                 )}
+    //               </div>
+    //             </div>
+    //           )}
+    //         </div>
+    //       </div>
+    //     </div>
+    //   </SheetContent>
+    // </Sheet>
   );
 };
 
