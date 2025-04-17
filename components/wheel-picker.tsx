@@ -44,7 +44,7 @@ export function WheelPicker({
     const formattedDefaultValue = dayjs(
       `2000-01-01 ${defaultValue}`,
       "YYYY-MM-DD HH:mm"
-    ).format("h:mm A");
+    ).format("hh:mm A"); // Changed to hh:mm A
     const index = options.indexOf(formattedDefaultValue);
     return index >= 0 ? index : 0;
   }, [defaultValue, options]);
@@ -86,10 +86,9 @@ export function WheelPicker({
     const currentOptions = latestOptionsRef.current;
     if (currentOptions && currentOptions[selectedIndex]) {
       const selectedTimeOption = currentOptions[selectedIndex];
-      const formatToParse = "h:mm A"; // The format of strings in the options array
+      const formatToParse = "hh:mm A"; // Changed from h:mm A
       const formatToSend = "HH:mm"; // The format required by the parent component
 
-      // Parse the option string and format it correctly
       const parsedTime = dayjs(
         `2000-01-01 ${selectedTimeOption}`,
         `YYYY-MM-DD ${formatToParse}`

@@ -228,11 +228,12 @@ export function TaskForm({ selectedDate }) {
   const taskIdToEdit = watch("_taskId"); // From initialValues if editing
 
   // Time slots (Ensure HH:mm format)
+  // In TaskForm.tsx, update the timeSlots generation
   const timeSlots = useMemo(() => {
     return Array.from({ length: (23 - 9) * 4 + 1 }, (_, i) => {
       const hour = 9 + Math.floor(i / 4);
       const minute = (i % 4) * 15;
-      return dayjs().hour(hour).minute(minute).format("h:mm A");
+      return dayjs().hour(hour).minute(minute).format("hh:mm A"); // Changed to hh:mm A
     });
   }, []);
 
