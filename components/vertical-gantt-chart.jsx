@@ -115,11 +115,12 @@ const VerticalGanttChart = () => {
         >
           <WeekView key={currentWeekStart.toISOString()} />
         </div>
+        <div>
+          <ExampleBottomSheet />
+        </div>
       </div>
 
-      <ExampleBottomSheet />
-
-      {/* <TaskDrawer drawerRef={drawerRef} /> */}
+      <TaskDrawer drawerRef={drawerRef} />
 
       <TaskActionMenu />
 

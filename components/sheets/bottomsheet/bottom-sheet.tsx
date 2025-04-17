@@ -20,8 +20,7 @@ const BottomSheet = ({ presentTrigger, sheetContent, ...restProps }: Props) => {
           <Sheet.Backdrop themeColorDimming="auto" />
           <Sheet.Content className="BottomSheet-content">
             <Sheet.BleedingBackground className="BottomSheet-bleedingBackground" />
-            {/* {sheetContent} */}
-            floop hogirebugioerowi
+            {sheetContent}
           </Sheet.Content>
         </Sheet.View>
       </Sheet.Portal>
