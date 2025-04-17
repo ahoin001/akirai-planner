@@ -8,7 +8,7 @@
  */
 "use client";
 
-import { format } from "date-fns";
+import { format, isSameDay } from "date-fns";
 import useCalendarStore from "@/app/stores/useCalendarStore";
 import { useTaskStore } from "@/app/stores/useTaskStore";
 import { useRef, useState, useCallback, memo } from "react";
@@ -32,17 +32,22 @@ const VerticalGanttChart = () => {
   const { openTaskForm } = useTaskStore();
 
   const {
+    currentTime,
     currentWeekStart,
     drawerOpen,
     selectedDay,
     slideDirection,
     navigateToDate,
+    getWeekDays,
+    selectDay,
   } = useCalendarStore();
 
   const [datePickerOpen, setDatePickerOpen] = useState(false);
 
   // Refs for DOM elements
   const drawerRef = useRef(null);
+
+  const weekDays = getWeekDays();
 
   const handleDateSelect = useCallback(
     (date) => {
@@ -73,6 +78,24 @@ const VerticalGanttChart = () => {
         </span>
 
         <WeekNavigation />
+
+        <div className="grid grid-rows-[auto,1fr] grid-cols-[12px_repeat(7,1fr)] gap-x-2 gap-y-2">
+          {/* TODO Day headers row, might lift up to keep fixed in place */}
+          <div className="contents">
+            {" "}
+            {/* Phantom element to maintain grid structure */}
+            <div /> {/* Empty cell for time label column */}
+            {weekDays.map((date, i) => (
+              <DayHeader
+                key={i}
+                date={date}
+                isSelected={isSameDay(date, selectedDay)}
+                isToday={isSameDay(date, currentTime)}
+                onSelect={selectDay}
+              />
+            ))}
+          </div>
+        </div>
       </div>
 
       <div
@@ -130,3 +153,33 @@ const FloatingActionButton = memo(({ onClick }) => (
 ));
 
 FloatingActionButton.displayName = "FloatingActionButton";
+
+/**
+ * Individual day header component
+ * Memoized to prevent unnecessary rerenders
+ */
+const DayHeader = memo(({ date, isSelected, isToday, onSelect }) => {
+  return (
+    <div className="text-center relative group">
+      {/* Day of week label */}
+      <div className="text-gray-400 text-sm mb-2">{format(date, "EEE")}</div>
+
+      {/* Day number with selection indicator */}
+      <div
+        className={`text-xl font-medium w-10 h-10 rounded-full flex items-center justify-center mx-auto cursor-pointer
+            ${
+              isSelected
+                ? "bg-primary dark:bg-pink-500 text-white"
+                : isToday
+                  ? "ring-2 ring-primary text-white"
+                  : "text-white"
+            }`}
+        onClick={() => onSelect(date)}
+      >
+        {format(date, "d")}
+      </div>
+    </div>
+  );
+});
+
+DayHeader.displayName = "DayHeader";
