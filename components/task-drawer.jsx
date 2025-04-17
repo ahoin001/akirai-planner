@@ -44,12 +44,12 @@ const DrawerTaskItem = memo(({ instance, isSelected, onClick }) => {
       ? "bg-gray-700/50" // Gray for future
       : instance?.color === "pink"
         ? "bg-pink-500/80"
-        : "bg-blue-500/80"; // Use instance color or default
+        : "bg-primary"; // Use instance color or default
 
   return (
     <div
       className={`flex items-start space-x-3 sm:space-x-4 cursor-pointer hover:bg-zinc-700/50 p-2 rounded-lg transition-colors duration-150 ${
-        isSelected ? "bg-indigo-600/30 ring-1 ring-indigo-500" : "" // Highlight selection
+        isSelected ? "bg-gray-600/30 ring-1 ring-gray-500" : "" // Highlight selection
       }`}
       onClick={onClick}
       id={`taskInstance-${instance.id}`} // Use the unique calculated instance ID
