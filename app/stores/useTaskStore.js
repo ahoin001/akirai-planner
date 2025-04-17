@@ -2,7 +2,6 @@
 
 import { create } from "zustand";
 import { createClient as createSupabaseBrowserClient } from "@/utils/supabase/client";
-import { toast } from "react-hot-toast";
 
 import dayjs from "dayjs";
 import timezone from "dayjs/plugin/timezone";
