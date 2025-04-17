@@ -113,7 +113,14 @@ const TaskDrawer = ({ drawerRef }) => {
   }, [selectedDay, tasks, exceptions]); // Dependencies
 
   // Determine drawer height (keep original logic, maybe adjust numbers)
-  const minDrawerHeight = tasksForSelectedDay.length > 0 ? 280 : 210; // Slightly smaller min height?
+  const minDrawerHeight =
+    tasksForSelectedDay.length > 0
+      ? window.innerWidth <= 768
+        ? 240 // Mobile view height adjustment
+        : 280
+      : window.innerWidth <= 768
+        ? 230
+        : 210; // Mobile view height adjustment
   const bottomNavHeight = 64; // Assuming h-16 is bottom nav height in px
   const expandedDrawerHeight = `calc(75vh - ${bottomNavHeight}px)`; // Use vh for expanded height
 
