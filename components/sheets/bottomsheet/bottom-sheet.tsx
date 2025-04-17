@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import { Sheet } from "@silk-hq/components";
-import "./BottomSheet.css";
+import "./bottomsheet.css";
 
 interface Props extends React.HTMLAttributes<HTMLDivElement> {
   presentTrigger: React.ReactNode;

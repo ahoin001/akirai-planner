@@ -1,7 +1,7 @@
 "use client";
 import { Sheet } from "@silk-hq/components";
 import { BottomSheet } from "./bottom-sheet";
-import "./ExampleBottomSheet.css";
+import "./examplebottomsheet.css";
 
 import { SheetTriggerCard } from "./sheettriggercard";
 
