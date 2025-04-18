@@ -335,7 +335,7 @@ export function TaskForm({ selectedDate }) {
     // ****** FIX: Ensure start_time is HH:mm ******
     if (!data.start_time?.match(/^([01]\d|2[0-3]):([0-5]\d)$/)) {
       // Attempt to parse h:mm A ONLY if regex fails
-      const parsedTime = dayjs(data.start_time, "h:mm A");
+      const parsedTime = dayjs(data.start_time, "hh:mm A");
       if (parsedTime.isValid()) {
         data.start_time = parsedTime.format("HH:mm");
         setValue("start_time", data.start_time); // Update form value if parsed
