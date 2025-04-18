@@ -1094,16 +1094,12 @@ export const signInWithGoogle = async () => {
     provider: "google",
     options: {
       redirectTo: `${process.env.SITE_URL}/auth/callback`,
-      // redirectTo:
-      //   process.env.NODE_ENV === "development"
-      //     ? "http://localhost:3000/auth/callback"
-      //     : "https://akirai-planner.vercel.app",
     },
   });
 
-  console.log("DATA URL: ", data?.url);
   console.log("ENV STATe: ", process.env.NODE_ENV);
-  console.log("Redirect URL: ", process.env.NEXT_PUBLIC_SITE_URL);
+  console.log("DATA URL: ", data?.url);
+  console.log("Redirect URL: ", process.env.SITE_URL);
 
   if (data.url) {
     redirect(data.url);
