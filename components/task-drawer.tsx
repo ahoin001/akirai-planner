@@ -18,7 +18,6 @@ import TaskActionMenu from "./task-action-menu";
 
 import { getTaskIcon } from "@/lib/icons";
 
-// Extend Dayjs with necessary plugins (Best practice: centralize this)
 dayjs.extend(utc);
 dayjs.extend(timezone);
 dayjs.extend(isSameOrBefore);

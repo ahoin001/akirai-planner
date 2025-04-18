@@ -14,7 +14,6 @@ import { useTaskStore } from "@/app/stores/useTaskStore";
 import { useRef, useState, useCallback, memo } from "react";
 
 import { BottomNavigation } from "@/components/bottom-navigation";
-import ToggleDatePickerSheet from "@/components/toggle-date-picker-sheet";
 import TaskActionMenu from "@/components/task-action-menu";
 import TaskDrawer from "@/components/task-drawer";
 import { TaskForm } from "@/components/task-form";
@@ -41,7 +40,6 @@ const VerticalGanttChart = () => {
     navigateToDate,
     getWeekDays,
     selectDay,
-    setIsDateSheetOpen,
   } = useCalendarStore();
 
   const [datePickerOpen, setDatePickerOpen] = useState(false);
@@ -60,7 +58,6 @@ const VerticalGanttChart = () => {
 
   const handleOpenDateSheetPicker = useCallback(() => {
     setDatePickerOpen(true);
-    console.log("Date sheet opened");
   }, []);
 
   const handleOpenTaskForm = useCallback(() => {
