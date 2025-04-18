@@ -28,7 +28,7 @@
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
-    "components/task-drawer.jsx",
+    "components/task-drawer.tsx",
     "components/date-picker.jsx"
   ],
   "exclude": ["node_modules"]
