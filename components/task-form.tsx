@@ -1,14 +1,20 @@
 "use client";
 
 import React, { useEffect, useState, useMemo, useCallback } from "react";
+import { useForm, Controller } from "react-hook-form";
+import { useTaskStore } from "@/app/stores/useTaskStore";
+
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
-import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+
 import { Button } from "@/components/ui/button";
+import DatePickerSheet from "@/components/date-picker-sheet";
+import { RecurrenceActionModal } from "./modals/recurrence-action-modal";
+import VaulSheet from "@/components/vaul-sheet";
+
 import {
   Activity,
   AlarmClock,
@@ -36,9 +42,6 @@ import {
   Zap,
 } from "lucide-react";
 
-// Inside TaskForm.jsx
-import * as LucideIcons from "lucide-react";
-
 import { Input } from "@/components/ui/input";
 import { IconPicker } from "@/components/icon-picker";
 import { SegmentedControl } from "@/components/segmented-control";
@@ -49,11 +52,6 @@ import {
   updateTaskDefinitionAction,
   modifyTaskOccurrenceAction,
 } from "@/app/actions";
-
-import { useTaskStore } from "@/app/stores/useTaskStore";
-
-import { RecurrenceActionModal } from "./modals/recurrence-action-modal";
-import DatePickerSheet from "@/components/date-picker-sheet";
 
 // Extend Dayjs
 dayjs.extend(utc);
@@ -191,10 +189,11 @@ const frequencyOptions = [
 
 export function TaskForm({ selectedDate }) {
   const {
+    closeTaskForm: closeForm,
     isTaskFormOpen: isOpen,
     isEditingTask: isEditing,
     taskFormValues: initialValues,
-    closeTaskForm: closeForm,
+    setTaskForm,
     tasks,
   } = useTaskStore();
 
@@ -573,409 +572,409 @@ export function TaskForm({ selectedDate }) {
 
   // --- JSX ---
   return (
-    <Sheet open={isOpen} onOpenChange={handleSheetOpenChange}>
-      <SheetContent
-        side="bottom"
-        className="h-auto max-h-[95vh] sm:max-h-[90vh] flex flex-col rounded-t-3xl bg-drawer border-t border-gray-700 z-[70] p-0" // Use theme bg
-        onOpenAutoFocus={(e) => e.preventDefault()}
-      >
-        <form
-          onSubmit={handleSubmit(onSubmit)}
-          className="flex flex-col h-full overflow-hidden"
-        >
-          {/* Header */}
-          <div className="flex items-center justify-between p-4 sm:p-5 border-b border-gray-700/50 flex-shrink-0">
-            <SheetTitle className="text-white text-xl sm:text-2xl font-semibold">
-              {isEditing
-                ? isExceptionEditMode
-                  ? "Edit Occurrence"
-                  : "Edit Task"
-                : "New Task"}
-            </SheetTitle>
-            <button
-              type="button"
-              onClick={closeForm}
-              className="rounded-full p-1.5 text-gray-400 hover:text-white hover:bg-gray-700/60 transition-colors"
-            >
-              <X size={20} />
-            </button>
-          </div>
-
-          {/* Scrollable Content Area */}
-          <div className="overflow-y-auto flex-grow p-4 sm:p-6 space-y-6 sm:space-y-8">
-            <div className="flex items-center gap-3 sm:gap-4">
-              <Controller
-                name="icon_name"
-                control={control}
-                render={({ field }) => (
-                  <IconPicker
-                    value={field.value}
-                    onChange={field.onChange}
-                    className="border-none border-0"
-                  />
-                )}
-              />
-              <Controller
-                name="title"
-                control={control}
-                render={({ field }) => (
-                  <Input
-                    {...field}
-                    placeholder="Task name"
-                    className="text-xl sm:text-2xl flex-grow"
-                  />
-                )}
-              />
+    <>
+      <VaulSheet
+        open={isOpen}
+        onOpenChange={setTaskForm}
+        content={
+          <form
+            onSubmit={handleSubmit(onSubmit)}
+            className="flex flex-col h-full overflow-hidden bg-drawer"
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 sm:p-5 border-b border-gray-700/50 flex-shrink-0">
+              <h1 className="text-white text-xl sm:text-2xl font-semibold">
+                {isEditing
+                  ? isExceptionEditMode
+                    ? "Edit Occurrence"
+                    : "Edit Task"
+                  : "New Task"}
+              </h1>
+              <button
+                type="button"
+                onClick={closeForm}
+                className="rounded-full p-1.5 text-gray-400 hover:text-white hover:bg-gray-700/60 transition-colors"
+              >
+                <X size={20} />
+              </button>
             </div>
-            {/* Time Picker & Start Date */}
-            <div>
-              <h3 className="text-lg sm:text-xl font-semibold text-gray-300 mb-3 sm:mb-4">
-                When
-              </h3>
-              <Controller
-                name="start_time"
-                control={control}
-                render={({ field }) => (
-                  <>
-                    {/* Ensure WheelPicker uses HH:mm */}
-                    <WheelPicker
-                      options={timeSlots}
+
+            {/* Scrollable Content Area */}
+            <div className="overflow-y-auto flex-grow p-4 sm:p-6 space-y-6 sm:space-y-8">
+              <div className="flex items-center gap-3 sm:gap-4">
+                <Controller
+                  name="icon_name"
+                  control={control}
+                  render={({ field }) => (
+                    <IconPicker
+                      value={field.value}
                       onChange={field.onChange}
-                      itemHeight={40}
-                      duration={watch("duration_minutes")}
-                      defaultValue={field.value}
+                      className="border-none border-0"
                     />
-                    {errors.start_time && (
-                      <p className="text-red-400 text-xs mt-2 text-center">
-                        {errors.start_time.message}
-                      </p>
-                    )}
-                  </>
-                )}
-              />
-              {/* Start Date Picker */}
-              <Controller
-                name="start_date"
-                control={control}
-                render={({ field }) => (
-                  <>
-                    <div className="flex flex-col items-center mt-4 sm:mt-6">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setIsStartDatePickerOpen((prev) => !prev)
-                        }
-                        className="flex items-center gap-2 text-rose-400 px-4 py-2 rounded-lg hover:bg-gray-800/60 transition-colors text-sm sm:text-base"
-                      >
-                        <CalendarIcon className="w-4 h-4 sm:w-5 sm:h-5" />
-                        <span>
-                          {field.value
-                            ? dayjs(field.value).format("MMMM D, YYYY")
-                            : "Select Start Date"}
-                        </span>
-                        {isStartDatePickerOpen ? (
-                          <ChevronUp className="w-4 h-4" />
-                        ) : (
-                          <ChevronDown className="w-4 h-4" />
-                        )}
-                      </button>
-                      {isStartDatePickerOpen && (
-                        <DatePickerSheet
-                          open={isStartDatePickerOpen}
-                          onOpenChange={setIsStartDatePickerOpen}
-                          selectedDate={field.value}
-                          onDateSelect={(date) => {
-                            field.onChange(date); // Update react-hook-form value
-                          }}
-                        />
-                      )}
-                      {errors.start_date && (
-                        <p className="text-red-400 text-xs mt-1">
-                          {errors.start_date.message}
+                  )}
+                />
+                <Controller
+                  name="title"
+                  control={control}
+                  render={({ field }) => (
+                    <Input
+                      {...field}
+                      placeholder="Task name"
+                      className="text-xl sm:text-2xl flex-grow"
+                    />
+                  )}
+                />
+              </div>
+              {/* Time Picker & Start Date */}
+              <div>
+                <h3 className="text-lg sm:text-xl font-semibold text-gray-300 mb-3 sm:mb-4">
+                  When
+                </h3>
+                <Controller
+                  name="start_time"
+                  control={control}
+                  render={({ field }) => (
+                    <>
+                      {/* Ensure WheelPicker uses HH:mm */}
+                      <WheelPicker
+                        options={timeSlots}
+                        onChange={field.onChange}
+                        itemHeight={40}
+                        duration={watch("duration_minutes")}
+                        defaultValue={field.value}
+                      />
+                      {errors.start_time && (
+                        <p className="text-red-400 text-xs mt-2 text-center">
+                          {errors.start_time.message}
                         </p>
                       )}
-                    </div>
-                  </>
-                )}
-              />
-            </div>
-            {/* Duration Picker */}
-            <div>
-              <h3 className="text-lg sm:text-xl font-semibold text-gray-300 mb-3 sm:mb-4">
-                Duration
-              </h3>
-              <Controller
-                name="duration_minutes"
-                control={control}
-                render={({ field }) => (
-                  <>
+                    </>
+                  )}
+                />
+                {/* Start Date Picker */}
+                <Controller
+                  name="start_date"
+                  control={control}
+                  render={({ field }) => (
+                    <>
+                      <div className="flex flex-col items-center mt-4 sm:mt-6">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setIsStartDatePickerOpen((prev) => !prev)
+                          }
+                          className="flex items-center gap-2 text-rose-400 px-4 py-2 rounded-lg hover:bg-gray-800/60 transition-colors text-sm sm:text-base"
+                        >
+                          <CalendarIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+                          <span>
+                            {field.value
+                              ? dayjs(field.value).format("MMMM D, YYYY")
+                              : "Select Start Date"}
+                          </span>
+                          {isStartDatePickerOpen ? (
+                            <ChevronUp className="w-4 h-4" />
+                          ) : (
+                            <ChevronDown className="w-4 h-4" />
+                          )}
+                        </button>
+                        {isStartDatePickerOpen && (
+                          <DatePickerSheet
+                            open={isStartDatePickerOpen}
+                            onOpenChange={setIsStartDatePickerOpen}
+                            selectedDate={field.value}
+                            onDateSelect={(date) => {
+                              field.onChange(date); // Update react-hook-form value
+                            }}
+                          />
+                        )}
+                        {errors.start_date && (
+                          <p className="text-red-400 text-xs mt-1">
+                            {errors.start_date.message}
+                          </p>
+                        )}
+                      </div>
+                    </>
+                  )}
+                />
+              </div>
+              {/* Duration Picker */}
+              <div>
+                <h3 className="text-lg sm:text-xl font-semibold text-gray-300 mb-3 sm:mb-4">
+                  Duration
+                </h3>
+                <Controller
+                  name="duration_minutes"
+                  control={control}
+                  render={({ field }) => (
+                    <>
+                      <SegmentedControl
+                        data={durationOptions}
+                        value={String(field.value ?? 30)}
+                        onChange={(v) => field.onChange(Number(v))}
+                        fullWidth
+                        fillSelected
+                      />
+                      {errors.duration_minutes && (
+                        <p className="text-red-400 text-xs mt-1">
+                          {errors.duration_minutes.message}
+                        </p>
+                      )}
+                    </>
+                  )}
+                />
+              </div>
+              {/* Frequency Picker */}
+              <div
+                className={
+                  isExceptionEditMode ? "opacity-50 pointer-events-none" : ""
+                }
+              >
+                <h3 className="text-lg sm:text-xl font-semibold text-gray-300 mb-3 sm:mb-4">
+                  How often?
+                </h3>
+                <Controller
+                  name="frequency"
+                  control={control}
+                  render={({ field }) => (
                     <SegmentedControl
-                      data={durationOptions}
-                      value={String(field.value ?? 30)}
-                      onChange={(v) => field.onChange(Number(v))}
+                      data={frequencyOptions}
+                      value={field.value ?? "once"}
+                      onChange={field.onChange}
                       fullWidth
                       fillSelected
                     />
-                    {errors.duration_minutes && (
-                      <p className="text-red-400 text-xs mt-1">
-                        {errors.duration_minutes.message}
-                      </p>
-                    )}
-                  </>
-                )}
-              />
-            </div>
-            {/* Frequency Picker */}
-            <div
-              className={
-                isExceptionEditMode ? "opacity-50 pointer-events-none" : ""
-              }
-            >
-              <h3 className="text-lg sm:text-xl font-semibold text-gray-300 mb-3 sm:mb-4">
-                How often?
-              </h3>
-              <Controller
-                name="frequency"
-                control={control}
-                render={({ field }) => (
-                  <SegmentedControl
-                    data={frequencyOptions}
-                    value={field.value ?? "once"}
-                    onChange={field.onChange}
-                    fullWidth
-                    fillSelected
-                  />
-                  // disabled={isExceptionEditMode}
-                )}
-              />
-              {errors.frequency && (
-                <p className="text-red-400 text-xs mt-1">
-                  {errors.frequency.message}
-                </p>
-              )}
-              {isExceptionEditMode && (
-                <p className="text-xs text-amber-400 mt-1">
-                  Recurrence cannot be changed when editing a single occurrence.
-                </p>
-              )}
-            </div>
-            {/* Recurrence Options (Conditional) */}
-            {showRecurrenceOptions && (
-              <div className="space-y-4 sm:space-y-6 border-t border-gray-700/50 pt-4 sm:pt-6">
-                <h3 className="text-lg sm:text-xl font-semibold text-gray-300">
-                  Recurrence Settings
-                </h3>
-                {/* Interval */}
-                <div>
-                  <Controller
-                    name="interval"
-                    control={control}
-                    render={({ field }) => (
-                      <div>
-                        <label
-                          htmlFor="intervalInput"
-                          className="text-sm text-gray-400 block mb-1.5 sm:mb-2"
-                        >
-                          Repeat every
-                        </label>
-                        <div className="flex items-center gap-2">
-                          <Input
-                            id="intervalInput"
-                            type="number"
-                            min="1"
-                            step="1"
-                            className="w-20 bg-zinc-800 border-gray-700 focus:border-rose-500 focus:ring-rose-500 text-white rounded-md"
-                            {...field}
-                            onChange={(e) => {
-                              const val = parseInt(e.target.value, 10);
-                              field.onChange(isNaN(val) || val < 1 ? 1 : val);
-                            }}
-                            value={field.value ?? ""} // Use empty string for better controlled input handling
-                          />
-                          <span className="text-gray-400 text-sm">
-                            {frequency === "daily" &&
-                              `day${(field.value ?? 1) > 1 ? "s" : ""}`}
-                            {frequency === "weekly" &&
-                              `week${(field.value ?? 1) > 1 ? "s" : ""}`}
-                            {frequency === "monthly" &&
-                              `month${(field.value ?? 1) > 1 ? "s" : ""}`}
-                          </span>
-                        </div>
-                      </div>
-                    )}
-                  />
-                  {errors.interval && (
-                    <p className="text-red-400 text-xs mt-1">
-                      {errors.interval.message}
-                    </p>
+                    // disabled={isExceptionEditMode}
                   )}
-                </div>
-
-                {/* End Type */}
-                <div>
-                  <label className="text-sm text-gray-400 block mb-1.5 sm:mb-2">
-                    Ends
-                  </label>
-                  <Controller
-                    name="end_type"
-                    control={control}
-                    render={({ field }) => (
-                      <SegmentedControl
-                        data={[
-                          { label: "Never", value: "never" },
-                          { label: "After", value: "after" },
-                          { label: "On Date", value: "on" },
-                        ]}
-                        value={field.value ?? "never"}
-                        onChange={field.onChange}
-                        fullWidth
-                      />
-                    )}
-                  />
-                  {errors.end_type && (
-                    <p className="text-red-400 text-xs mt-1">
-                      {errors.end_type.message}
-                    </p>
-                  )}
-                </div>
-
-                {/* Occurrences */}
-                {endType === "after" && (
+                />
+                {errors.frequency && (
+                  <p className="text-red-400 text-xs mt-1">
+                    {errors.frequency.message}
+                  </p>
+                )}
+                {isExceptionEditMode && (
+                  <p className="text-xs text-amber-400 mt-1">
+                    Recurrence cannot be changed when editing a single
+                    occurrence.
+                  </p>
+                )}
+              </div>
+              {/* Recurrence Options (Conditional) */}
+              {showRecurrenceOptions && (
+                <div className="space-y-4 sm:space-y-6 border-t border-gray-700/50 pt-4 sm:pt-6">
+                  <h3 className="text-lg sm:text-xl font-semibold text-gray-300">
+                    Recurrence Settings
+                  </h3>
+                  {/* Interval */}
                   <div>
                     <Controller
-                      name="occurrences"
+                      name="interval"
                       control={control}
                       render={({ field }) => (
                         <div>
                           <label
-                            htmlFor="occurrencesInput"
+                            htmlFor="intervalInput"
                             className="text-sm text-gray-400 block mb-1.5 sm:mb-2"
                           >
-                            Number of occurrences
+                            Repeat every
                           </label>
-                          <Input
-                            id="occurrencesInput"
-                            type="number"
-                            min="1"
-                            step="1"
-                            className="w-full bg-zinc-800 border-gray-700 focus:border-rose-500 focus:ring-rose-500 text-white rounded-md"
-                            {...field}
-                            onChange={(e) => {
-                              const val = parseInt(e.target.value, 10);
-                              field.onChange(isNaN(val) || val < 1 ? 1 : val);
-                            }}
-                            value={field.value ?? ""}
-                          />
+                          <div className="flex items-center gap-2">
+                            <Input
+                              id="intervalInput"
+                              type="number"
+                              min="1"
+                              step="1"
+                              className="w-20 bg-zinc-800 border-gray-700 focus:border-rose-500 focus:ring-rose-500 text-white rounded-md"
+                              {...field}
+                              onChange={(e) => {
+                                const val = parseInt(e.target.value, 10);
+                                field.onChange(isNaN(val) || val < 1 ? 1 : val);
+                              }}
+                              value={field.value ?? ""} // Use empty string for better controlled input handling
+                            />
+                            <span className="text-gray-400 text-sm">
+                              {frequency === "daily" &&
+                                `day${(field.value ?? 1) > 1 ? "s" : ""}`}
+                              {frequency === "weekly" &&
+                                `week${(field.value ?? 1) > 1 ? "s" : ""}`}
+                              {frequency === "monthly" &&
+                                `month${(field.value ?? 1) > 1 ? "s" : ""}`}
+                            </span>
+                          </div>
                         </div>
                       )}
                     />
-                    {errors.occurrences && (
+                    {errors.interval && (
                       <p className="text-red-400 text-xs mt-1">
-                        {errors.occurrences.message}
+                        {errors.interval.message}
                       </p>
                     )}
                   </div>
-                )}
 
-                {/* End Date */}
-                {endType === "on" && (
+                  {/* End Type */}
                   <div>
+                    <label className="text-sm text-gray-400 block mb-1.5 sm:mb-2">
+                      Ends
+                    </label>
                     <Controller
-                      name="end_date"
+                      name="end_type"
                       control={control}
                       render={({ field }) => (
-                        <div className="relative">
-                          <label className="text-sm text-gray-400 block mb-1.5 sm:mb-2">
-                            End Date
-                          </label>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setIsEndDatePickerOpen((prev) => !prev)
-                            }
-                            className="flex items-center justify-between text-left w-full gap-2 text-gray-200 px-3 py-2 rounded-md bg-zinc-800 border border-gray-700 hover:border-gray-600 transition-colors"
-                            aria-haspopup="dialog"
-                            aria-expanded={isEndDatePickerOpen}
-                          >
-                            <span className="flex items-center gap-2">
-                              <CalendarIcon className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 flex-shrink-0" />
-                              <span className="flex-grow">
-                                {field.value
-                                  ? dayjs(field.value).format("MMMM D, YYYY")
-                                  : "Select end date"}
-                              </span>
-                            </span>
-                            <ChevronDown
-                              className={`w-4 h-4 text-gray-400 flex-shrink-0 transition-transform ${isEndDatePickerOpen ? "rotate-180" : ""}`}
-                            />
-                          </button>
-                          {isEndDatePickerOpen && (
-                            <div className="absolute top-full left-0 mt-2 w-full max-w-xs z-20 bg-zinc-800 rounded-lg shadow-lg border border-gray-700">
-                              <DatePickerSheet
-                                open={isEndDatePickerOpen}
-                                selectedDate={field.value}
-                                onOpenChange={setIsEndDatePickerOpen}
-                                onDateSelect={(date) => {
-                                  field.onChange(date);
-                                }}
-                              />
-                            </div>
-                          )}
-                        </div>
+                        <SegmentedControl
+                          data={[
+                            { label: "Never", value: "never" },
+                            { label: "After", value: "after" },
+                            { label: "On Date", value: "on" },
+                          ]}
+                          value={field.value ?? "never"}
+                          onChange={field.onChange}
+                          fullWidth
+                        />
                       )}
                     />
-                    {errors.end_date && (
+                    {errors.end_type && (
                       <p className="text-red-400 text-xs mt-1">
-                        {errors.end_date.message}
+                        {errors.end_type.message}
                       </p>
                     )}
                   </div>
-                )}
-              </div>
-            )}
-            <div className="h-8 sm:h-12"></div> {/* Bottom space */}
-          </div>
 
-          {/* Footer */}
-          <div className="p-4 pb-10 border-t border-gray-700/50 flex-shrink-0">
-            {formError && (
-              <div className="bg-red-800/30 border border-red-600/50 text-red-300 p-3 rounded-md mb-3 sm:mb-4 text-sm text-center">
-                {formError}
-              </div>
-            )}
-            <Button
-              type="submit"
-              disabled={isSubmitting || !isDirty}
-              className="w-full h-12 sm:h-14 text-base sm:text-lg rounded-xl bg-rose-400 hover:bg-rose-700 focus-visible:ring-rose-500 focus-visible:ring-offset-zinc-900 text-white font-semibold transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 sm:h-5 sm:w-5 animate-spin" />
-                  {isEditing ? "Saving..." : "Creating..."}
-                </>
-              ) : isEditing ? (
-                "Save Changes"
-              ) : (
-                "Create Task"
+                  {/* Occurrences */}
+                  {endType === "after" && (
+                    <div>
+                      <Controller
+                        name="occurrences"
+                        control={control}
+                        render={({ field }) => (
+                          <div>
+                            <label
+                              htmlFor="occurrencesInput"
+                              className="text-sm text-gray-400 block mb-1.5 sm:mb-2"
+                            >
+                              Number of occurrences
+                            </label>
+                            <Input
+                              id="occurrencesInput"
+                              type="number"
+                              min="1"
+                              step="1"
+                              className="w-full bg-zinc-800 border-gray-700 focus:border-rose-500 focus:ring-rose-500 text-white rounded-md"
+                              {...field}
+                              onChange={(e) => {
+                                const val = parseInt(e.target.value, 10);
+                                field.onChange(isNaN(val) || val < 1 ? 1 : val);
+                              }}
+                              value={field.value ?? ""}
+                            />
+                          </div>
+                        )}
+                      />
+                      {errors.occurrences && (
+                        <p className="text-red-400 text-xs mt-1">
+                          {errors.occurrences.message}
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* End Date */}
+                  {endType === "on" && (
+                    <div>
+                      <Controller
+                        name="end_date"
+                        control={control}
+                        render={({ field }) => (
+                          <div className="relative">
+                            <label className="text-sm text-gray-400 block mb-1.5 sm:mb-2">
+                              End Date
+                            </label>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setIsEndDatePickerOpen((prev) => !prev)
+                              }
+                              className="flex items-center justify-between text-left w-full gap-2 text-gray-200 px-3 py-2 rounded-md bg-zinc-800 border border-gray-700 hover:border-gray-600 transition-colors"
+                              aria-haspopup="dialog"
+                              aria-expanded={isEndDatePickerOpen}
+                            >
+                              <span className="flex items-center gap-2">
+                                <CalendarIcon className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 flex-shrink-0" />
+                                <span className="flex-grow">
+                                  {field.value
+                                    ? dayjs(field.value).format("MMMM D, YYYY")
+                                    : "Select end date"}
+                                </span>
+                              </span>
+                              <ChevronDown
+                                className={`w-4 h-4 text-gray-400 flex-shrink-0 transition-transform ${isEndDatePickerOpen ? "rotate-180" : ""}`}
+                              />
+                            </button>
+                            {isEndDatePickerOpen && (
+                              <div className="absolute top-full left-0 mt-2 w-full max-w-xs z-20 bg-zinc-800 rounded-lg shadow-lg border border-gray-700">
+                                <DatePickerSheet
+                                  open={isEndDatePickerOpen}
+                                  selectedDate={field.value}
+                                  onOpenChange={setIsEndDatePickerOpen}
+                                  onDateSelect={(date) => {
+                                    field.onChange(date);
+                                  }}
+                                />
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      />
+                      {errors.end_date && (
+                        <p className="text-red-400 text-xs mt-1">
+                          {errors.end_date.message}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
               )}
-            </Button>
-          </div>
-        </form>
+              <div className="h-8 sm:h-12"></div> {/* Bottom space */}
+            </div>
 
-        <RecurrenceActionModal
-          actionType={"modify"}
-          isOpen={isScopeModalOpen}
-          onClose={() => {
-            setIsScopeModalOpen(false);
-            setPendingPayload(null);
-            setScopeActionType(null);
-            setSelectedScopeOption(null);
-          }}
-          onConfirm={handleScopeConfirm}
-          selectedOption={selectedScopeOption} // State to display selection
-          setSelectedOption={setSelectedScopeOption}
-        />
-      </SheetContent>
-    </Sheet>
+            {/* Footer */}
+            <div className="p-4 pb-10 border-t border-gray-700/50 flex-shrink-0">
+              {formError && (
+                <div className="bg-red-800/30 border border-red-600/50 text-red-300 p-3 rounded-md mb-3 sm:mb-4 text-sm text-center">
+                  {formError}
+                </div>
+              )}
+              <Button
+                type="submit"
+                disabled={isSubmitting || !isDirty}
+                className="w-full h-12 sm:h-14 text-base sm:text-lg rounded-xl bg-rose-400 hover:bg-rose-700 focus-visible:ring-rose-500 focus-visible:ring-offset-zinc-900 text-white font-semibold transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 sm:h-5 sm:w-5 animate-spin" />
+                    {isEditing ? "Saving..." : "Creating..."}
+                  </>
+                ) : isEditing ? (
+                  "Save Changes"
+                ) : (
+                  "Create Task"
+                )}
+              </Button>
+            </div>
+          </form>
+        }
+      />
+      <RecurrenceActionModal
+        actionType={"modify"}
+        isOpen={isScopeModalOpen}
+        onClose={() => {
+          setIsScopeModalOpen(false);
+          setPendingPayload(null);
+          setScopeActionType(null);
+          setSelectedScopeOption(null);
+        }}
+        onConfirm={handleScopeConfirm}
+        selectedOption={selectedScopeOption} // State to display selection
+        setSelectedOption={setSelectedScopeOption}
+      />
+    </>
   );
 }
