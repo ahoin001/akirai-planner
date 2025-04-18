@@ -290,3 +290,13 @@
   background-color: #303030;
   opacity: 8%;
 }
+
+/* Hide scrollbars globally but keep scrolling functionality */
+*::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+* {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
