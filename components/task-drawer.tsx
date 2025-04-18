@@ -35,66 +35,70 @@ interface DrawerTaskItemProps {
     color?: string;
   };
   isSelected: boolean;
+  onClick: () => void;
 }
 
-const DrawerTaskItem = memo(({ instance, isSelected }: DrawerTaskItemProps) => {
-  const formatTimeRange = useTaskStore((state) => state.formatTimeRange);
+const DrawerTaskItem = memo(
+  ({ instance, isSelected, onClick }: DrawerTaskItemProps) => {
+    const formatTimeRange = useTaskStore((state) => state.formatTimeRange);
 
-  const isCompleted = instance.is_complete;
+    const isCompleted = instance.is_complete;
 
-  // ****** Determine if instance start is in the future ******
-  // Compare scheduled_time_utc with the current time (also in UTC)
-  // Assume `currentTime` from useCalendarStore is a Date object or similar
-  const currentTime = useCalendarStore((state) => state.currentTime); // Get current time
-  const isInFuture = dayjs
-    .utc(instance.scheduled_time_utc)
-    .isAfter(dayjs(currentTime));
+    // ****** Determine if instance start is in the future ******
+    // Compare scheduled_time_utc with the current time (also in UTC)
+    // Assume `currentTime` from useCalendarStore is a Date object or similar
+    const currentTime = useCalendarStore((state) => state.currentTime); // Get current time
+    const isInFuture = dayjs
+      .utc(instance.scheduled_time_utc)
+      .isAfter(dayjs(currentTime));
 
-  // TODO: Need access to parent task color, similar to 'type'.
-  // Assuming 'color' might be added to CalculatedInstance.
-  const bgColor = isCompleted
-    ? "bg-green-600/80" // Muted green for completed
-    : isInFuture
-      ? "bg-gray-700/50" // Gray for future
-      : instance?.color === "pink"
-        ? "bg-pink-500/80"
-        : "bg-primary"; // Use instance color or default
+    // TODO: Need access to parent task color, similar to 'type'.
+    // Assuming 'color' might be added to CalculatedInstance.
+    const bgColor = isCompleted
+      ? "bg-green-600/80" // Muted green for completed
+      : isInFuture
+        ? "bg-gray-700/50" // Gray for future
+        : instance?.color === "pink"
+          ? "bg-pink-500/80"
+          : "bg-primary"; // Use instance color or default
 
-  return (
-    <div
-      className={`w-full flex items-start space-x-3 sm:space-x-4 cursor-pointer hover:bg-zinc-700/50 p-2 rounded-lg transition-colors duration-150 ${
-        isSelected ? "bg-gray-600/30 ring-1 ring-gray-500" : ""
-      }`}
-      id={`taskInstance-${instance.id}`}
-    >
-      {/* Task icon container */}
+    return (
       <div
-        className={`w-9 h-9 sm:w-10 sm:h-10 rounded-lg ${bgColor} flex items-center justify-center text-white flex-shrink-0 mt-0.5`}
+        className={`w-full flex items-start space-x-3 sm:space-x-4 cursor-pointer hover:bg-zinc-700/50 p-2 rounded-lg transition-colors duration-150 ${
+          isSelected ? "bg-gray-600/30 ring-1 ring-gray-500" : ""
+        }`}
+        id={`taskInstance-${instance.id}`}
+        onClick={onClick}
       >
-        {getTaskIcon(instance.icon_name)}
-      </div>
+        {/* Task icon container */}
+        <div
+          className={`w-9 h-9 sm:w-10 sm:h-10 rounded-lg ${bgColor} flex items-center justify-center text-white flex-shrink-0 mt-0.5`}
+        >
+          {getTaskIcon(instance.icon_name)}
+        </div>
 
-      {/* Task details */}
-      <div className={` ${isCompleted ? "opacity-60" : ""}`}>
-        <div className="flex flex-col font-medium text-sm sm:text-base text-gray-100 ">
-          {/* Use title from calculated instance (could be overridden) */}
-          <div className="flex justify-start items-center">
-            <span className="truncate pr-2 text-left">{instance.title}</span>
-            {/* Use isCompleted from instance */}
-            {isCompleted && (
-              <span className="ml-auto text-xs bg-green-500/80 text-white px-1.5 py-0.5 rounded-full flex-shrink-0">
-                Done
-              </span>
-            )}
-          </div>
-          <div className="text-xs sm:text-sm text-gray-400 mt-0.5">
-            {formatTimeRange(instance)}
+        {/* Task details */}
+        <div className={` ${isCompleted ? "opacity-60" : ""}`}>
+          <div className="flex flex-col font-medium text-sm sm:text-base text-gray-100 ">
+            {/* Use title from calculated instance (could be overridden) */}
+            <div className="flex justify-start items-center">
+              <span className="truncate pr-2 text-left">{instance.title}</span>
+              {/* Use isCompleted from instance */}
+              {isCompleted && (
+                <span className="ml-auto text-xs bg-green-500/80 text-white px-1.5 py-0.5 rounded-full flex-shrink-0">
+                  Done
+                </span>
+              )}
+            </div>
+            <div className="text-xs sm:text-sm text-gray-400 mt-0.5">
+              {formatTimeRange(instance)}
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  );
-});
+    );
+  }
+);
 DrawerTaskItem.displayName = "DrawerTaskItem"; // Keep display name
 
 /**
@@ -108,6 +112,7 @@ const TaskDrawer = ({ drawerRef }) => {
   const selectedInstance = useTaskStore((state) => state.selectedInstance);
   const isLoading = useTaskStore((state) => state.isLoading);
 
+  const { showActionMenu, setShowActionMenu } = useState(false);
   const [snap, setSnap] = useState<number | string | null>(snapPoints[0]);
 
   const taskListRef = useRef(null);
@@ -236,17 +241,15 @@ const TaskDrawer = ({ drawerRef }) => {
                           id={`drawer-item-${instance.id}`}
                           className=""
                         >
-                          <TaskActionMenu>
-                            <div className="w-full">
-                              <DrawerTaskItem
-                                key={instance.id}
-                                instance={instance}
-                                isSelected={
-                                  selectedInstance?.id === instance.id
-                                }
-                              />
-                            </div>
-                          </TaskActionMenu>
+                          <div className="w-full">
+                            <DrawerTaskItem
+                              key={instance.id}
+                              instance={instance}
+                              isSelected={selectedInstance?.id === instance.id}
+                              onClick={setShowActionMenu}
+                            />
+                          </div>
+                          <TaskActionMenu />
                         </div>
                       ))}
                     </div>
