@@ -17,15 +17,14 @@ import { getTaskIcon } from "@/lib/icons";
 import { ConfirmationModal } from "@/components/modals/confirmation-modal";
 import { RecurrenceActionModal } from "@/components/modals/recurrence-action-modal";
 
-import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
-import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
+import VaulSheet from "./vaul-sheet";
 
 /**
  * TaskActionMenu component (JSX Version - Responsive Refactor)
  * Displays a responsive slide-up menu with actions for a selected task.
  * Focus: Responsive layout adjustments while preserving original UI look.
  */
-export default function TaskActionMenu() {
+export default function TaskActionMenu({ children }) {
   const {
     closeTaskMenu,
     formatTimeRange,
@@ -191,16 +190,9 @@ export default function TaskActionMenu() {
 
   return (
     <>
-      <Sheet open={isTaskMenuOpen} onOpenChange={closeTaskMenu}>
-        <SheetContent
-          side="bottom"
-          className="w-full max-w-sm md:max-w-md p-0 mx-auto border-0 bg-transparent"
-          onOpenAutoFocus={(e) => e.preventDefault()}
-        >
-          <VisuallyHidden>
-            <SheetTitle>Task Actions</SheetTitle>
-          </VisuallyHidden>
-          {selectedTask && (
+      <VaulSheet
+        content={
+          selectedTask && (
             <div className="p-8 mx-auto w-full max-w-sm md:max-w-md mb-12 overflow-hidden rounded-3xl bg-zinc-900 text-white shadow-xl">
               {/* Content - Same as before */}
               <div className="flex items-start justify-between ">
@@ -267,9 +259,11 @@ export default function TaskActionMenu() {
                 </button>
               </div>
             </div>
-          )}
-        </SheetContent>
-      </Sheet>
+          )
+        }
+      >
+        <div className=" ">{children}</div>
+      </VaulSheet>
 
       <RecurrenceActionModal
         actionType="delete"

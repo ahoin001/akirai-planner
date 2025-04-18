@@ -15,6 +15,7 @@ import { ChevronUp, ChevronDown } from "lucide-react";
 
 import useCalendarStore from "@/app/stores/useCalendarStore";
 import { getTaskIcon } from "@/lib/icons";
+import TaskActionMenu from "./task-action-menu";
 
 // Extend Dayjs with necessary plugins (Best practice: centralize this)
 dayjs.extend(utc);
@@ -62,19 +63,21 @@ const DrawerTaskItem = memo(({ instance, isSelected, onClick }) => {
       </div>
 
       {/* Task details */}
-      <div className={`flex-grow min-w-0 ${isCompleted ? "opacity-60" : ""}`}>
-        <div className="font-medium text-sm sm:text-base text-gray-100 flex items-center">
+      <div className={` ${isCompleted ? "opacity-60" : ""}`}>
+        <div className="flex flex-col font-medium text-sm sm:text-base text-gray-100 ">
           {/* Use title from calculated instance (could be overridden) */}
-          <span className="truncate pr-2">{instance.title}</span>
-          {/* Use isCompleted from instance */}
-          {isCompleted && (
-            <span className="ml-auto text-xs bg-green-500/80 text-white px-1.5 py-0.5 rounded-full flex-shrink-0">
-              Done
-            </span>
-          )}
-        </div>
-        <div className="text-xs sm:text-sm text-gray-400 mt-0.5">
-          {formatTimeRange(instance)}
+          <div className="flex justify-start items-center">
+            <span className="truncate pr-2 text-left">{instance.title}</span>
+            {/* Use isCompleted from instance */}
+            {isCompleted && (
+              <span className="ml-auto text-xs bg-green-500/80 text-white px-1.5 py-0.5 rounded-full flex-shrink-0">
+                Done
+              </span>
+            )}
+          </div>
+          <div className="text-xs sm:text-sm text-gray-400 mt-0.5">
+            {formatTimeRange(instance)}
+          </div>
         </div>
       </div>
     </div>
@@ -208,13 +211,19 @@ const TaskDrawer = ({ drawerRef }) => {
               <div className="space-y-2 pb-12 sm:space-y-3">
                 {" "}
                 {tasksForSelectedDay.map((instance) => (
-                  <div key={instance.id} id={`drawer-item-${instance.id}`}>
-                    <DrawerTaskItem
-                      key={instance.id}
-                      instance={instance}
-                      isSelected={selectedInstance?.id === instance.id}
-                      onClick={() => openTaskMenu(instance)}
-                    />
+                  <div
+                    key={instance.id}
+                    id={`drawer-item-${instance.id}`}
+                    className=""
+                  >
+                    <TaskActionMenu>
+                      <DrawerTaskItem
+                        key={instance.id}
+                        instance={instance}
+                        isSelected={selectedInstance?.id === instance.id}
+                        onClick={() => openTaskMenu(instance)}
+                      />
+                    </TaskActionMenu>
                   </div>
                 ))}
               </div>
