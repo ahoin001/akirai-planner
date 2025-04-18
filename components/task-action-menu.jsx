@@ -190,80 +190,85 @@ export default function TaskActionMenu({ children }) {
 
   return (
     <>
-      <VaulSheet
-        content={
-          selectedTask && (
-            <div className="p-8 mx-auto w-full max-w-sm md:max-w-md mb-12 overflow-hidden rounded-3xl bg-zinc-900 text-white shadow-xl">
-              {/* Content - Same as before */}
-              <div className="flex items-start justify-between ">
-                <div className="flex items-start gap-3 sm:gap-4 mb-4 pt-6 sm:pt-4">
-                  <TaskIcon />
-                  <div className="min-w-0">
-                    <p className="mb-1 sm:mb-2 text-gray-400 text-sm">
-                      {dateFormatted}, {formatTimeRange(selectedTask)}
-                    </p>
-                    <h2 className="text-2xl font-bold truncate">
-                      {selectedTask?.override_title ??
-                        selectedTask?.title ??
-                        "Task"}
-                    </h2>
+      <Drawer.Root open={open} onOpenChange={onOpenChange}>
+        <Drawer.Portal>
+          <Drawer.Overlay className="fixed inset-0 bg-black/40" />
+          <Drawer.Content className="flex flex-col rounded-t-[10px] h-fit fixed bottom-0 left-0 right-0 outline-none z-20">
+            {/* <div className="w-[95vw] max-w-[900px] px-8 py-8 mx-auto mb-12 overflow-hidden rounded-xl bg-drawer shadow-lg border-2 text-white shadow-xl"> */}
+            {selectedTask && (
+              <div className="p-8 mx-auto w-full max-w-sm md:max-w-md mb-12 overflow-hidden rounded-3xl bg-zinc-900 text-white shadow-xl">
+                {/* Content - Same as before */}
+                <div className="flex items-start justify-between ">
+                  <div className="flex items-start gap-3 sm:gap-4 mb-4 pt-6 sm:pt-4">
+                    <TaskIcon />
+                    <div className="min-w-0">
+                      <p className="mb-1 sm:mb-2 text-gray-400 text-sm">
+                        {dateFormatted}, {formatTimeRange(selectedTask)}
+                      </p>
+                      <h2 className="text-2xl font-bold truncate">
+                        {selectedTask?.override_title ??
+                          selectedTask?.title ??
+                          "Task"}
+                      </h2>
+                    </div>
                   </div>
+
+                  <button
+                    onClick={closeTaskMenu}
+                    aria-label="Close menu"
+                    className="h-8 w-8 rounded-full bg-gray-600 flex items-center justify-center"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
                 </div>
 
-                <button
-                  onClick={closeTaskMenu}
-                  aria-label="Close menu"
-                  className="h-8 w-8 rounded-full bg-gray-600 flex items-center justify-center"
-                >
-                  <X className="h-5 w-5" />
-                </button>
+                <div className="w-full my-4 sm:my-6 border-t border-gray-700" />
+
+                <div className="grid grid-cols-3 gap-3 sm:gap-4">
+                  {/* Delete Button */}
+                  <button
+                    onClick={handleDeleteRequest}
+                    className="flex flex-col items-center justify-center bg-zinc-800 p-3 sm:p-4 rounded-xl hover:bg-zinc-700/80 transition-colors"
+                  >
+                    <Trash2 size={28} className="text-pink-500 mb-1 sm:mb-2" />
+                    <span className="text-xl">Delete</span>
+                  </button>
+
+                  {/* Complete Button */}
+                  <button
+                    onClick={handleCompleteToggle}
+                    className="flex flex-col items-center justify-center bg-zinc-800 p-3 sm:p-4 rounded-xl hover:bg-zinc-700/80 transition-colors"
+                  >
+                    {selectedTask?.is_complete ? (
+                      <Circle
+                        size={28}
+                        className="text-gray-400 mb-1 sm:mb-2"
+                      />
+                    ) : (
+                      <CheckCircle
+                        size={28}
+                        className="text-green-500 mb-1 sm:mb-2"
+                      />
+                    )}
+                    <span className="text-xl">
+                      {selectedTask?.is_complete ? "Uncheck" : "Complete"}
+                    </span>
+                  </button>
+
+                  {/* Edit Button */}
+                  <button
+                    onClick={handleEditRequest}
+                    className="flex flex-col items-center justify-center bg-zinc-800 p-3 sm:p-4 rounded-xl hover:bg-zinc-700/80 transition-colors"
+                  >
+                    <Edit size={28} className="text-blue-500 mb-1 sm:mb-2" />
+                    <span className="text-xl">Edit</span>
+                  </button>
+                </div>
               </div>
-
-              <div className="w-full my-4 sm:my-6 border-t border-gray-700" />
-
-              <div className="grid grid-cols-3 gap-3 sm:gap-4">
-                {/* Delete Button */}
-                <button
-                  onClick={handleDeleteRequest}
-                  className="flex flex-col items-center justify-center bg-zinc-800 p-3 sm:p-4 rounded-xl hover:bg-zinc-700/80 transition-colors"
-                >
-                  <Trash2 size={28} className="text-pink-500 mb-1 sm:mb-2" />
-                  <span className="text-xl">Delete</span>
-                </button>
-
-                {/* Complete Button */}
-                <button
-                  onClick={handleCompleteToggle}
-                  className="flex flex-col items-center justify-center bg-zinc-800 p-3 sm:p-4 rounded-xl hover:bg-zinc-700/80 transition-colors"
-                >
-                  {selectedTask?.is_complete ? (
-                    <Circle size={28} className="text-gray-400 mb-1 sm:mb-2" />
-                  ) : (
-                    <CheckCircle
-                      size={28}
-                      className="text-green-500 mb-1 sm:mb-2"
-                    />
-                  )}
-                  <span className="text-xl">
-                    {selectedTask?.is_complete ? "Uncheck" : "Complete"}
-                  </span>
-                </button>
-
-                {/* Edit Button */}
-                <button
-                  onClick={handleEditRequest}
-                  className="flex flex-col items-center justify-center bg-zinc-800 p-3 sm:p-4 rounded-xl hover:bg-zinc-700/80 transition-colors"
-                >
-                  <Edit size={28} className="text-blue-500 mb-1 sm:mb-2" />
-                  <span className="text-xl">Edit</span>
-                </button>
-              </div>
-            </div>
-          )
-        }
-      >
-        <div className=" ">{children}</div>
-      </VaulSheet>
+            )}
+          </Drawer.Content>
+        </Drawer.Portal>
+      </Drawer.Root>
 
       <RecurrenceActionModal
         actionType="delete"
