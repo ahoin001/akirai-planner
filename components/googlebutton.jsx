@@ -3,7 +3,7 @@
 export default function GoogleAuthButton({ onClick }) {
   return (
     <button className="gsi-material-button" onClick={onClick}>
-      <div className="gsi-material-button-state"></div>
+      <div type="button" className="gsi-material-button-state"></div>
       <div className="gsi-material-button-content-wrapper">
         <div className="gsi-material-button-icon">
           <svg viewBox="0 0 48 48" style={{ display: "block" }}>
