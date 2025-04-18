@@ -117,8 +117,6 @@ const VerticalGanttChart = () => {
 
       <TaskDrawer drawerRef={drawerRef} />
 
-      <TaskActionMenu />
-
       <DatePickerSheet
         open={datePickerOpen}
         onOpenChange={setDatePickerOpen}
