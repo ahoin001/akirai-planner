@@ -937,7 +937,7 @@ export function TaskForm({ selectedDate }) {
           </div>
 
           {/* Footer */}
-          <div className="p-4 pb-20  border-t border-gray-700/50 flex-shrink-0">
+          <div className="p-4 pb-10 border-t border-gray-700/50 flex-shrink-0">
             {formError && (
               <div className="bg-red-800/30 border border-red-600/50 text-red-300 p-3 rounded-md mb-3 sm:mb-4 text-sm text-center">
                 {formError}
