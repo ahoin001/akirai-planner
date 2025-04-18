@@ -17,14 +17,14 @@ import { getTaskIcon } from "@/lib/icons";
 import { ConfirmationModal } from "@/components/modals/confirmation-modal";
 import { RecurrenceActionModal } from "@/components/modals/recurrence-action-modal";
 
-import VaulSheet from "./vaul-sheet";
+import { Drawer } from "vaul";
 
 /**
  * TaskActionMenu component (JSX Version - Responsive Refactor)
  * Displays a responsive slide-up menu with actions for a selected task.
  * Focus: Responsive layout adjustments while preserving original UI look.
  */
-export default function TaskActionMenu({ children }) {
+export default function TaskActionMenu({ open, onOpenChange }) {
   const {
     closeTaskMenu,
     formatTimeRange,

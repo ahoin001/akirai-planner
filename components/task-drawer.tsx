@@ -35,7 +35,7 @@ interface DrawerTaskItemProps {
     color?: string;
   };
   isSelected: boolean;
-  onClick: () => void;
+  onClick: (arg: boolean) => void;
 }
 
 const DrawerTaskItem = memo(
@@ -68,7 +68,7 @@ const DrawerTaskItem = memo(
           isSelected ? "bg-gray-600/30 ring-1 ring-gray-500" : ""
         }`}
         id={`taskInstance-${instance.id}`}
-        onClick={onClick}
+        onClick={() => onClick(true)}
       >
         {/* Task icon container */}
         <div
@@ -112,7 +112,7 @@ const TaskDrawer = ({ drawerRef }) => {
   const selectedInstance = useTaskStore((state) => state.selectedInstance);
   const isLoading = useTaskStore((state) => state.isLoading);
 
-  const { showActionMenu, setShowActionMenu } = useState(false);
+  const [showActionMenu, setShowActionMenu] = useState(false);
   const [snap, setSnap] = useState<number | string | null>(snapPoints[0]);
 
   const taskListRef = useRef(null);
@@ -249,11 +249,14 @@ const TaskDrawer = ({ drawerRef }) => {
                               onClick={setShowActionMenu}
                             />
                           </div>
-                          <TaskActionMenu />
                         </div>
                       ))}
                     </div>
                   )}
+                  <TaskActionMenu
+                    onOpenChange={setShowActionMenu}
+                    open={showActionMenu}
+                  />
                   {/* Extra space at bottom for scroll */}
                   <div className="h-8"></div>
                 </div>
