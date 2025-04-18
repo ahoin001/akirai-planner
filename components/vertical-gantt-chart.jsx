@@ -56,10 +56,6 @@ const VerticalGanttChart = () => {
     [navigateToDate]
   );
 
-  const handleHeaderClick = useCallback((date) => {
-    setDatePickerOpen(true);
-  }, []);
-
   const handleOpenTaskForm = useCallback(() => {
     openTaskForm(selectedDay);
   }, [selectedDay, openTaskForm]);
@@ -67,20 +63,14 @@ const VerticalGanttChart = () => {
   return (
     <div className="w-full flex flex-col h-screen bg-background text-white py-4">
       <div className="flex-none">
-        <span
-          className="text-4xl font-bold mb-6 hover:cursor-pointer"
-          onClick={handleHeaderClick}
-        >
-          {format(currentWeekStart, "MMMM")}{" "}
-          <span className="text-primary">
-            {format(currentWeekStart, "yyyy")}
-          </span>
-        </span>
+        <DatePickerSheet
+          onDateSelect={handleDateSelect}
+          selectedDate={selectedDay}
+        />
 
         <WeekNavigation />
 
         <div className="grid grid-rows-[auto,1fr] grid-cols-[12px_repeat(7,1fr)] gap-x-2 gap-y-2">
-          {/* TODO Day headers row, might lift up to keep fixed in place */}
           <div className="contents">
             {" "}
             {/* Phantom element to maintain grid structure */}
@@ -126,13 +116,6 @@ const VerticalGanttChart = () => {
       <TaskForm selectedDate={selectedDay} />
 
       <FloatingActionButton onClick={handleOpenTaskForm} />
-
-      <DatePickerSheet
-        open={datePickerOpen}
-        onOpenChange={setDatePickerOpen}
-        onDateSelect={handleDateSelect}
-        selectedDate={selectedDay}
-      />
     </div>
   );
 };
