@@ -14,6 +14,7 @@ import { useTaskStore } from "@/app/stores/useTaskStore";
 import { useRef, useState, useCallback, memo } from "react";
 
 import { BottomNavigation } from "@/components/bottom-navigation";
+import ToggleDatePickerSheet from "@/components/toggle-date-picker-sheet";
 import TaskActionMenu from "@/components/task-action-menu";
 import TaskDrawer from "@/components/task-drawer";
 import { TaskForm } from "@/components/task-form";
@@ -40,6 +41,7 @@ const VerticalGanttChart = () => {
     navigateToDate,
     getWeekDays,
     selectDay,
+    setIsDateSheetOpen,
   } = useCalendarStore();
 
   const [datePickerOpen, setDatePickerOpen] = useState(false);
@@ -56,6 +58,11 @@ const VerticalGanttChart = () => {
     [navigateToDate]
   );
 
+  const handleOpenDateSheetPicker = useCallback(() => {
+    setDatePickerOpen(true);
+    console.log("Date sheet opened");
+  }, []);
+
   const handleOpenTaskForm = useCallback(() => {
     openTaskForm(selectedDay);
   }, [selectedDay, openTaskForm]);
@@ -63,10 +70,14 @@ const VerticalGanttChart = () => {
   return (
     <div className="w-full flex flex-col h-screen bg-background text-white py-4">
       <div className="flex-none">
-        <DatePickerSheet
-          onDateSelect={handleDateSelect}
-          selectedDate={selectedDay}
-        />
+        <button onClick={handleOpenDateSheetPicker}>
+          <span className="text-4xl font-bold mb-6 hover:cursor-pointer">
+            {format(currentWeekStart, "MMMM")}{" "}
+            <span className="text-primary">
+              {format(currentWeekStart, "yyyy")}
+            </span>
+          </span>
+        </button>
 
         <WeekNavigation />
 
@@ -110,6 +121,13 @@ const VerticalGanttChart = () => {
       <TaskDrawer drawerRef={drawerRef} />
 
       <TaskActionMenu />
+
+      <DatePickerSheet
+        open={datePickerOpen}
+        onOpenChange={setDatePickerOpen}
+        onDateSelect={handleDateSelect}
+        selectedDate={selectedDay}
+      />
 
       <BottomNavigation />
 

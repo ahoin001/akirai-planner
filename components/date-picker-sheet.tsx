@@ -4,13 +4,11 @@ import type React from "react";
 import { useEffect, useState } from "react";
 import useCalendarStore from "@/app/stores/useCalendarStore";
 
-import { format } from "date-fns";
-
-import VaulSheet from "@/components/vaul-sheet";
-import { Check, ChevronLeft, ChevronRight, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import dayjs from "dayjs";
 
 import { DateWheelPicker } from "./date-wheel-picker";
+import { Drawer } from "vaul";
 
 const months = [
   "January",
@@ -32,21 +30,19 @@ const years = Array.from({ length: 21 }, (_, i) =>
   String(currentYear - 10 + i)
 );
 
-interface DatePickerSheetProps {
+interface ToggleDatePickerSheetProps {
   open: boolean;
-  onOpenChange: (open: boolean) => void;
+  onOpenChange?: (open: boolean) => void;
   selectedDate?: Date;
   onDateSelect?: (date: Date) => void;
 }
 
-const DatePickerSheet: React.FC<DatePickerSheetProps> = ({
+const ToggleDatePickerSheet: React.FC<ToggleDatePickerSheetProps> = ({
   open,
   onOpenChange,
   selectedDate,
   onDateSelect,
 }) => {
-  const { currentWeekStart } = useCalendarStore();
-
   const [currentMonth, setCurrentMonth] = useState(selectedDate ?? new Date());
 
   const [selectedDateState, setSelectedDateState] = useState(
@@ -123,150 +119,150 @@ const DatePickerSheet: React.FC<DatePickerSheetProps> = ({
   const showTwoMonths = viewportWidth >= 768;
 
   return (
-    <VaulSheet
-      content={
-        <div className="w-[90vw] px-8 py-8 mx-auto mb-12 max-w-[1050px] overflow-hidden rounded-xl bg-drawer shadow-lg border text-white shadow-xl transition-all duration-300">
-          <h1 className="px-4 pt-4 pb-2 flex justify-between items-center">
-            <div className="flex items-center">
-              {isWheelOpen && (
-                <button
-                  onClick={toggleWheelPicker}
-                  className="ml-2 p-1 text-rose-400"
-                >
-                  {isWheelOpen && <ChevronLeft size={18} />}
-                </button>
-              )}
-
-              <h1 className="mx-6 text-2xl font-semibold text-white">
-                <span
-                  className="hover:cursor-pointer"
-                  onClick={toggleWheelPicker}
-                >
-                  Select Date
-                </span>
-
-                {!isWheelOpen && (
+    <Drawer.Root open={open} onOpenChange={onOpenChange}>
+      <Drawer.Portal>
+        <Drawer.Overlay className="fixed inset-0 bg-black/40" />
+        <Drawer.Content className="flex flex-col rounded-t-[10px] h-fit fixed bottom-0 left-0 right-0 outline-none z-20">
+          <div className="w-[90vw] px-8 py-8 mx-auto mb-12 max-w-[1050px] overflow-hidden rounded-xl bg-drawer shadow-lg border text-white shadow-xl transition-all duration-300">
+            <h1 className="px-4 pt-4 pb-2 flex justify-between items-center">
+              <div className="flex items-center">
+                {isWheelOpen && (
                   <button
                     onClick={toggleWheelPicker}
-                    className="ml-2 text-rose-400 hover:text-rose-300 hover:bg-transparent"
+                    className="ml-2 p-1 text-rose-400"
                   >
-                    <ChevronRight className="h-4 w-4 mr-1" />
+                    {isWheelOpen && <ChevronLeft size={18} />}
                   </button>
                 )}
-              </h1>
-              {isWheelOpen && (
-                <button
-                  onClick={handleApplyMonthYear}
-                  className="flex items-center gap-x-1 text-rose-400 hover:text-rose-300 hover:bg-transparent"
-                >
-                  <span>Apply</span>
-                </button>
-              )}
-            </div>
 
-            <button
-              onClick={() => {
-                const today = dayjs().startOf("day").toDate();
-                useCalendarStore.getState().selectDay(today);
-                setSelectedDateState(today);
-              }}
-              className="px-3 py-1.5 text-sm rounded-full bg-rose-400/20 hover:bg-rose-400/30 text-rose-400 transition-colors"
-            >
-              Today
-            </button>
-          </h1>
+                <h1 className="mx-6 text-2xl font-semibold text-white">
+                  <span
+                    className="hover:cursor-pointer"
+                    onClick={toggleWheelPicker}
+                  >
+                    Select Date
+                  </span>
 
-          <div className="flex-1 overflow-hidden relative">
-            <div className="relative">
-              {isWheelOpen ? (
-                <div className="flex space-x-4 h-[250px]">
-                  {/* Month Picker */}
-                  <div className="flex-1">
-                    <DateWheelPicker
-                      options={months}
-                      defaultIndex={tempMonth} // Use tempMonth
-                      onChange={(_, index) => setTempMonth(index)}
-                    />
-                  </div>
+                  {!isWheelOpen && (
+                    <button
+                      onClick={toggleWheelPicker}
+                      className="ml-2 text-rose-400 hover:text-rose-300 hover:bg-transparent"
+                    >
+                      <ChevronRight className="h-4 w-4 mr-1" />
+                    </button>
+                  )}
+                </h1>
+                {isWheelOpen && (
+                  <button
+                    onClick={handleApplyMonthYear}
+                    className="flex items-center gap-x-1 text-rose-400 hover:text-rose-300 hover:bg-transparent"
+                  >
+                    <span>Apply</span>
+                  </button>
+                )}
+              </div>
 
-                  {/* Year Picker */}
-                  <div className="flex-1">
-                    <DateWheelPicker
-                      options={years}
-                      defaultIndex={tempYear - (currentYear - 10)} // Correct index calculation
-                      onChange={(value) => setTempYear(Number.parseInt(value))}
-                    />
-                  </div>
-                </div>
-              ) : (
-                <div className="h-full flex flex-col animate-fade-in">
-                  <div className="flex-1 flex overflow-hidden">
-                    <div className="flex-1 flex flex-col">
-                      <div className="p-4 flex justify-between items-center">
-                        <button
-                          onClick={prevMonth}
-                          className="p-2 rounded-full hover:bg-gray-800 text-rose-400"
-                        >
-                          <ChevronLeft size={20} />
-                        </button>
-                        <h3 className="text-lg font-medium">
-                          {dayjs(currentMonth).format("MMMM YYYY")}
-                        </h3>
-                        {!showTwoMonths && (
-                          <button
-                            onClick={nextMonth}
-                            className="p-2 rounded-full hover:bg-gray-800 text-rose-400"
-                          >
-                            <ChevronRight size={20} />
-                          </button>
-                        )}
-                        {showTwoMonths && <p className="invisible">s</p>}
-                      </div>
-                      <MonthCalendar
-                        month={currentMonth}
-                        selectedDate={selectedDateState}
-                        onDateSelect={handleDateSelect}
+              <button
+                onClick={() => {
+                  const today = dayjs().startOf("day").toDate();
+                  useCalendarStore.getState().selectDay(today);
+                  setSelectedDateState(today);
+                }}
+                className="px-3 py-1.5 text-sm rounded-full bg-rose-400/20 hover:bg-rose-400/30 text-rose-400 transition-colors"
+              >
+                Today
+              </button>
+            </h1>
+
+            <div className="flex-1 overflow-hidden relative">
+              <div className="relative">
+                {isWheelOpen ? (
+                  <div className="flex space-x-4 h-[250px]">
+                    {/* Month Picker */}
+                    <div className="flex-1">
+                      <DateWheelPicker
+                        options={months}
+                        defaultIndex={tempMonth} // Use tempMonth
+                        onChange={(_, index) => setTempMonth(index)}
                       />
                     </div>
 
-                    {showTwoMonths && (
+                    {/* Year Picker */}
+                    <div className="flex-1">
+                      <DateWheelPicker
+                        options={years}
+                        defaultIndex={tempYear - (currentYear - 10)} // Correct index calculation
+                        onChange={(value) =>
+                          setTempYear(Number.parseInt(value))
+                        }
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="h-full flex flex-col animate-fade-in">
+                    <div className="flex-1 flex overflow-hidden">
                       <div className="flex-1 flex flex-col">
                         <div className="p-4 flex justify-between items-center">
-                          <div className="p-2 opacity-0">
-                            <ChevronLeft size={20} />
-                          </div>
-                          <h3 className="text-lg font-medium">
-                            {dayjs(currentMonth)
-                              .add(1, "month")
-                              .format("MMMM YYYY")}
-                          </h3>
                           <button
-                            onClick={nextMonth}
+                            onClick={prevMonth}
                             className="p-2 rounded-full hover:bg-gray-800 text-rose-400"
                           >
-                            <ChevronRight size={20} />
+                            <ChevronLeft size={20} />
                           </button>
+                          <h3 className="text-lg font-medium">
+                            {dayjs(currentMonth).format("MMMM YYYY")}
+                          </h3>
+                          {!showTwoMonths && (
+                            <button
+                              onClick={nextMonth}
+                              className="p-2 rounded-full hover:bg-gray-800 text-rose-400"
+                            >
+                              <ChevronRight size={20} />
+                            </button>
+                          )}
+                          {showTwoMonths && <p className="invisible">s</p>}
                         </div>
                         <MonthCalendar
-                          month={dayjs(currentMonth).add(1, "month").toDate()}
+                          month={currentMonth}
                           selectedDate={selectedDateState}
                           onDateSelect={handleDateSelect}
                         />
                       </div>
-                    )}
+
+                      {showTwoMonths && (
+                        <div className="flex-1 flex flex-col">
+                          <div className="p-4 flex justify-between items-center">
+                            <div className="p-2 opacity-0">
+                              <ChevronLeft size={20} />
+                            </div>
+                            <h3 className="text-lg font-medium">
+                              {dayjs(currentMonth)
+                                .add(1, "month")
+                                .format("MMMM YYYY")}
+                            </h3>
+                            <button
+                              onClick={nextMonth}
+                              className="p-2 rounded-full hover:bg-gray-800 text-rose-400"
+                            >
+                              <ChevronRight size={20} />
+                            </button>
+                          </div>
+                          <MonthCalendar
+                            month={dayjs(currentMonth).add(1, "month").toDate()}
+                            selectedDate={selectedDateState}
+                            onDateSelect={handleDateSelect}
+                          />
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      }
-    >
-      <span className="text-4xl font-bold mb-6 hover:cursor-pointer">
-        {format(currentWeekStart, "MMMM")}{" "}
-        <span className="text-primary">{format(currentWeekStart, "yyyy")}</span>
-      </span>
-    </VaulSheet>
+        </Drawer.Content>
+      </Drawer.Portal>
+    </Drawer.Root>
   );
 };
 
@@ -357,36 +353,4 @@ function getCalendarDays(month: Date): Date[][] {
   );
 }
 
-export default DatePickerSheet;
-
-<style jsx global>{`
-  @keyframes fade-in {
-    from {
-      opacity: 0;
-      transform: translateY(10px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  @keyframes slide-up {
-    from {
-      opacity: 0;
-      transform: translateY(20px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  .animate-fade-in {
-    animation: fade-in 0.3s ease-out;
-  }
-
-  .animate-slide-up {
-    animation: slide-up 0.25s ease-out;
-  }
-`}</style>;
+export default ToggleDatePickerSheet;

@@ -554,22 +554,6 @@ export function TaskForm({ selectedDate }) {
     executeSubmit(actionToExecute, payloadForAction, finalScope);
   };
 
-  // --- Close Handler passed to Sheet ---
-  // This function receives the new open state from the Sheet component
-  const handleSheetOpenChange = useCallback(
-    (open) => {
-      console.log("Sheet onOpenChange received:", open);
-      // We only need to react when the sheet is closed externally
-      // Opening is handled by store actions like openTaskForm etc.
-      if (!open) {
-        // Call the store action to ensure state consistency and cleanup
-        closeForm();
-      }
-      // No need to call a prop onOpenChange anymore
-    },
-    [closeForm]
-  ); // Dependency is the store action
-
   // --- JSX ---
   return (
     <>
@@ -909,7 +893,7 @@ export function TaskForm({ selectedDate }) {
                               />
                             </button>
                             {isEndDatePickerOpen && (
-                              <div className="absolute top-full left-0 mt-2 w-full max-w-xs z-20 bg-zinc-800 rounded-lg shadow-lg border border-gray-700">
+                              <div className="absolute top-full left-0 mt-2 w-full max-w-xs bg-zinc-800 rounded-lg shadow-lg border border-gray-700">
                                 <DatePickerSheet
                                   open={isEndDatePickerOpen}
                                   selectedDate={field.value}

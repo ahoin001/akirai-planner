@@ -25,6 +25,7 @@ const useCalendarStore = create((set, get) => ({
 
   // UI state
   drawerOpen: false,
+  isDateSheetOpen: false,
   isLoading: false,
   selectedDay: new Date(),
   slideDirection: null,
@@ -47,6 +48,7 @@ const useCalendarStore = create((set, get) => ({
       selectedTaskId: null,
     }),
 
+  setIsDateSheetOpen: (isDateSheetOpen) => set({ isDateSheetOpen }),
   setIsLoading: (isLoading) => set({ isLoading }),
 
   /**
