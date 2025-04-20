@@ -81,30 +81,32 @@ export function WheelPicker({
     }
   }, [isMobile]); // Only depends on the initial prop value
 
-  // Effect to call onChange when selectedIndex changes
   useEffect(() => {
     const currentOptions = latestOptionsRef.current;
     if (currentOptions && currentOptions[selectedIndex]) {
       const selectedTimeOption = currentOptions[selectedIndex];
-      const formatToParse = "hh:mm A"; // Changed from h:mm A
-      const formatToSend = "HH:mm"; // The format required by the parent component
+      const formatToParse = "hh:mm A";
 
-      const parsedTime = dayjs(
-        `2000-01-01 ${selectedTimeOption}`,
-        `YYYY-MM-DD ${formatToParse}`
-      );
+      // Manual parsing for iOS compatibility
+      const [time, period] = selectedTimeOption.split(" ");
+      const [hoursStr, minutesStr] = time.split(":");
+      let hours = parseInt(hoursStr, 10);
+      const minutes = parseInt(minutesStr, 10);
+
+      // Convert 12h to 24h format
+      if (period === "PM" && hours !== 12) hours += 12;
+      if (period === "AM" && hours === 12) hours = 0;
+
+      const parsedTime = dayjs().hour(hours).minute(minutes).second(0);
 
       if (parsedTime.isValid()) {
-        const formattedTimeForParent = parsedTime.format(formatToSend);
-        // Use the ref to call the latest onChange without adding it as a dependency
+        const formattedTimeForParent = parsedTime.format("HH:mm");
         latestOnChangeRef.current(formattedTimeForParent);
       } else {
-        console.warn(
-          `WheelPicker: Could not parse option "${selectedTimeOption}" at index ${selectedIndex}`
-        );
+        console.warn(`Invalid time: ${selectedTimeOption}`);
       }
     }
-  }, [selectedIndex]); // Only trigger when selectedIndex changes
+  }, [selectedIndex]);
 
   // Effect to scroll to the selected index when it changes programmatically
   // or when the initialIndex causes the first valid state update
