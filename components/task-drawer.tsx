@@ -176,13 +176,17 @@ const TaskDrawer = ({ drawerRef }) => {
       <Drawer.Portal>
         <Drawer.Content
           data-testid="content"
-          className="fixed flex flex-col w-[90vw] h-full mx-auto rounded-t-2xl bottom-0 left-0 right-0 outline-none z-[20] focus:outline-none"
+          className="fixed flex flex-col w-[90vw] h-full bg-drawer mx-auto rounded-t-2xl bottom-0 left-0 right-0 outline-none z-[20] focus:outline-none"
         >
           <div
             ref={drawerRef}
             className="w-[90vw] h-full mx-auto bg-drawer rounded-t-2xl shadow-2xl md:rounded-xl"
             style={{
               // Use max-height and dynamic height
+              height:
+                snap === snapPoints[1]
+                  ? expandedDrawerHeight
+                  : `${minDrawerHeight}px`,
               // Max height prevents overlap with potential top nav
               maxHeight: `calc(90vh - ${bottomNavHeight}px)`,
             }}
