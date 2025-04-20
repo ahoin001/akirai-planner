@@ -572,11 +572,21 @@ export function TaskForm({ selectedDate }) {
               {/* Header */}
               <div className="flex items-center justify-between p-4 sm:p-5 border-b border-gray-700/50 flex-shrink-0">
                 <h1 className="text-white text-xl sm:text-2xl font-semibold">
-                  {isEditing
-                    ? isExceptionEditMode
-                      ? "Edit Occurrence"
-                      : "Edit Task"
-                    : "New Task"}
+                  {isEditing ? (
+                    isExceptionEditMode ? (
+                      <>
+                        Edit <span className="text-primary">Occurrence</span>
+                      </>
+                    ) : (
+                      <>
+                        Edit <span className="text-primary">Task</span>
+                      </>
+                    )
+                  ) : (
+                    <>
+                      New <span className="text-primary">Task</span>
+                    </>
+                  )}
                 </h1>
                 <button
                   type="button"
