@@ -176,22 +176,18 @@ const TaskDrawer = ({ drawerRef }) => {
       <Drawer.Portal>
         <Drawer.Content
           data-testid="content"
-          className="fixed flex flex-col w-[90vw] h-full max-h-[97%] mx-auto rounded-t-2xl bottom-0 left-0 right-0 outline-none z-[20] focus:outline-none"
+          className="fixed flex flex-col w-[90vw] h-full mx-auto rounded-t-2xl bottom-0 left-0 right-0 outline-none z-[20] focus:outline-none"
         >
           <div
             ref={drawerRef}
-            className="w-[90vw] flex-1 mx-auto md:right-4 bg-drawer rounded-t-2xl md:rounded-xl shadow-2xl"
+            className="w-[90vw] h-full mx-auto bg-drawer rounded-t-2xl shadow-2xl md:rounded-xl"
             style={{
               // Use max-height and dynamic height
-              height:
-                snap === snapPoints[1]
-                  ? expandedDrawerHeight
-                  : `${minDrawerHeight}px`,
               // Max height prevents overlap with potential top nav
               maxHeight: `calc(90vh - ${bottomNavHeight}px)`,
             }}
           >
-            <div className="flex flex-col rounded-t-xl md:rounded-xl overflow-hidden">
+            <div className="flex flex-col h-full rounded-t-xl md:rounded-xl overflow-hidden">
               {/* Ensure overflow hidden */}
               {/* Drawer header */}
               <div className="p-3 sm:p-4 flex justify-between items-center flex-shrink-0">
@@ -201,7 +197,6 @@ const TaskDrawer = ({ drawerRef }) => {
                     ? dayjs(selectedDay).format("ddd, MMM D")
                     : "Tasks"}
                 </Drawer.Title>
-                {/* TODO Maybe keep for desktop */}
                 <button
                   onClick={() =>
                     setSnap((prevSnap) =>
