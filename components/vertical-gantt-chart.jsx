@@ -14,7 +14,6 @@ import { useTaskStore } from "@/app/stores/useTaskStore";
 import { useRef, useState, useCallback, memo } from "react";
 
 import { BottomNavigation } from "@/components/bottom-navigation";
-import TaskActionMenu from "@/components/task-action-menu";
 import TaskDrawer from "@/components/task-drawer";
 import { TaskForm } from "@/components/task-form";
 import WeekNavigation from "@/components/week-navigation";
