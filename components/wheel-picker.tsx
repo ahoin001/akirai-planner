@@ -227,11 +227,23 @@ export function WheelPicker({
       const currentOptions = latestOptionsRef.current;
       if (!currentOptions || !currentOptions[index]) return "Invalid time";
 
-      const startTime = dayjs(
-        `2000-01-01 ${currentOptions[index]}`,
-        "YYYY-MM-DD hh:mm A" // <-- Change this to match timeSlots format (hh:mm A)
-      );
-      if (!startTime.isValid()) return "Invalid format";
+      const timeString = currentOptions[index];
+      // Manually parse the time string (e.g., "09:00 AM")
+      const [time, period] = timeString.split(" ");
+      const [hoursStr, minutesStr] = time.split(":");
+
+      let hours = parseInt(hoursStr, 10);
+      const minutes = parseInt(minutesStr, 10);
+
+      // Convert 12-hour format to 24-hour
+      if (period === "PM" && hours !== 12) {
+        hours += 12;
+      } else if (period === "AM" && hours === 12) {
+        hours = 0;
+      }
+
+      const startTime = dayjs().hour(hours).minute(minutes).second(0);
+      if (!startTime.isValid()) return "Invalid time";
 
       const endTime = startTime.add(duration, "minute");
       return `${startTime.format("h:mm A")} - ${endTime.format("h:mm A")}`;
