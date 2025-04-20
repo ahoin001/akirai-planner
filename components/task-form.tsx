@@ -561,7 +561,7 @@ export function TaskForm({ selectedDate }) {
       <Drawer.Root open={isOpen} onOpenChange={setTaskForm}>
         <Drawer.Portal>
           <Drawer.Overlay className="fixed inset-0 bg-black/50" />
-          <Drawer.Content className="fixed inset-0 flex items-center justify-center p-4 sm:p-6">
+          <Drawer.Content className="fixed inset-0  z-[50]">
             <Drawer.Title className="hidden font-medium mb-4 text-gray-900">
               Task form
             </Drawer.Title>
