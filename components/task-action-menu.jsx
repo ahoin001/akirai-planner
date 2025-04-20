@@ -196,7 +196,7 @@ export default function TaskActionMenu({ open, onOpenChange }) {
       <Drawer.Root open={open} onOpenChange={onOpenChange}>
         <Drawer.Portal>
           <Drawer.Overlay className="fixed inset-0 bg-black/40" />
-          <Drawer.Content className="flex flex-col rounded-t-[10px] h-fit fixed bottom-0 left-0 right-0 outline-none z-20">
+          <Drawer.Content className="flex flex-col rounded-t-[10px] h-fit fixed bottom-0 left-0 right-0 outline-none z-[40]">
             <Drawer.Title className="hidden font-medium mb-4 text-gray-900">
               Action menu
             </Drawer.Title>

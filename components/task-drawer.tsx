@@ -176,7 +176,7 @@ const TaskDrawer = ({ drawerRef }) => {
       <Drawer.Portal>
         <Drawer.Content
           data-testid="content"
-          className="fixed flex flex-col w-[90vw] h-full max-h-[97%] mx-auto rounded-t-2xl bottom-0 left-0 right-0 outline-none z-50 focus:outline-none"
+          className="fixed flex flex-col w-[90vw] h-full max-h-[97%] mx-auto rounded-t-2xl bottom-0 left-0 right-0 outline-none z-[20] focus:outline-none"
         >
           <div
             ref={drawerRef}

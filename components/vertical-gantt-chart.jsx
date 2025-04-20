@@ -139,7 +139,7 @@ import DatePickerSheet from "@/components/date-picker-sheet";
 
 const FloatingActionButton = memo(({ onClick }) => (
   <button
-    className="fixed right-3 bottom-20 z-[15] w-14 h-14 bg-primary rounded-full flex items-center justify-center shadow-lg hover:bg-primary/80 transition-colors"
+    className="fixed right-3 bottom-20 z-[35] w-14 h-14 bg-primary rounded-full flex items-center justify-center shadow-lg hover:bg-primary/80 transition-colors"
     onClick={onClick}
     aria-label="Create new task"
   >
