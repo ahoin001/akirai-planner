@@ -53,6 +53,7 @@ import {
   modifyTaskOccurrenceAction,
 } from "@/app/actions";
 import { Drawer } from "vaul";
+import { DatePicker } from "./date-picker";
 
 // Extend Dayjs
 dayjs.extend(utc);
@@ -649,6 +650,7 @@ export function TaskForm({ selectedDate }) {
                       </>
                     )}
                   />
+
                   {/* Start Date Picker */}
                   <Controller
                     name="start_date"
@@ -656,25 +658,41 @@ export function TaskForm({ selectedDate }) {
                     render={({ field }) => (
                       <>
                         <div className="flex flex-col items-center mt-4 sm:mt-6">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setIsStartDatePickerOpen((prev) => !prev)
-                            }
-                            className="flex items-center gap-2 text-rose-400 px-4 py-2 rounded-lg hover:bg-gray-800/60 transition-colors text-sm sm:text-base"
-                          >
-                            <CalendarIcon className="w-4 h-4 sm:w-5 sm:h-5" />
-                            <span>
-                              {field.value
-                                ? dayjs(field.value).format("MMMM D, YYYY")
-                                : "Select Start Date"}
-                            </span>
-                            {isStartDatePickerOpen ? (
-                              <ChevronUp className="w-4 h-4" />
-                            ) : (
-                              <ChevronDown className="w-4 h-4" />
-                            )}
-                          </button>
+                          <Drawer.NestedRoot>
+                            <Drawer.Trigger className="rounded-md mt-4 w-full bg-gray-900 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-600">
+                              <div className="flex justify-center items-center gap-2">
+                                <span className="flex items-center gap-2 text-center text-rose-400 px-4 py-2 rounded-lg hover:bg-gray-800/60 transition-colors text-sm sm:text-base">
+                                  <CalendarIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+                                  <span>
+                                    {field.value
+                                      ? dayjs(field.value).format(
+                                          "MMMM D, YYYY"
+                                        )
+                                      : "Select Start Date"}
+                                  </span>
+                                  {isStartDatePickerOpen ? (
+                                    <ChevronUp className="w-4 h-4" />
+                                  ) : (
+                                    <ChevronDown className="w-4 h-4" />
+                                  )}
+                                </span>
+                              </div>
+                            </Drawer.Trigger>
+                            <Drawer.Portal>
+                              <Drawer.Overlay className="fixed inset-0 bg-black/40" />
+                              <Drawer.Content className="h-fit fixed bottom-0 left-0 right-0 outline-none shadow-lg z-[50]">
+                                <Drawer.Title className="hidden">
+                                  Form datepicker
+                                </Drawer.Title>
+                                <DatePicker
+                                  selectedDate={field.value}
+                                  onDateSelect={(date) => {
+                                    field.onChange(date); // Update react-hook-form value
+                                  }}
+                                />
+                              </Drawer.Content>
+                            </Drawer.Portal>
+                          </Drawer.NestedRoot>
                           {isStartDatePickerOpen && (
                             <DatePickerSheet
                               open={isStartDatePickerOpen}
@@ -885,46 +903,58 @@ export function TaskForm({ selectedDate }) {
                           name="end_date"
                           control={control}
                           render={({ field }) => (
-                            <div className="relative">
-                              <label className="text-sm text-gray-400 block mb-1.5 sm:mb-2">
-                                End Date
-                              </label>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setIsEndDatePickerOpen((prev) => !prev)
-                                }
-                                className="flex items-center justify-between text-left w-full gap-2 text-gray-200 px-3 py-2 rounded-md bg-zinc-800 border border-gray-700 hover:border-gray-600 transition-colors"
-                                aria-haspopup="dialog"
-                                aria-expanded={isEndDatePickerOpen}
-                              >
-                                <span className="flex items-center gap-2">
-                                  <CalendarIcon className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 flex-shrink-0" />
-                                  <span className="flex-grow">
-                                    {field.value
-                                      ? dayjs(field.value).format(
-                                          "MMMM D, YYYY"
-                                        )
-                                      : "Select end date"}
-                                  </span>
-                                </span>
-                                <ChevronDown
-                                  className={`w-4 h-4 text-gray-400 flex-shrink-0 transition-transform ${isEndDatePickerOpen ? "rotate-180" : ""}`}
-                                />
-                              </button>
-                              {isEndDatePickerOpen && (
-                                <div className="absolute top-full left-0 mt-2 w-full max-w-xs bg-zinc-800 rounded-lg shadow-lg border border-gray-700">
-                                  <DatePickerSheet
-                                    open={isEndDatePickerOpen}
+                            <>
+                              <div className="flex flex-col items-center mt-4 sm:mt-6">
+                                <Drawer.NestedRoot>
+                                  <Drawer.Trigger className="rounded-md mt-4 w-full bg-gray-900 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-600">
+                                    <div className="flex justify-center items-center gap-2">
+                                      <span className="flex items-center gap-2 text-center text-rose-400 px-4 py-2 rounded-lg hover:bg-gray-800/60 transition-colors text-sm sm:text-base">
+                                        <CalendarIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+                                        <span>
+                                          {field.value
+                                            ? dayjs(field.value).format(
+                                                "MMMM D, YYYY"
+                                              )
+                                            : "Select End Date"}
+                                        </span>
+                                        {isEndDatePickerOpen ? (
+                                          <ChevronUp className="w-4 h-4" />
+                                        ) : (
+                                          <ChevronDown className="w-4 h-4" />
+                                        )}
+                                      </span>
+                                    </div>
+                                  </Drawer.Trigger>
+                                  <Drawer.Portal>
+                                    <Drawer.Overlay className="fixed inset-0 bg-black/40" />
+                                    <Drawer.Content className="h-fit fixed bottom-0 left-0 right-0 outline-none shadow-lg z-[50]">
+                                      <Drawer.Title className="hidden">
+                                        Form datepicker
+                                      </Drawer.Title>
+                                      <DatePicker
+                                        selectedDate={field.value}
+                                        onDateSelect={(date) => {
+                                          field.onChange(date); // Update react-hook-form value
+                                        }}
+                                      />
+                                    </Drawer.Content>
+                                  </Drawer.Portal>
+                                </Drawer.NestedRoot>
+                                {isEndDatePickerOpen && (
+                                  <DatePicker
                                     selectedDate={field.value}
-                                    onOpenChange={setIsEndDatePickerOpen}
                                     onDateSelect={(date) => {
-                                      field.onChange(date);
+                                      field.onChange(date); // Update react-hook-form value
                                     }}
                                   />
-                                </div>
-                              )}
-                            </div>
+                                )}
+                                {errors.end_date && (
+                                  <p className="text-red-400 text-xs mt-1">
+                                    {errors.end_date.message}
+                                  </p>
+                                )}
+                              </div>
+                            </>
                           )}
                         />
                         {errors.end_date && (
@@ -936,7 +966,7 @@ export function TaskForm({ selectedDate }) {
                     )}
                   </div>
                 )}
-                <div className="h-8 sm:h-12"></div> {/* Bottom space */}
+                <div className="h-8 sm:h-12"></div>
               </div>
 
               {/* Footer */}
