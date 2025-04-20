@@ -86,6 +86,7 @@ export default function TaskActionMenu({ open, onOpenChange }) {
 
   // Step 1: User clicks the main delete button
   const handleDeleteRequest = () => {
+    onOpenChange(false);
     if (isParentRecurring) {
       setScopeActionType(null);
       setIsRecurrenceModalOpen(true);
@@ -202,7 +203,7 @@ export default function TaskActionMenu({ open, onOpenChange }) {
             </Drawer.Title>
 
             {/* <div className="w-[95vw] max-w-[900px] px-8 py-8 mx-auto mb-12 overflow-hidden rounded-xl bg-drawer shadow-lg border-2 text-white shadow-xl"> */}
-            {selectedTask && (
+            {
               <div className="p-8 mx-auto w-full max-w-sm md:max-w-md mb-12 overflow-hidden rounded-3xl bg-zinc-900 text-white shadow-xl">
                 {/* Content - Same as before */}
                 <div className="flex items-start justify-between ">
@@ -272,7 +273,7 @@ export default function TaskActionMenu({ open, onOpenChange }) {
                   </button>
                 </div>
               </div>
-            )}
+            }
           </Drawer.Content>
         </Drawer.Portal>
       </Drawer.Root>
