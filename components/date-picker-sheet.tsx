@@ -123,6 +123,7 @@ const ToggleDatePickerSheet: React.FC<ToggleDatePickerSheetProps> = ({
       <Drawer.Portal>
         <Drawer.Overlay className="fixed inset-0 bg-black/40" />
         <Drawer.Content className="flex flex-col rounded-t-[10px] h-fit fixed bottom-0 left-0 right-0 outline-none z-20">
+          <Drawer.Title className="hidden">Task Action Menu</Drawer.Title>
           <div className="w-[95vw] max-w-[900px] px-8 py-8 mx-auto mb-12 overflow-hidden rounded-xl bg-drawer shadow-lg border-2 text-white shadow-xl">
             <h1 className="px-4 pt-4 pb-2 flex justify-between items-center">
               <div className="flex items-center">

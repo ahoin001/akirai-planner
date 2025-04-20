@@ -35,7 +35,7 @@ interface DrawerTaskItemProps {
     color?: string;
   };
   isSelected: boolean;
-  onClick: (arg: boolean) => void;
+  onClick: (arg: object) => void;
 }
 
 const DrawerTaskItem = memo(
@@ -68,7 +68,7 @@ const DrawerTaskItem = memo(
           isSelected ? "bg-gray-600/30 ring-1 ring-gray-500" : ""
         }`}
         id={`taskInstance-${instance.id}`}
-        onClick={() => onClick(true)}
+        onClick={() => onClick(instance)}
       >
         {/* Task icon container */}
         <div
@@ -109,6 +109,9 @@ const TaskDrawer = ({ drawerRef }) => {
 
   const tasks = useTaskStore((state) => state.tasks);
   const exceptions = useTaskStore((state) => state.exceptions);
+  const setSelectedInstance = useTaskStore(
+    (state) => state.setSelectedInstance
+  );
   const selectedInstance = useTaskStore((state) => state.selectedInstance);
   const isLoading = useTaskStore((state) => state.isLoading);
 
@@ -155,6 +158,11 @@ const TaskDrawer = ({ drawerRef }) => {
       }
     }
   }, [selectedInstance, tasksForSelectedDay]);
+
+  const onShowTaskMenu = (instance) => {
+    setSelectedInstance(instance);
+    setShowActionMenu(true);
+  };
 
   return (
     <Drawer.Root
@@ -246,7 +254,7 @@ const TaskDrawer = ({ drawerRef }) => {
                               key={instance.id}
                               instance={instance}
                               isSelected={selectedInstance?.id === instance.id}
-                              onClick={setShowActionMenu}
+                              onClick={onShowTaskMenu}
                             />
                           </div>
                         </div>

@@ -174,6 +174,10 @@ export default function TaskActionMenu({ open, onOpenChange }) {
     ? dayjs(selectedTask.scheduled_date).format("M/D/YY")
     : "";
 
+  const handleCloseMenu = () => {
+    onOpenChange(false);
+  };
+
   const TaskIcon = () => {
     console.log("In taskicon : ", selectedTask);
     return (
@@ -194,6 +198,10 @@ export default function TaskActionMenu({ open, onOpenChange }) {
         <Drawer.Portal>
           <Drawer.Overlay className="fixed inset-0 bg-black/40" />
           <Drawer.Content className="flex flex-col rounded-t-[10px] h-fit fixed bottom-0 left-0 right-0 outline-none z-20">
+            <Drawer.Title className="hidden font-medium mb-4 text-gray-900">
+              Ira Glass on Taste
+            </Drawer.Title>
+
             {/* <div className="w-[95vw] max-w-[900px] px-8 py-8 mx-auto mb-12 overflow-hidden rounded-xl bg-drawer shadow-lg border-2 text-white shadow-xl"> */}
             {selectedTask && (
               <div className="p-8 mx-auto w-full max-w-sm md:max-w-md mb-12 overflow-hidden rounded-3xl bg-zinc-900 text-white shadow-xl">
@@ -214,7 +222,7 @@ export default function TaskActionMenu({ open, onOpenChange }) {
                   </div>
 
                   <button
-                    onClick={closeTaskMenu}
+                    onClick={handleCloseMenu}
                     aria-label="Close menu"
                     className="h-8 w-8 rounded-full bg-gray-600 flex items-center justify-center"
                   >
