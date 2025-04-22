@@ -167,7 +167,7 @@ export default function TaskActionMenu({ open, onOpenChange }) {
 
     openTaskFormForEdit(selectedTask);
 
-    setTimeout(closeTaskMenu, 50);
+    closeTaskMenu();
   };
 
   const dateFormatted = selectedTask

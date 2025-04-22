@@ -501,7 +501,7 @@ export const useTaskStore = create((set, get) => ({
       isTaskFormOpen: true,
       isEditingTask: true, // Set the general editing flag
       taskFormValues: formValues,
-      selectedInstance: null, // Clear instance selection from menu context
+      // selectedInstance: null, // Clear instance selection from menu context
     });
   },
 
